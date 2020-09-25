@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="zh-CN" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="author" content="shiniao" />
+	
+	
+	
+	<title>分布式XA事务处理逻辑 ｜ -O-</title>
+	
+    
+    
+    <meta name="description" content="事务在数据库中代表一系列操作要么全部都完成，要么全部都失败，ACID规定了事务操作的原子性、一致性、隔离性和持久性。然而数据库的环境不可能只在单机上，在分布式环境下，一个事务中某个操作可能发往A节点，" />
+    
+
+    
+    
+    <meta name="keywords" content="鸟石, shiniao, 博客" />
+    
+
+	
+    
+    <link rel="shortcut icon" href="https://shiniao.fun/images/favicon.ico" />
+
+    <link rel="stylesheet" type="text/css" media="screen" href="https://shiniao.fun/css/normalize.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://shiniao.fun/css/bootstrap.min.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://shiniao.fun/css/bootstrap-toc.min.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.0/animate.min.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://shiniao.fun/css/zozo.css" />
+	<link rel="stylesheet" type="text/css" media="screen" href="https://cdn.jsdelivr.net/npm/remixicon@2.5.0/fonts/remixicon.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://shiniao.fun/css/highlight.css" />
+
+    
+    
+    <link rel="stylesheet" href="https://shiniao.fun/css/o.css" />
+    
+</head>
+
+<body data-spy="scroll" data-target="#toc">
+
+    <div class="main animate__animated animate__fadeInDown">
+        <div class="nav_container animated fadeInDown">
+    <div class="site_nav" id="site_nav">
+        <ul>
+            
+            <li>
+                <a href="/">Home</a>
+            </li>
+            
+            <li>
+                <a href="/tags/">Tags</a>
+            </li>
+            
+            <li>
+                <a href="/work/">Work</a>
+            </li>
+            
+            <li>
+                <a href="/about/">Me</a>
+            </li>
+            
+        </ul>
+    </div>
+    <div class="menu_icon">
+        <a id="menu_icon"><i class="ri-menu-line"></i></a>
+    </div>
+</div>
+        <div class="header animated fadeInDown">
+    <div class="site_title_container">
+        <div class="site_title">
+            <h1>
+                <a href="https://shiniao.fun/">
+                    <span>-O-</span>
+                </a>
+            </h1>
+        </div>
+        <div class="description">
+            <p class="sub_title">鸟石写字的地方</p>
+            <div class="my_socials">
+                
+                
+                <a href="https://github.com/shiniao/" title="github" target="_blank"><i class="ri-github-fill"></i></a>
+                
+                
+                
+                <a href="https://twitter.com/chaojie_cn/" title="twitter" target="_blank"><i class="ri-twitter-fill"></i></a>
+                
+                
+                
+                <a href="https://weibo.com/zhuzhezhe" title="weibo" target="_blank"><i class="ri-weibo-fill"></i></a>
+                
+                
+                <a href="https://shiniao.fun/index.xml" type="application/rss+xml" title="rss" target="_blank"><i
+                        class="ri-rss-fill"></i></a>
+            </div>
+        </div>
+    </div>
+</div>
+        <div class="content">
+            <div class="post_page">
+                <div class="post animate__animated animate__fadeInDown">
+                    <div class="post_title post_detail_title">
+                        <h2><a href='/posts/%E5%88%86%E5%B8%83%E5%BC%8Fxa%E4%BA%8B%E5%8A%A1%E5%A4%84%E7%90%86%E9%80%BB%E8%BE%91/'>分布式XA事务处理逻辑</a></h2>
+                        <span class="date">2020.08.21</span>
+                    </div>
+                    <div class="post_content markdown"><p>事务在数据库中代表一系列操作要么全部都完成，要么全部都失败，ACID规定了事务操作的原子性、一致性、隔离性和持久性。然而数据库的环境不可能只在单机上，在分布式环境下，一个事务中某个操作可能发往A节点，而另一个操作发往B节点，这就导致无法保证ACID的原则。</p>
+<p>实现分布式事务常见的解决办法有以下几种：XA两阶段提交协议、TCC协议和SAGA协议。但是这些解决办法都不可能完全保证事务不出错。分布式系统中有一个CAP定理，说的是在分布式情况下，不可能同时满足一致性、可用性和容错性这三个条件，一般需要满足其中两个条件。</p>
+<h2 id="xa两阶段提交协议">XA两阶段提交协议</h2>
+<p>XA协议规定了分布式事务的标准，其中 <strong>AP</strong> 代表应用程序，<strong>TM</strong> 代表事务管理器，负责协调和管理事务，而<strong>RM</strong> 代表着资源管理器。</p>
+<p><img src="C:%5CUsers%5Cadmin.MENGFANDE3-PC%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20200723085002817.png" alt="image-20200723085002817"></p>
+<p>而事务的具体处理过程就是TM和RM之间的交互，分为两个阶段：</p>
+<p>第一阶段：事务管理器要求每个涉及到事务的数据库预提交(precommit)此操作，并反映是否可以提交。</p>
+<p>第二阶段：事务管理器要求每个数据库提交数据，或者回滚数据。</p>
+<p>以MySQL中的XA处理逻辑为例（MySQL5.7版本实现了对XA协议的支持），来看下这两个阶段的逻辑处理过程。</p>
+<p>对于一个事务：</p>
+<div class="highlight"><pre class="chroma"><code class="language-sql" data-lang="sql"><span class="k">begin</span><span class="p">;</span>
+<span class="k">insert</span> <span class="k">into</span> <span class="n">student</span> <span class="k">values</span> <span class="p">(</span><span class="s1">&#39;xiaoming&#39;</span><span class="p">,</span> <span class="mi">18</span><span class="p">);</span>
+<span class="k">update</span> <span class="n">test</span> <span class="k">set</span> <span class="n">age</span> <span class="o">=</span> <span class="mi">18</span> <span class="k">where</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;xiaoming&#39;</span><span class="p">;</span>
+<span class="k">commit</span><span class="p">;</span>
+</code></pre></div><h3 id="第一阶段"><strong>第一阶段</strong></h3>
+<p>事务管理器会生成一个全局的事务ID，比如使用uuid生成一个唯一的ID，为了方便用 <strong>xid1</strong> 代替。</p>
+<p>首先，遇到 <strong>begin</strong>，不处理。</p>
+<p>然后是 <strong>insert</strong> 操作，事务管理器根据表中主键的值计算（hash）出应该分布在哪个节点上，比如insert语句被计算出应该发到节点A上，事务管理器就像A节点发送命令开始XA事务，同时将insert语句发送过去。</p>
+<div class="highlight"><pre class="chroma"><code class="language-sql" data-lang="sql"><span class="n">xa</span> <span class="k">start</span> <span class="s1">&#39;xid1&#39;</span><span class="p">;</span>  <span class="o">#</span> <span class="err">开启事务</span>
+<span class="k">insert</span> <span class="k">into</span> <span class="n">student</span> <span class="k">values</span> <span class="p">(</span><span class="s1">&#39;xiaoming&#39;</span><span class="p">,</span> <span class="mi">18</span><span class="p">);</span>
+</code></pre></div><p>接下来 <strong>update</strong> 操作，同样的，事务管理器根据主键计算所属节点，开启XA，发送update语句。</p>
+<div class="highlight"><pre class="chroma"><code class="language-sql" data-lang="sql"><span class="n">xa</span> <span class="k">start</span> <span class="s1">&#39;xid1&#39;</span><span class="p">;</span> 
+<span class="k">update</span> <span class="n">test</span> <span class="k">set</span> <span class="n">age</span> <span class="o">=</span> <span class="mi">18</span> <span class="k">where</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;xiaoming&#39;</span><span class="p">;</span>
+</code></pre></div><p><strong>commit</strong> 的时候，事务管理器分别向节点A和B发送一个预提交操作：</p>
+<div class="highlight"><pre class="chroma"><code class="language-sql" data-lang="sql"><span class="n">xa</span> <span class="k">end</span> <span class="s1">&#39;xid1&#39;</span><span class="p">;</span>
+<span class="n">xa</span> <span class="k">prepare</span> <span class="s1">&#39;xid1&#39;</span><span class="p">;</span>
+</code></pre></div><h3 id="第二阶段">第二阶段</h3>
+<p>如果节点A和B都返回就绪ready，此时进入 <strong>第二阶段</strong>：</p>
+<p>事务管理器分别向节点AB发送commit操作：</p>
+<div class="highlight"><pre class="chroma"><code class="language-sql" data-lang="sql"><span class="n">xa</span> <span class="k">commit</span> <span class="s1">&#39;xid1&#39;</span><span class="p">;</span>
+</code></pre></div><p>相反的，如果有任何一个节点是unready，事务管理器就会通知A、B节点的操作回滚：</p>
+<div class="highlight"><pre class="chroma"><code class="language-sql" data-lang="sql"><span class="n">xa</span> <span class="k">rollback</span><span class="s1">&#39;xid1&#39;</span><span class="p">;</span>
+</code></pre></div><p>有一个问题，如果在进入第二阶段commit的时候，某个数据节点出现故障，会导致节点状态不一致。解决办法是把XA事务处理的过程也存入日志数据，比如MySQL将其写入了binlog，这样在出现问题时还可以恢复。</p>
+<p>整个XA的过程：</p>
+<div class="highlight"><pre class="chroma"><code class="language-sql" data-lang="sql"><span class="o">#</span> <span class="err">阶段一</span>
+<span class="n">xa</span> <span class="k">start</span> <span class="s1">&#39;xid1&#39;</span><span class="p">;</span>  
+<span class="k">insert</span> <span class="k">into</span> <span class="n">test</span> <span class="k">values</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+
+<span class="n">xa</span> <span class="k">start</span> <span class="s1">&#39;xid1&#39;</span><span class="p">;</span> 
+<span class="k">update</span> <span class="n">test</span> <span class="k">set</span> <span class="n">b</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">where</span> <span class="n">a</span> <span class="o">=</span> <span class="mi">10</span><span class="p">;</span>
+
+<span class="n">xa</span> <span class="k">end</span> <span class="s1">&#39;xid1&#39;</span><span class="p">;</span>
+<span class="n">xa</span> <span class="k">prepare</span> <span class="s1">&#39;xid1&#39;</span><span class="p">;</span>
+
+<span class="o">#</span> <span class="err">阶段二</span>
+<span class="n">xa</span> <span class="k">commit</span> <span class="s1">&#39;xid1&#39;</span><span class="p">;</span> 
+<span class="o">#</span> <span class="k">or</span>
+<span class="n">xa</span> <span class="k">rollback</span> <span class="s1">&#39;xid1&#39;</span><span class="p">;</span> <span class="o">#</span> <span class="err">失败回滚</span>
+</code></pre></div><h2 id="everdb分布式事务的支持">EverDB分布式事务的支持</h2>
+<h3 id="mycat中的实现">MyCat中的实现</h3>
+<p>EDB-Grid组件中，借鉴了MyCat（也是一个数据库中间件）的XA处理逻辑，MyCat根据XA协议实现了对分布式事务的支持，具体来说：</p>
+<p>通过数据库编程接口（比如JDBC，也就是XA协议中的AP）开启XA事务，然后执行SQL语句，预提交，最后commit。</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"> <span class="c1">// 开始XA事务
+</span><span class="c1"></span> <span class="n">conn</span><span class="o">.</span><span class="na">prepareStatement</span><span class="o">(</span><span class="s">&#34;set xa=on&#34;</span><span class="o">).</span><span class="na">execute</span><span class="o">();</span>
+
+<span class="c1">// 插入语句
+</span><span class="c1">// 分别预提交
+</span><span class="c1"></span><span class="n">conn</span><span class="o">.</span><span class="na">prepareStatement</span><span class="o">(</span><span class="n">sql1</span><span class="o">).</span><span class="na">execute</span><span class="o">();</span>
+<span class="n">conn</span><span class="o">.</span><span class="na">prepareStatement</span><span class="o">(</span><span class="n">sql2</span><span class="o">).</span><span class="na">execute</span><span class="o">();</span>
+
+<span class="c1">// commit
+</span><span class="c1"></span> <span class="n">conn</span><span class="o">.</span><span class="na">commit</span><span class="o">();</span>
+</code></pre></div><p>过程跟MySQL类似，在实现上，利用uuid生成了一个全局的事务ID：</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kt">void</span> <span class="nf">setXATXEnabled</span><span class="o">(</span><span class="kt">boolean</span> <span class="n">xaTXEnabled</span><span class="o">)</span> <span class="o">{</span>
+   <span class="k">if</span> <span class="o">(</span><span class="n">xaTXEnabled</span><span class="o">)</span> <span class="o">{</span>
+       <span class="k">if</span> <span class="o">(</span><span class="k">this</span><span class="o">.</span><span class="na">xaTXID</span> <span class="o">==</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>
+           <span class="n">xaTXID</span> <span class="o">=</span> <span class="n">genXATXID</span><span class="o">();</span> <span class="c1">// 获得 XA 事务编号
+</span><span class="c1"></span>       <span class="o">}</span>
+   <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+       <span class="k">this</span><span class="o">.</span><span class="na">xaTXID</span> <span class="o">=</span> <span class="kc">null</span><span class="o">;</span>
+   <span class="o">}</span>
+<span class="o">}</span>
+<span class="c1">//......
+</span><span class="c1"></span><span class="kd">public</span> <span class="kd">static</span> <span class="n">String</span> <span class="nf">getUUID</span><span class="o">()</span> <span class="o">{</span>
+   <span class="n">String</span> <span class="n">s</span> <span class="o">=</span> <span class="n">UUID</span><span class="o">.</span><span class="na">randomUUID</span><span class="o">().</span><span class="na">toString</span><span class="o">();</span>
+   <span class="k">return</span> <span class="n">s</span><span class="o">.</span><span class="na">substring</span><span class="o">(</span><span class="n">0</span><span class="o">,</span> <span class="n">8</span><span class="o">)</span> <span class="o">+</span> <span class="n">s</span><span class="o">.</span><span class="na">substring</span><span class="o">(</span><span class="n">9</span><span class="o">,</span> <span class="n">13</span><span class="o">)</span> <span class="o">+</span> <span class="n">s</span><span class="o">.</span><span class="na">substring</span><span class="o">(</span><span class="n">14</span><span class="o">,</span> <span class="n">18</span><span class="o">)</span> <span class="o">+</span> <span class="n">s</span><span class="o">.</span><span class="na">substring</span><span class="o">(</span><span class="n">19</span><span class="o">,</span> <span class="n">23</span><span class="o">)</span> <span class="o">+</span> <span class="n">s</span><span class="o">.</span><span class="na">substring</span><span class="o">(</span><span class="n">24</span><span class="o">);</span>
+<span class="o">}</span>
+</code></pre></div><p>然后在事务管理器向节点分发语句时，会先写入XA START：</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="k">if</span> <span class="o">(</span><span class="n">expectAutocommit</span> <span class="o">==</span> <span class="kc">false</span> <span class="o">&amp;&amp;</span> <span class="n">xaTxID</span> <span class="o">!=</span> <span class="kc">null</span> <span class="o">&amp;&amp;</span> <span class="n">xaStatus</span> <span class="o">==</span> <span class="n">TxState</span><span class="o">.</span><span class="na">TX_INITIALIZE_STATE</span><span class="o">)</span> <span class="o">{</span> 
+       <span class="n">xaCmd</span> <span class="o">=</span> <span class="s">&#34;XA START &#34;</span> <span class="o">+</span> <span class="n">xaTxID</span> <span class="o">+</span> <span class="sc">&#39;;&#39;</span><span class="o">;</span>
+       <span class="k">this</span><span class="o">.</span><span class="na">xaStatus</span> <span class="o">=</span> <span class="n">TxState</span><span class="o">.</span><span class="na">TX_STARTED_STATE</span><span class="o">;</span>
+   <span class="o">}</span>
+
+<span class="c1">//......
+</span><span class="c1"></span>
+<span class="c1">// and our query sql to multi command at last
+</span><span class="c1"></span><span class="n">sb</span><span class="o">.</span><span class="na">append</span><span class="o">(</span><span class="n">rrn</span><span class="o">.</span><span class="na">getStatement</span><span class="o">()</span> <span class="o">+</span> <span class="s">&#34;;&#34;</span><span class="o">);</span>
+<span class="c1">// syn and execute others
+</span><span class="c1"></span><span class="k">this</span><span class="o">.</span><span class="na">sendQueryCmd</span><span class="o">(</span><span class="n">sb</span><span class="o">.</span><span class="na">toString</span><span class="o">());</span>
+</code></pre></div><p>MyCat在执行事务操作是，会同时将其写入日志中，保证可恢复。</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="k">if</span> <span class="o">(</span><span class="n">mysqlCon</span><span class="o">.</span><span class="na">getXaStatus</span><span class="o">()</span> <span class="o">==</span> <span class="n">TxState</span><span class="o">.</span><span class="na">TX_STARTED_STATE</span><span class="o">)</span> <span class="o">{</span> <span class="c1">// XA 事务
+</span><span class="c1"></span>               <span class="c1">//recovery Log
+</span><span class="c1"></span>               <span class="n">participantLogEntry</span><span class="o">[</span><span class="n">started</span><span class="o">]</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ParticipantLogEntry</span><span class="o">(</span><span class="n">xaTxId</span><span class="o">,</span> <span class="n">conn</span><span class="o">.</span><span class="na">getHost</span><span class="o">(),</span> <span class="n">0</span><span class="o">,</span> <span class="n">conn</span><span class="o">.</span><span class="na">getSchema</span><span class="o">(),</span> <span class="o">((</span><span class="n">MySQLConnection</span><span class="o">)</span> <span class="n">conn</span><span class="o">).</span><span class="na">getXaStatus</span><span class="o">());</span>
+               <span class="n">String</span><span class="o">[]</span> <span class="n">cmds</span> <span class="o">=</span> <span class="k">new</span> <span class="n">String</span><span class="o">[]{</span><span class="s">&#34;XA END &#34;</span> <span class="o">+</span> <span class="n">xaTxId</span><span class="o">,</span> <span class="c1">// XA END 命令
+</span><span class="c1"></span>                       <span class="s">&#34;XA PREPARE &#34;</span> <span class="o">+</span> <span class="n">xaTxId</span><span class="o">};</span> <span class="c1">// XA PREPARE 命令
+</span><span class="c1"></span>               <span class="n">mysqlCon</span><span class="o">.</span><span class="na">execBatchCmd</span><span class="o">(</span><span class="n">cmds</span><span class="o">);</span>
+</code></pre></div><p>同样的，commit时也会同步写入日志。</p>
+<p>rollback：</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="k">if</span> <span class="o">(</span><span class="n">needRollback</span><span class="o">)</span> <span class="o">{</span>
+           <span class="k">for</span> <span class="o">(</span><span class="kt">int</span> <span class="n">j</span> <span class="o">=</span> <span class="n">0</span><span class="o">;</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="n">coordinatorLogEntry</span><span class="o">.</span><span class="na">participants</span><span class="o">.</span><span class="na">length</span><span class="o">;</span> <span class="n">j</span><span class="o">++)</span> <span class="o">{</span>
+               <span class="n">ParticipantLogEntry</span> <span class="n">participantLogEntry</span> <span class="o">=</span> <span class="n">coordinatorLogEntry</span><span class="o">.</span><span class="na">participants</span><span class="o">[</span><span class="n">j</span><span class="o">];</span>
+               <span class="c1">//XA rollback
+</span><span class="c1"></span>               <span class="n">String</span> <span class="n">xacmd</span> <span class="o">=</span> <span class="s">&#34;XA ROLLBACK &#34;</span> <span class="o">+</span> <span class="n">coordinatorLogEntry</span><span class="o">.</span><span class="na">id</span> <span class="o">+</span> <span class="sc">&#39;;&#39;</span><span class="o">;</span>
+               <span class="n">OneRawSQLQueryResultHandler</span> <span class="n">resultHandler</span> <span class="o">=</span> <span class="k">new</span> <span class="n">OneRawSQLQueryResultHandler</span><span class="o">(</span><span class="k">new</span> <span class="n">String</span><span class="o">[</span><span class="n">0</span><span class="o">],</span> <span class="k">new</span> <span class="n">XARollbackCallback</span><span class="o">());</span>
+               <span class="n">outloop</span><span class="o">:</span>
+               <span class="c1">// ...
+</span></code></pre></div><h3 id="everdb中的实现">EverDB中的实现</h3>
+<p>再来看下EverDB的处理过程：</p>
+<p>首先是生成xid，从0开始递增。</p>
+<div class="highlight"><pre class="chroma"><code class="language-c++" data-lang="c++"><span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">XA_manager</span><span class="o">::</span><span class="n">generate_xid</span><span class="p">()</span>
+<span class="p">{</span>
+  <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">ret</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="n">xid_mutex</span><span class="p">.</span><span class="n">acquire</span><span class="p">();</span>
+  <span class="k">try</span> <span class="p">{</span>
+    <span class="c1">//TODO: find a place to do init_max_xid
+</span><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">init_xid</span><span class="p">)</span>
+      <span class="n">init_max_xid</span><span class="p">();</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">xid_next</span><span class="o">++</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">ret</span><span class="p">)</span> <span class="c1">// 0 is kept as the initial value
+</span><span class="c1"></span>      <span class="o">++</span><span class="n">ret</span><span class="p">;</span>
+      <span class="c1">//...
+</span></code></pre></div><p>开始XA事务：</p>
+<div class="highlight"><pre class="chroma"><code class="language-c++" data-lang="c++"><span class="kt">void</span> <span class="n">MySQLXA_helper</span><span class="o">::</span><span class="n">init_conn_to_start_xa</span><span class="p">(</span><span class="n">Session</span> <span class="o">*</span><span class="n">session</span><span class="p">,</span>
+                                           <span class="n">DataSpace</span> <span class="o">*</span><span class="n">space</span><span class="p">,</span>
+                                           <span class="n">Connection</span> <span class="o">*</span><span class="n">conn</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">xid</span> <span class="o">=</span> <span class="n">session</span><span class="o">-&gt;</span><span class="n">get_xa_id</span><span class="p">();</span>
+
+  <span class="c1">// clear the pending transaction
+</span><span class="c1"></span>  <span class="n">conn</span><span class="o">-&gt;</span><span class="n">execute_one_modify_sql</span><span class="p">(</span><span class="s">&#34;COMMIT;&#34;</span><span class="p">);</span>
+
+  <span class="c1">// ......
+</span><span class="c1"></span>  
+    <span class="n">record_xa_redo_log</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">space</span><span class="p">,</span> <span class="n">sql</span><span class="p">.</span><span class="n">c_str</span><span class="p">());</span>  <span class="c1">// log
+</span><span class="c1"></span>   
+  <span class="p">}</span>
+    
+  <span class="c1">// ...
+</span><span class="c1"></span>    
+  <span class="c1">// start xa transaction
+</span><span class="c1"></span>  <span class="n">sql</span> <span class="o">+=</span> <span class="s">&#34;XA START &#39;&#34;</span><span class="p">;</span>
+  <span class="n">sql</span> <span class="o">+=</span> <span class="n">tmp</span><span class="p">;</span>
+  <span class="n">sql</span> <span class="o">+=</span> <span class="s">&#34;&#39;;&#34;</span><span class="p">;</span>
+  <span class="n">conn</span><span class="o">-&gt;</span><span class="n">execute_one_modify_sql</span><span class="p">(</span><span class="n">sql</span><span class="p">.</span><span class="n">c_str</span><span class="p">());</span>
+  <span class="n">conn</span><span class="o">-&gt;</span><span class="n">set_start_xa_conn</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div><p>第二阶段：XA COMMIT 或者ROLLBACK：</p>
+<div class="highlight"><pre class="chroma"><code class="language-c++" data-lang="c++"><span class="kt">void</span> <span class="nf">xa_commit_or_rollback_xid</span><span class="p">(</span><span class="n">Connection</span> <span class="o">*</span><span class="n">conn</span><span class="p">,</span> <span class="n">string</span> <span class="n">xid</span><span class="p">,</span> <span class="kt">int</span> <span class="n">flag</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="n">string</span> <span class="n">sql</span><span class="p">(</span><span class="s">&#34;&#34;</span><span class="p">);</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">flag</span> <span class="o">==</span> <span class="n">TC_TRANSACTION_COMMIT</span><span class="p">)</span>
+    <span class="n">sql</span> <span class="o">+=</span> <span class="s">&#34;XA COMMIT &#39;&#34;</span><span class="p">;</span> <span class="c1">// xa commit
+</span><span class="c1"></span>  <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">flag</span> <span class="o">!=</span> <span class="n">TC_TRANSACTION_COMMIT</span><span class="p">)</span>
+    <span class="n">sql</span> <span class="o">+=</span> <span class="s">&#34;XA ROLLBACK &#39;&#34;</span><span class="p">;</span> <span class="c1">// xa rollback
+</span><span class="c1"></span>
+  <span class="n">sql</span> <span class="o">+=</span> <span class="n">xid</span><span class="p">.</span><span class="n">c_str</span><span class="p">();</span>
+  <span class="n">sql</span> <span class="o">+=</span> <span class="s">&#34;&#39;;&#34;</span><span class="p">;</span>
+
+  <span class="n">check_xa_sql_is_not_running</span><span class="p">(</span><span class="n">conn</span><span class="p">,</span> <span class="n">sql</span><span class="p">);</span>
+  <span class="n">TimeValue</span> <span class="n">timeout</span> <span class="o">=</span> <span class="n">TimeValue</span><span class="p">(</span><span class="n">backend_sql_net_timeout</span><span class="p">);</span>
+  <span class="c1">//......
+</span><span class="c1"></span>  <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div><p>同时事务处理的过程会写入redolog中，比如上面的开始XA事务中 <strong>record_xa_redo_log</strong> 。</p>
+</div>
+                    <div class="post_footer">
+                        
+                        <div class="meta">
+                            <div class="info">
+                                <span class="field tags">
+                                    <i class="ri-stack-line"></i>
+                                    
+                                    <a href="https://shiniao.fun/tags/%E5%88%86%E5%B8%83%E5%BC%8F/">分布式</a>
+                                    
+                                    <a href="https://shiniao.fun/tags/learn/">learn</a>
+                                    
+                                </span>
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
+                
+                
+                
+<div class="doc_comments">
+    <div class="comments_block_title">发表评论</div>
+    <div id="vcomments"></div>
+</div>
+
+<link rel="stylesheet" href="https://shiniao.fun/css/comments.css" />
+<script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+<script src='//unpkg.com/valine/dist/Valine.min.js'></script>
+
+<script type="text/javascript">
+    new Valine({
+        el: '#vcomments',
+        appId: 'tGdQAqUxUGU5WwecI1lrPp3o-gzGzoHsz',
+        appKey: 'SdbHV6Dzu1a7VkerYUpU4tuT',
+        placeholder: ' ',
+        visitor: 'true',
+        avatar: 'retro',
+    })
+</script>
+                
+            </div>
+        </div>
+    </div>    
+
+    <a id="back_to_top" href="#" class="back_to_top"><i class="ri-arrow-up-s-line"></i></a>
+    <footer class="footer">
+    <div class="powered_by">
+        <a href="https://shiniao.fun">Designed by JieChao,</a>
+        <a href="http://www.gohugo.io/">Proudly published with Hugo</a>
+    </div>
+
+    <div class="footer_slogan">
+        <span>请你相信：无论如何，生活是合理的。——里尔克</span>
+    </div>
+</footer>
+    <script src="https://shiniao.fun/js/jquery-3.5.1.min.js"></script>
+<script src="https://shiniao.fun/js/bootstrap.min.js"></script>
+<script src="https://shiniao.fun/js/bootstrap-toc.min.js"></script>
+<link href="https://shiniao.fun/css/fancybox.min.css" rel="stylesheet">
+<script src="https://shiniao.fun/js/fancybox.min.js"></script>
+<script src="https://shiniao.fun/js/zozo.js"></script>
+
+
+<script type="text/javascript" async
+    src="https://cdn.bootcss.com/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+        MathJax.Hub.Config({
+            tex2jax: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\[\[', '\]\]']],
+                processEscapes: true,
+                processEnvironments: true,
+                skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+                TeX: {
+                    equationNumbers: { autoNumber: "AMS" },
+                    extensions: ["AMSmath.js", "AMSsymbols.js"]
+                }
+            }
+        });
+
+        MathJax.Hub.Queue(function () {
+            
+            
+            
+            var all = MathJax.Hub.getAllJax(), i;
+            for (i = 0; i < all.length; i += 1) {
+                all[i].SourceElement().parentNode.className += ' has-jax';
+            }
+        });
+    </script>
+
+<style>
+    code.has-jax {
+        font: inherit;
+        font-size: 100%;
+        background: inherit;
+        border: inherit;
+        color: #515151;
+    }
+</style>
+
+
+
+</body>
+
+</html>

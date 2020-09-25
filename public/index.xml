@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>-O-</title>
+    <link>https://shiniao.fun/</link>
+    <description>Recent content on -O-</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-CN</language>
+    <lastBuildDate>Thu, 24 Sep 2020 16:15:04 +0800</lastBuildDate><atom:link href="https://shiniao.fun/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Lock-Free 是什么</title>
+      <link>https://shiniao.fun/posts/lock-free%E6%98%AF%E4%BB%80%E4%B9%88/</link>
+      <pubDate>Thu, 24 Sep 2020 16:15:04 +0800</pubDate>
+      
+      <guid>https://shiniao.fun/posts/lock-free%E6%98%AF%E4%BB%80%E4%B9%88/</guid>
+      <description>什么是Lock-Free？ 在并发访问某个资源的实现中，经常利用锁机制来保证对资源的正确访问。但是锁机制的问题在于会出先死锁、活锁或者线程调度优先级被抢占等问题，同时锁的增加和释放都会消耗时间，导致性能</description>
+    </item>
+    
+    <item>
+      <title>Work</title>
+      <link>https://shiniao.fun/work/</link>
+      <pubDate>Sun, 23 Aug 2020 22:20:04 +0800</pubDate>
+      
+      <guid>https://shiniao.fun/work/</guid>
+      <description>啦啦啦</description>
+    </item>
+    
+    <item>
+      <title>关于我</title>
+      <link>https://shiniao.fun/about/</link>
+      <pubDate>Sun, 23 Aug 2020 14:23:06 +0800</pubDate>
+      
+      <guid>https://shiniao.fun/about/</guid>
+      <description>代码组装师 / 二吊子研究生 / 不学无术 / Go &amp;amp; Python ******************ABOUT************************* 常用名: 潮戒 / 鸟石 github: https://github.com/shiniao/ email: zhuzhezhe95@gmail.com twitter: https://twitter.com/chaojie_cn/ ******************SKILL************************* language: Python / Go / JavaScript Other: Vue / MySQL / Django / Docker / ML / Gin / 分布式 / ... 写技术文章的自我约束 不标题党（包括但不限于：不得不知道/干货/使用感叹号/分</description>
+    </item>
+    
+    <item>
+      <title>分布式XA事务处理逻辑</title>
+      <link>https://shiniao.fun/posts/%E5%88%86%E5%B8%83%E5%BC%8Fxa%E4%BA%8B%E5%8A%A1%E5%A4%84%E7%90%86%E9%80%BB%E8%BE%91/</link>
+      <pubDate>Fri, 21 Aug 2020 22:00:04 +0800</pubDate>
+      
+      <guid>https://shiniao.fun/posts/%E5%88%86%E5%B8%83%E5%BC%8Fxa%E4%BA%8B%E5%8A%A1%E5%A4%84%E7%90%86%E9%80%BB%E8%BE%91/</guid>
+      <description>事务在数据库中代表一系列操作要么全部都完成，要么全部都失败，ACID规定了事务操作的原子性、一致性、隔离性和持久性。然而数据库的环境不可能只在单机上，在分布式环境下，一个事务中某个操作可能发往A节点，</description>
+    </item>
+    
+  </channel>
+</rss>

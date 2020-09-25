@@ -1,0 +1,74 @@
+baseURL = "https://shiniao.fun/"
+languageCode = "zh-CN"
+defaultContentLanguage = "zh-CN"
+title = "-O-"                          # site title
+theme = "zozo"
+hasCJKLanguage = true                  # has chinese/japanese/korean ?
+summaryLength = 100
+paginate = 4                           # shows the number of articles
+enableEmoji = true
+enableRobotsTXT =  true
+googleAnalytics = ""                   # your google analytics id
+disqusShortname = ""                   # your discuss shortname
+
+pygmentsUseClasses = true
+pygmentCodeFences = true
+pygmentscodefencesguesssyntax = true
+
+[author]                               # essential
+  name = "shiniao"
+
+[blackfriday]
+  smartypants = false
+
+[[menu.main]]                          # config your menu 
+  name = "Home"
+  weight = 10
+  identifier = "Home"
+  url = "/"
+[[menu.main]]
+  name = "Tags"
+  weight = 20
+  identifier = "tags"
+  url = "/tags/"
+[[menu.main]]
+  name = "Work"
+  weight = 30
+  identifier = "work"
+  url = "/work/"
+[[menu.main]]
+  name = "Me"
+  weight = 40
+  identifier = "me"
+  url = "/about/"
+
+[params]
+  subTitle = "鸟石写字的地方"                                            # site's subTitle
+  footerSlogan = "请你相信：无论如何，生活是合理的。——里尔克"              # site's footer slogan
+  keywords = ["鸟石","shiniao","博客"]                                  # site's keywords
+  description = "鸟石写字的地方."                                        # site's description
+  enableMathJax = true                                                 # enable mathjax
+  enableSummary = true                                                 # display the article summar
+  mainSections = ["posts","post"]
+  customCSS = ["o.css"]
+  
+# Valine.
+# You can get your appid and appkey from https://leancloud.cn
+# more info please open https://valine.js.org
+[params.valine]
+  enable = true
+  appId = "tGdQAqUxUGU5WwecI1lrPp3o-gzGzoHsz"
+  appKey = "SdbHV6Dzu1a7VkerYUpU4tuT"
+  placeholder = " "
+  visitor = true
+
+# Your socail's url
+[social]
+  github = "https://github.com/shiniao/"
+  twitter = "https://twitter.com/chaojie_cn/"
+  weibo = "https://weibo.com/zhuzhezhe"
+
+[markup]
+[markup.goldmark]
+[markup.goldmark.renderer]
+  unsafe = true
