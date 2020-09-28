@@ -1,8 +1,8 @@
 ---
-title: "Lock-Free 是什么"
-date: 2020-09-24T16:15:04+08:00
+title: "Lock Free是什么"
+date: 2020-08-28T15:17:05+08:00
 draft: false
-tags: ["并发", "算法"]
+tags: ["分布式", "算法"]
 ---
 
 什么是Lock-Free？
@@ -11,7 +11,7 @@ tags: ["并发", "算法"]
 
 Lock-Free指的是不通过锁机制来保证资源的并发访问。也就是说线程间不会相互阻塞了。
 
-![](https://shiniao.fun/images/lockfree.png)
+![lock-free](https://shiniao.fun/images/lockfree.png))
 
 实现Lock-Free常见的解决办法是利用CAS操作，CAS是啥？
 
@@ -27,9 +27,9 @@ func CompareAndSwapPointer(addr *unsafe.Pointer, old, new unsafe.Pointer) (swapp
 
 如果线程1读取共享内存地址得到A，这时候线程2抢占线程1，将A的值修改为B，然后又改回A，线程1再次读取得到A，虽然结果相同，但是A已经被修改过了，这个就是**ABA问题**。
 
-一种办法是通过类似版本号的方式来解决，每次更新的时候 **counter+1**，比如对于上面的问题，在线程2修改的时候，因为增加了版本号，导致修改前后的A值并不相同：
+一种办法是通过类似版本号的方式来解决，每次更新的时候 counter+1，比如对于上面的问题，在线程2修改的时候，因为增加了版本号，导致修改前后的A值并不相同：
 
-```bash
+```
 1A--2B--3A
 ```
 
@@ -37,7 +37,7 @@ func CompareAndSwapPointer(addr *unsafe.Pointer, old, new unsafe.Pointer) (swapp
 
 Lock-Free常用来实现底层的数据结构，比如队列、栈等，本文比较了使用锁机制的队列实现和参考上述论文的Lock-Free队列实现，两种实现的性能测试结果如下图所示：
 
-![性能比较](https://shiniao.fun/images/benchmark.png)
+![性能测试](https://shiniao.fun/images/benchmark.png)
 
 可以看到，队列的Lock-Free算法稳定在200ns/op，性能更佳，而使用锁的算法要高出一倍。
 

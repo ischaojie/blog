@@ -6,7 +6,25 @@
     <description>Recent content in 分布式 on -O-</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-CN</language>
-    <lastBuildDate>Fri, 21 Aug 2020 22:00:04 +0800</lastBuildDate><atom:link href="https://shiniao.fun/tags/%E5%88%86%E5%B8%83%E5%BC%8F/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Mon, 28 Sep 2020 15:34:42 +0800</lastBuildDate><atom:link href="https://shiniao.fun/tags/%E5%88%86%E5%B8%83%E5%BC%8F/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>分布式NewSQL数据库简介</title>
+      <link>https://shiniao.fun/posts/%E5%88%86%E5%B8%83%E5%BC%8F%E6%95%B0%E6%8D%AE%E5%BA%93%E7%AE%80%E4%BB%8B/</link>
+      <pubDate>Mon, 28 Sep 2020 15:34:42 +0800</pubDate>
+      
+      <guid>https://shiniao.fun/posts/%E5%88%86%E5%B8%83%E5%BC%8F%E6%95%B0%E6%8D%AE%E5%BA%93%E7%AE%80%E4%BB%8B/</guid>
+      <description>数据库的发展经历了从传统的关系型数据库、NoSQL（Not Only SQL）数据库到近几年新出现的分布式 NewSQL 数据库，整个趋势由单机逐渐向分布式方向发展。关系型数据库自1970年由 Edgar Codd 提出以来[1]，在相当长的一</description>
+    </item>
+    
+    <item>
+      <title>Lock Free是什么</title>
+      <link>https://shiniao.fun/posts/lock-free%E6%98%AF%E4%BB%80%E4%B9%88/</link>
+      <pubDate>Fri, 28 Aug 2020 15:17:05 +0800</pubDate>
+      
+      <guid>https://shiniao.fun/posts/lock-free%E6%98%AF%E4%BB%80%E4%B9%88/</guid>
+      <description>什么是Lock-Free？ 在并发访问某个资源的实现中，经常利用锁机制来保证对资源的正确访问。但是锁机制的问题在于会出先死锁、活锁或者线程调度优先级被抢占等问题，同时锁的增加和释放都会消耗时间，导致性能</description>
+    </item>
+    
     <item>
       <title>分布式XA事务处理逻辑</title>
       <link>https://shiniao.fun/posts/%E5%88%86%E5%B8%83%E5%BC%8Fxa%E4%BA%8B%E5%8A%A1%E5%A4%84%E7%90%86%E9%80%BB%E8%BE%91/</link>
@@ -14,6 +32,15 @@
       
       <guid>https://shiniao.fun/posts/%E5%88%86%E5%B8%83%E5%BC%8Fxa%E4%BA%8B%E5%8A%A1%E5%A4%84%E7%90%86%E9%80%BB%E8%BE%91/</guid>
       <description>事务在数据库中代表一系列操作要么全部都完成，要么全部都失败，ACID规定了事务操作的原子性、一致性、隔离性和持久性。然而数据库的环境不可能只在单机上，在分布式环境下，一个事务中某个操作可能发往A节点，</description>
+    </item>
+    
+    <item>
+      <title>对Raft一致性算法的理解</title>
+      <link>https://shiniao.fun/posts/%E5%AF%B9raft%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95%E7%9A%84%E7%90%86%E8%A7%A3/</link>
+      <pubDate>Wed, 21 Aug 2019 22:02:53 +0800</pubDate>
+      
+      <guid>https://shiniao.fun/posts/%E5%AF%B9raft%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95%E7%9A%84%E7%90%86%E8%A7%A3/</guid>
+      <description></description>
     </item>
     
   </channel>

@@ -8,7 +8,7 @@
 	
 	
 	
-	<title>Lock-Free 是什么 ｜ -O-</title>
+	<title>Lock Free是什么 ｜ -O-</title>
 	
     
     
@@ -102,24 +102,24 @@
             <div class="post_page">
                 <div class="post animate__animated animate__fadeInDown">
                     <div class="post_title post_detail_title">
-                        <h2><a href='/posts/lock-free%E6%98%AF%E4%BB%80%E4%B9%88/'>Lock-Free 是什么</a></h2>
-                        <span class="date">2020.09.24</span>
+                        <h2><a href='/posts/lock-free%E6%98%AF%E4%BB%80%E4%B9%88/'>Lock Free是什么</a></h2>
+                        <span class="date">2020.08.28</span>
                     </div>
                     <div class="post_content markdown"><p>什么是Lock-Free？</p>
 <p>在并发访问某个资源的实现中，经常利用锁机制来保证对资源的正确访问。但是锁机制的问题在于会出先死锁、活锁或者线程调度优先级被抢占等问题，同时锁的增加和释放都会消耗时间，导致性能问题。</p>
 <p>Lock-Free指的是不通过锁机制来保证资源的并发访问。也就是说线程间不会相互阻塞了。</p>
-<p><img src="https://shiniao.fun/images/lockfree.png" alt=""></p>
+<p><img src="https://shiniao.fun/images/lockfree.png" alt="lock-free">)</p>
 <p>实现Lock-Free常见的解决办法是利用CAS操作，CAS是啥？</p>
 <p>CAS（Compare and Swap）是一种原子操作，原子很好理解，不可分割（比如原子事务），原子操作意味着CPU在操作内存时（读写）要么一次完成，要么失败，不会出现只完成一部分的现象。现代CPU对原子的读写操作都有相应的支持，比如X86/64架构就通过CAS的方式来实现，而ARM通过LL/SC（Load-Link/Store-Conditional）来实现。</p>
 <p>在Go语言中，可通过 atomic 包中的 CompareAndSwap** 方法来编程实现CAS：</p>
 <div class="highlight"><pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="nf">CompareAndSwapPointer</span><span class="p">(</span><span class="nx">addr</span> <span class="o">*</span><span class="nx">unsafe</span><span class="p">.</span><span class="nx">Pointer</span><span class="p">,</span> <span class="nx">old</span><span class="p">,</span> <span class="nx">new</span> <span class="nx">unsafe</span><span class="p">.</span><span class="nx">Pointer</span><span class="p">)</span> <span class="p">(</span><span class="nx">swapped</span> <span class="kt">bool</span><span class="p">)</span>
 </code></pre></div><p>使用CAS的过程中有一个问题，考虑如下状况：</p>
 <p>如果线程1读取共享内存地址得到A，这时候线程2抢占线程1，将A的值修改为B，然后又改回A，线程1再次读取得到A，虽然结果相同，但是A已经被修改过了，这个就是<strong>ABA问题</strong>。</p>
-<p>一种办法是通过类似版本号的方式来解决，每次更新的时候 <strong>counter+1</strong>，比如对于上面的问题，在线程2修改的时候，因为增加了版本号，导致修改前后的A值并不相同：</p>
-<div class="highlight"><pre class="chroma"><code class="language-bash" data-lang="bash">1A--2B--3A
+<p>一种办法是通过类似版本号的方式来解决，每次更新的时候 counter+1，比如对于上面的问题，在线程2修改的时候，因为增加了版本号，导致修改前后的A值并不相同：</p>
+<div class="highlight"><pre class="chroma"><code class="language-fallback" data-lang="fallback">1A--2B--3A
 </code></pre></div><p>在论文<a href="https://www.cs.rochester.edu/u/scott/papers/1996_PODC_queues.pdf">《 Simple, Fast, and Practical Non-Blocking and Blocking Concurrent Queue Algorithms》</a> 中，描述了一种Lock-Free 队列的实现，通过 counter 机制解决了CAS中的ABA问题，并且给出了详细的伪代码实现，可查看论文中的详细介绍。</p>
 <p>Lock-Free常用来实现底层的数据结构，比如队列、栈等，本文比较了使用锁机制的队列实现和参考上述论文的Lock-Free队列实现，两种实现的性能测试结果如下图所示：</p>
-<p><img src="https://shiniao.fun/images/benchmark.png" alt="性能比较"></p>
+<p><img src="https://shiniao.fun/images/benchmark.png" alt="性能测试"></p>
 <p>可以看到，队列的Lock-Free算法稳定在200ns/op，性能更佳，而使用锁的算法要高出一倍。</p>
 <blockquote>
 <p>代码实现参考：</p>
@@ -138,7 +138,7 @@
                                 <span class="field tags">
                                     <i class="ri-stack-line"></i>
                                     
-                                    <a href="https://shiniao.fun/tags/%E5%B9%B6%E5%8F%91/">并发</a>
+                                    <a href="https://shiniao.fun/tags/%E5%88%86%E5%B8%83%E5%BC%8F/">分布式</a>
                                     
                                     <a href="https://shiniao.fun/tags/%E7%AE%97%E6%B3%95/">算法</a>
                                     
