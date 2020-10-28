@@ -117,10 +117,68 @@
 <p>如果线程1读取共享内存地址得到A，这时候线程2抢占线程1，将A的值修改为B，然后又改回A，线程1再次读取得到A，虽然结果相同，但是A已经被修改过了，这个就是<strong>ABA问题</strong>。</p>
 <p>一种办法是通过类似版本号的方式来解决，每次更新的时候 counter+1，比如对于上面的问题，在线程2修改的时候，因为增加了版本号，导致修改前后的A值并不相同：</p>
 <div class="highlight"><pre class="chroma"><code class="language-fallback" data-lang="fallback">1A--2B--3A
-</code></pre></div><p>在论文<a href="https://www.cs.rochester.edu/u/scott/papers/1996_PODC_queues.pdf">《 Simple, Fast, and Practical Non-Blocking and Blocking Concurrent Queue Algorithms》</a> 中，描述了一种Lock-Free 队列的实现，通过 counter 机制解决了CAS中的ABA问题，并且给出了详细的伪代码实现，可查看论文中的详细介绍。</p>
-<p>Lock-Free常用来实现底层的数据结构，比如队列、栈等，本文比较了使用锁机制的队列实现和参考上述论文的Lock-Free队列实现，两种实现的性能测试结果如下图所示：</p>
+</code></pre></div><p>在论文<a href="https://www.cs.rochester.edu/u/scott/papers/1996_PODC_queues.pdf">《 Simple, Fast, and Practical Non-Blocking and Blocking Concurrent Queue Algorithms》</a> 中，描述了一种利用CAS的Lock-Free 队列的实现，通过 <strong>counter 机制</strong>解决了CAS中的ABA问题，并且给出了详细的伪代码实现，可查看论文中的详细介绍。</p>
+<div class="highlight"><pre class="chroma"><code class="language-fallback" data-lang="fallback">structure pointer_t {ptr: pointer to node_t, count: unsigned integer}
+ structure node_t {value: data type, next: pointer_t}
+ structure queue_t {Head: pointer_t, Tail: pointer_t}
+ 
+ initialize(Q: pointer to queue_t)
+    node = new_node()		// Allocate a free node
+    node-&gt;next.ptr = NULL	// Make it the only node in the linked list
+    Q-&gt;Head.ptr = Q-&gt;Tail.ptr = node	// Both Head and Tail point to it
+ 
+ enqueue(Q: pointer to queue_t, value: data type)
+  E1:   node = new_node()	// Allocate a new node from the free list
+  E2:   node-&gt;value = value	// Copy enqueued value into node
+  E3:   node-&gt;next.ptr = NULL	// Set next pointer of node to NULL
+  E4:   loop			// Keep trying until Enqueue is done
+  E5:      tail = Q-&gt;Tail	// Read Tail.ptr and Tail.count together
+  E6:      next = tail.ptr-&gt;next	// Read next ptr and count fields together
+  E7:      if tail == Q-&gt;Tail	// Are tail and next consistent?
+              // Was Tail pointing to the last node?
+  E8:         if next.ptr == NULL
+                 // Try to link node at the end of the linked list
+  E9:            if CAS(&amp;tail.ptr-&gt;next, next, &lt;node, next.count+1&gt;)
+ E10:               break	// Enqueue is done.  Exit loop
+ E11:            endif
+ E12:         else		// Tail was not pointing to the last node
+                 // Try to swing Tail to the next node
+ E13:            CAS(&amp;Q-&gt;Tail, tail, &lt;next.ptr, tail.count+1&gt;)
+ E14:         endif
+ E15:      endif
+ E16:   endloop
+        // Enqueue is done.  Try to swing Tail to the inserted node
+ E17:   CAS(&amp;Q-&gt;Tail, tail, &lt;node, tail.count+1&gt;)
+ 
+ dequeue(Q: pointer to queue_t, pvalue: pointer to data type): boolean
+  D1:   loop			     // Keep trying until Dequeue is done
+  D2:      head = Q-&gt;Head	     // Read Head
+  D3:      tail = Q-&gt;Tail	     // Read Tail
+  D4:      next = head.ptr-&gt;next    // Read Head.ptr-&gt;next
+  D5:      if head == Q-&gt;Head	     // Are head, tail, and next consistent?
+  D6:         if head.ptr == tail.ptr // Is queue empty or Tail falling behind?
+  D7:            if next.ptr == NULL  // Is queue empty?
+  D8:               return FALSE      // Queue is empty, couldn&#39;t dequeue
+  D9:            endif
+                 // Tail is falling behind.  Try to advance it
+ D10:            CAS(&amp;Q-&gt;Tail, tail, &lt;next.ptr, tail.count+1&gt;)
+ D11:         else		     // No need to deal with Tail
+                 // Read value before CAS
+                 // Otherwise, another dequeue might free the next node
+ D12:            *pvalue = next.ptr-&gt;value
+                 // Try to swing Head to the next node
+ D13:            if CAS(&amp;Q-&gt;Head, head, &lt;next.ptr, head.count+1&gt;)
+ D14:               break             // Dequeue is done.  Exit loop
+ D15:            endif
+ D16:         endif
+ D17:      endif
+ D18:   endloop
+ D19:   free(head.ptr)		     // It is safe now to free the old node
+ D20:   return TRUE                   // Queue was not empty, dequeue succeeded
+</code></pre></div><p>除此之外，该论文还给出了一种two-lock的并发队列实现，通过在Head和Tail分别添加锁，来保证入队和出队的完全并发操作。</p>
+<p>Lock-Free常用来实现底层的数据结构，比如队列、栈等，本文比较了使用单锁机制的队列实现和参考上述论文的Lock-Free队列实现，在 1&laquo;12 个节点的出队入队中，两种算法实现的性能测试结果如下图所示：</p>
 <p><img src="https://shiniao.fun/images/benchmark.png" alt="性能测试"></p>
-<p>可以看到，队列的Lock-Free算法稳定在200ns/op，性能更佳，而使用锁的算法要高出一倍。</p>
+<p>可以看到，随着处理器个数的增加，队列的Lock-Free算法一直稳定在200ns/op，性能更佳，而使用锁的算法耗时要高出一倍。</p>
 <blockquote>
 <p>代码实现参考：</p>
 <p><a href="https://github.com/rilkee/distributed/queue/">https://github.com/rilkee/distributed/queue/</a></p>
