@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="zh-CN" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="author" content="shiniao" />
+	
+	
+	
+	<title>基于LSM索引的数据库键值存储 ｜ -O-</title>
+	
+    
+    
+    <meta name="description" content="数据库中使用索引可以加快查询的速度，索引的意思是说，给某些数据添加类似路标的记号，这样从索引中就可以直接检索到该数据的位置。以MySQL为例，添加主键时默认会为该属性加上主键索引，除此之外，MySQL" />
+    
+
+    
+    
+    <meta name="keywords" content="鸟石, shiniao, 博客" />
+    
+
+	
+    
+    <link rel="shortcut icon" href="https://shiniao.fun/images/favicon.ico" />
+
+    <link rel="stylesheet" type="text/css" media="screen" href="https://shiniao.fun/css/normalize.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://shiniao.fun/css/bootstrap.min.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://shiniao.fun/css/bootstrap-toc.min.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.0/animate.min.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://shiniao.fun/css/zozo.css" />
+	<link rel="stylesheet" type="text/css" media="screen" href="https://cdn.jsdelivr.net/npm/remixicon@2.5.0/fonts/remixicon.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://shiniao.fun/css/highlight.css" />
+
+    
+    
+    <link rel="stylesheet" href="https://shiniao.fun/css/o.css" />
+    
+</head>
+
+<body data-spy="scroll" data-target="#toc">
+
+    <div class="main animate__animated animate__fadeInDown">
+        <div class="nav_container animated fadeInDown">
+    <div class="site_nav" id="site_nav">
+        <ul>
+            
+            <li>
+                <a href="/">Home</a>
+            </li>
+            
+            <li>
+                <a href="/tags/">Tags</a>
+            </li>
+            
+            <li>
+                <a href="/work/">Work</a>
+            </li>
+            
+            <li>
+                <a href="/about/">Me</a>
+            </li>
+            
+        </ul>
+    </div>
+    <div class="menu_icon">
+        <a id="menu_icon"><i class="ri-menu-line"></i></a>
+    </div>
+</div>
+        <div class="header animated fadeInDown">
+    <div class="site_title_container">
+        <div class="site_title">
+            <h1>
+                <a href="https://shiniao.fun/">
+                    <span>-O-</span>
+                </a>
+            </h1>
+        </div>
+        <div class="description">
+            <p class="sub_title">鸟石写字的地方</p>
+            <div class="my_socials">
+                
+                
+                <a href="https://github.com/shiniao/" title="github" target="_blank"><i class="ri-github-fill"></i></a>
+                
+                
+                
+                <a href="https://twitter.com/chaojie_cn/" title="twitter" target="_blank"><i class="ri-twitter-fill"></i></a>
+                
+                
+                
+                <a href="https://weibo.com/zhuzhezhe" title="weibo" target="_blank"><i class="ri-weibo-fill"></i></a>
+                
+                
+                <a href="https://shiniao.fun/index.xml" type="application/rss+xml" title="rss" target="_blank"><i
+                        class="ri-rss-fill"></i></a>
+            </div>
+        </div>
+    </div>
+</div>
+        <div class="content">
+            <div class="post_page">
+                <div class="post animate__animated animate__fadeInDown">
+                    <div class="post_title post_detail_title">
+                        <h2><a href='/posts/%E5%9F%BA%E4%BA%8Elsm%E7%9A%84%E6%95%B0%E6%8D%AE%E5%BA%93%E9%94%AE%E5%80%BC%E5%AD%98%E5%82%A8/'>基于LSM索引的数据库键值存储</a></h2>
+                        <span class="date">2020.10.28</span>
+                    </div>
+                    <div class="post_content markdown"><p>数据库中使用索引可以加快查询的速度，索引的意思是说，给某些数据添加类似路标的记号，这样从索引中就可以直接检索到该数据的位置。以MySQL为例，添加主键时默认会为该属性加上主键索引，除此之外，MySQL中还有联合索引、唯一索引等。以MySQL等为代表的关系型数据中索引常常用B+树来实现，在B+树中，叶子节点包含了所有的关键字的信息，并且按照主键大小排列，非叶子节点中存放着指向叶子节点中的指针（页号和页对应列的最小记录）。除了用B+树实现索引外，常见的还有Hash索引、全文索引以及LSM树索引。最简单的是Hash索引，标注键在数据库的位置，直接通过hash映射找到键的位置即可。而LSM树常常用在键值数据库的索引实现上。</p>
+<h3 id="lsm树">LSM树</h3>
+<p>LSM（Log-Structured Merge Tree）树索引伴随着<strong>键值数据库</strong>而出现，以RocksDB、LevelDB为代表，比如国内著名的分布式数据库TiDB的底层存储实现就是用的RocksDB。存键值对最简单的方式是直接以追加写的方式写入一个文件即可，但是不能一直写呀，否则这个文件会变得很大，同时可能存在很多重复的值（比如对访问量的计数），所以要把文件分成多个段，这样一个文件写满之后进行压缩，剔除重复的、不要的数据，然后在新的文件中写入。因为磁盘的特性，顺序写入的性能很高，但是查找数据是个问题，每次都要全表扫描，如果磁盘中的数据是有序的就好了，查找就会很快（二分查找）。</p>
+<p><img src="https://shiniao.fun/images/20201028165410.png" alt=""></p>
+<p>这种数据存储的方式其实叫做<strong>SSTable</strong>（排序字符串表），在每个SSTable文件中，数据按照键的顺序排序，当一个SSTable满了之后，通过合并压缩的方式，删除旧值以及重复的值。另外，数据肯定不会直接写入磁盘中的SSTable，首先会写入内存中，也叫做内存表，当内存表超出大小后才作为SSTable文件写入磁盘，然后在后台定期压缩。</p>
+<p>那么如何保证写入内存表的键值对是有序的？可以使用红黑树、B+树来实现，也有使用<strong>基数树</strong>来实现的（比如下面介绍的bitcask就使用基数树来对键值对排序）。这种先在内存中构建一颗有序树，当大小超出后写入磁盘的方式就是<strong>LSM树</strong>。</p>
+<p><img src="https://shiniao.fun/images/20201028141704.png" alt=""></p>
+<p>在读取数据的时候，首先在内存表中查找键所在的文件位置，然后在最近的SSTable中查找，没有的话继续找之前的。同时磁盘中的SSTable会定期合并压缩，成为新的SSTable，这样可以节省空间，提高性能。</p>
+<p><img src="https://shiniao.fun/images/20201028150112.png" alt=""></p>
+<p>LSM树的主要优点是所有前台写入都发生在内存中，并且所有后台写入都保持顺序访问模式。有着很高的写入吞吐量。</p>
+<p>上文说的LevelDB来源于Google的SSTable论文，而RocksDB是对levelDB的一些改进，为了更加深入的了解LSM以及SSTable，本文以类似的键值数据库<a href="https://github.com/prologic/bitcask">bitcask</a>为例，看看它们具体是怎么实现的。</p>
+<h3 id="bitcask">bitcask</h3>
+<p>bitcask在保证键的顺序上使用了一种<strong>自适应基数树</strong>（ART）的算法结构，论文在这：</p>
+<blockquote>
+<p><a href="https://db.in.tum.de/~leis/papers/ART.pdf">https://db.in.tum.de/~leis/papers/ART.pdf</a></p>
+</blockquote>
+<p>ART是对基数树的一种改进算法，基数树就是前缀（Trie）树，只不过更节省空间。在前缀树中，每个节点是一个单词，而基数树中，如果一个节点是父节点的唯一子节点的话，那么该子节点将会与父节点进行合并。以插入hello、hat、have三个单词为例：</p>
+<div class="highlight"><pre class="chroma"><code class="language-shell" data-lang="shell"><span class="c1"># trie</span>
+		e - l - l - o
+	  /
+* - h - a - t
+	      <span class="se">\
+</span><span class="se"></span>	       v - e
+
+<span class="c1"># radix</span>
+			*
+           /
+        <span class="o">(</span>ello<span class="o">)</span>
+         /
+* - h - * -<span class="o">(</span>a<span class="o">)</span> - * - <span class="o">(</span>t<span class="o">)</span> - *
+                 <span class="se">\
+</span><span class="se"></span>                 <span class="o">(</span>ve<span class="o">)</span>
+                   <span class="se">\
+</span><span class="se"></span>                    *
+</code></pre></div><p>前缀算法需要十个节点，而基数树算法只需要五个节点就能表示。</p>
+<p>在bitcask中，SSTable表示如下：</p>
+<div class="highlight"><pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">type</span> <span class="nx">datafile</span> <span class="kd">struct</span> <span class="p">{</span>
+	<span class="nx">sync</span><span class="p">.</span><span class="nx">RWMutex</span>
+
+	<span class="nx">id</span>           <span class="kt">int</span>
+	<span class="nx">r</span>            <span class="o">*</span><span class="nx">os</span><span class="p">.</span><span class="nx">File</span>
+	<span class="nx">ra</span>           <span class="o">*</span><span class="nx">mmap</span><span class="p">.</span><span class="nx">ReaderAt</span>
+	<span class="nx">w</span>            <span class="o">*</span><span class="nx">os</span><span class="p">.</span><span class="nx">File</span>
+	<span class="nx">offset</span>       <span class="kt">int64</span>
+	<span class="c1">// decode and encode 二进制
+</span><span class="c1"></span>	<span class="nx">dec</span>          <span class="o">*</span><span class="nx">codec</span><span class="p">.</span><span class="nx">Decoder</span>
+	<span class="nx">enc</span>          <span class="o">*</span><span class="nx">codec</span><span class="p">.</span><span class="nx">Encoder</span>
+	<span class="nx">maxKeySize</span>   <span class="kt">uint32</span>
+	<span class="nx">maxValueSize</span> <span class="kt">uint64</span>
+<span class="p">}</span>
+</code></pre></div><p>在查找数据的时候，首先会从基于ART实现的索引中找到键所在的位置，然后在当前SSTable和之前的分别查找。</p>
+<div class="highlight"><pre class="chroma"><code class="language-go" data-lang="go">
+<span class="c1">// Get retrieves the value of the given key. If the key is not found or an/I/O
+</span><span class="c1">// error occurs a null byte slice is returned along with the error.
+</span><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">b</span> <span class="o">*</span><span class="nx">Bitcask</span><span class="p">)</span> <span class="nf">Get</span><span class="p">(</span><span class="nx">key</span> <span class="p">[]</span><span class="kt">byte</span><span class="p">)</span> <span class="p">([]</span><span class="kt">byte</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
+	<span class="kd">var</span> <span class="nx">df</span> <span class="nx">data</span><span class="p">.</span><span class="nx">Datafile</span>
+
+	<span class="nx">b</span><span class="p">.</span><span class="nx">mu</span><span class="p">.</span><span class="nf">RLock</span><span class="p">()</span>
+	<span class="c1">// 优化，可以通过bloom 算法判断键存不存在，存在的话继续search
+</span><span class="c1"></span>	<span class="c1">// 不存在的话直接error
+</span><span class="c1"></span>	<span class="c1">// 从 ART 索引找到键的位置
+</span><span class="c1"></span>	<span class="c1">// key: [fileid, offset, size]
+</span><span class="c1"></span>	<span class="nx">value</span><span class="p">,</span> <span class="nx">found</span> <span class="o">:=</span> <span class="nx">b</span><span class="p">.</span><span class="nx">trie</span><span class="p">.</span><span class="nf">Search</span><span class="p">(</span><span class="nx">key</span><span class="p">)</span>
+	<span class="k">if</span> <span class="p">!</span><span class="nx">found</span> <span class="p">{</span>
+		<span class="nx">b</span><span class="p">.</span><span class="nx">mu</span><span class="p">.</span><span class="nf">RUnlock</span><span class="p">()</span>
+		<span class="k">return</span> <span class="kc">nil</span><span class="p">,</span> <span class="nx">ErrKeyNotFound</span>
+	<span class="p">}</span>
+
+	<span class="nx">item</span> <span class="o">:=</span> <span class="nx">value</span><span class="p">.(</span><span class="nx">internal</span><span class="p">.</span><span class="nx">Item</span><span class="p">)</span>
+	<span class="c1">// 如果这个键在当前 SSTable中
+</span><span class="c1"></span>	<span class="k">if</span> <span class="nx">item</span><span class="p">.</span><span class="nx">FileID</span> <span class="o">==</span> <span class="nx">b</span><span class="p">.</span><span class="nx">curr</span><span class="p">.</span><span class="nf">FileID</span><span class="p">()</span> <span class="p">{</span>
+		<span class="c1">// 查当前
+</span><span class="c1"></span>		<span class="nx">df</span> <span class="p">=</span> <span class="nx">b</span><span class="p">.</span><span class="nx">curr</span>
+	<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+		<span class="c1">// 查之前SSTable（磁盘中）
+</span><span class="c1"></span>		<span class="nx">df</span> <span class="p">=</span> <span class="nx">b</span><span class="p">.</span><span class="nx">datafiles</span><span class="p">[</span><span class="nx">item</span><span class="p">.</span><span class="nx">FileID</span><span class="p">]</span>
+	<span class="p">}</span>
+	<span class="c1">// 读取
+</span><span class="c1"></span>	<span class="nx">e</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">df</span><span class="p">.</span><span class="nf">ReadAt</span><span class="p">(</span><span class="nx">item</span><span class="p">.</span><span class="nx">Offset</span><span class="p">,</span> <span class="nx">item</span><span class="p">.</span><span class="nx">Size</span><span class="p">)</span>
+	<span class="nx">b</span><span class="p">.</span><span class="nx">mu</span><span class="p">.</span><span class="nf">RUnlock</span><span class="p">()</span>
+	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="kc">nil</span><span class="p">,</span> <span class="nx">err</span>
+	<span class="p">}</span>
+	<span class="c1">// 校验
+</span><span class="c1"></span>	<span class="nx">checksum</span> <span class="o">:=</span> <span class="nx">crc32</span><span class="p">.</span><span class="nf">ChecksumIEEE</span><span class="p">(</span><span class="nx">e</span><span class="p">.</span><span class="nx">Value</span><span class="p">)</span>
+	<span class="k">if</span> <span class="nx">checksum</span> <span class="o">!=</span> <span class="nx">e</span><span class="p">.</span><span class="nx">Checksum</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="kc">nil</span><span class="p">,</span> <span class="nx">ErrChecksumFailed</span>
+	<span class="p">}</span>
+
+	<span class="k">return</span> <span class="nx">e</span><span class="p">.</span><span class="nx">Value</span><span class="p">,</span> <span class="kc">nil</span>
+<span class="p">}</span>
+</code></pre></div><p>写入键值对的时候，</p>
+<ol>
+<li>如果SSTable超出大小了，关闭当前SSTable，并再次打开，不过这次只能读了，不能写入（归档）</li>
+<li>新建一个SSTable，分配读写权限</li>
+<li>如果没有超出大小，写入即可（encode）</li>
+</ol>
+<div class="highlight"><pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// Put stores the key and value in the database.
+</span><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">b</span> <span class="o">*</span><span class="nx">Bitcask</span><span class="p">)</span> <span class="nf">Put</span><span class="p">(</span><span class="nx">key</span><span class="p">,</span> <span class="nx">value</span> <span class="p">[]</span><span class="kt">byte</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
+	<span class="o">......</span>
+	<span class="nx">b</span><span class="p">.</span><span class="nx">mu</span><span class="p">.</span><span class="nf">Lock</span><span class="p">()</span>
+	<span class="c1">// 写入
+</span><span class="c1"></span>	<span class="nx">offset</span><span class="p">,</span> <span class="nx">n</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">b</span><span class="p">.</span><span class="nf">put</span><span class="p">(</span><span class="nx">key</span><span class="p">,</span> <span class="nx">value</span><span class="p">)</span>
+	<span class="o">......</span>
+	<span class="nx">item</span> <span class="o">:=</span> <span class="nx">internal</span><span class="p">.</span><span class="nx">Item</span><span class="p">{</span><span class="nx">FileID</span><span class="p">:</span> <span class="nx">b</span><span class="p">.</span><span class="nx">curr</span><span class="p">.</span><span class="nf">FileID</span><span class="p">(),</span> <span class="nx">Offset</span><span class="p">:</span> <span class="nx">offset</span><span class="p">,</span> <span class="nx">Size</span><span class="p">:</span> <span class="nx">n</span><span class="p">}</span>
+	<span class="c1">// 加入ART索引
+</span><span class="c1"></span>	<span class="nx">b</span><span class="p">.</span><span class="nx">trie</span><span class="p">.</span><span class="nf">Insert</span><span class="p">(</span><span class="nx">key</span><span class="p">,</span> <span class="nx">item</span><span class="p">)</span>
+	<span class="nx">b</span><span class="p">.</span><span class="nx">mu</span><span class="p">.</span><span class="nf">Unlock</span><span class="p">()</span>
+	<span class="k">return</span> <span class="kc">nil</span>
+<span class="p">}</span>
+
+<span class="c1">// put inserts a new (key, value). Both key and value are valid inputs.
+</span><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">b</span> <span class="o">*</span><span class="nx">Bitcask</span><span class="p">)</span> <span class="nf">put</span><span class="p">(</span><span class="nx">key</span><span class="p">,</span> <span class="nx">value</span> <span class="p">[]</span><span class="kt">byte</span><span class="p">)</span> <span class="p">(</span><span class="kt">int64</span><span class="p">,</span> <span class="kt">int64</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
+	<span class="nx">size</span> <span class="o">:=</span> <span class="nx">b</span><span class="p">.</span><span class="nx">curr</span><span class="p">.</span><span class="nf">Size</span><span class="p">()</span>
+	<span class="c1">// 一个SSTable（默认1MB）装不下了
+</span><span class="c1"></span>	<span class="k">if</span> <span class="nx">size</span> <span class="o">&gt;=</span> <span class="nb">int64</span><span class="p">(</span><span class="nx">b</span><span class="p">.</span><span class="nx">config</span><span class="p">.</span><span class="nx">MaxDatafileSize</span><span class="p">)</span> <span class="p">{</span>
+		<span class="c1">// 关闭当前SSTable
+</span><span class="c1"></span>		<span class="nx">err</span> <span class="o">:=</span> <span class="nx">b</span><span class="p">.</span><span class="nx">curr</span><span class="p">.</span><span class="nf">Close</span><span class="p">()</span>
+		<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+			<span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="nx">err</span>
+		<span class="p">}</span>
+
+		<span class="nx">id</span> <span class="o">:=</span> <span class="nx">b</span><span class="p">.</span><span class="nx">curr</span><span class="p">.</span><span class="nf">FileID</span><span class="p">()</span>
+		<span class="c1">// 将当前SSTable归档，设为只读
+</span><span class="c1"></span>		<span class="nx">df</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">data</span><span class="p">.</span><span class="nf">NewDatafile</span><span class="p">(</span><span class="nx">b</span><span class="p">.</span><span class="nx">path</span><span class="p">,</span> <span class="nx">id</span><span class="p">,</span> <span class="kc">true</span><span class="p">,</span> <span class="nx">b</span><span class="p">.</span><span class="nx">config</span><span class="p">.</span><span class="nx">MaxKeySize</span><span class="p">,</span> <span class="nx">b</span><span class="p">.</span><span class="nx">config</span><span class="p">.</span><span class="nx">MaxValueSize</span><span class="p">)</span>
+		<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+			<span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="nx">err</span>
+		<span class="p">}</span>
+
+		<span class="nx">b</span><span class="p">.</span><span class="nx">datafiles</span><span class="p">[</span><span class="nx">id</span><span class="p">]</span> <span class="p">=</span> <span class="nx">df</span>
+
+		<span class="nx">id</span> <span class="p">=</span> <span class="nx">b</span><span class="p">.</span><span class="nx">curr</span><span class="p">.</span><span class="nf">FileID</span><span class="p">()</span> <span class="o">+</span> <span class="mi">1</span>
+		<span class="c1">// 新建SSTable文件（id+1），并分配读写权限
+</span><span class="c1"></span>		<span class="nx">curr</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">data</span><span class="p">.</span><span class="nf">NewDatafile</span><span class="p">(</span><span class="nx">b</span><span class="p">.</span><span class="nx">path</span><span class="p">,</span> <span class="nx">id</span><span class="p">,</span> <span class="kc">false</span><span class="p">,</span> <span class="nx">b</span><span class="p">.</span><span class="nx">config</span><span class="p">.</span><span class="nx">MaxKeySize</span><span class="p">,</span> <span class="nx">b</span><span class="p">.</span><span class="nx">config</span><span class="p">.</span><span class="nx">MaxValueSize</span><span class="p">)</span>
+		<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+			<span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="nx">err</span>
+		<span class="p">}</span>
+		<span class="nx">b</span><span class="p">.</span><span class="nx">curr</span> <span class="p">=</span> <span class="nx">curr</span>
+	<span class="p">}</span>
+	<span class="c1">// 写入 key-value
+</span><span class="c1"></span>	<span class="nx">e</span> <span class="o">:=</span> <span class="nx">internal</span><span class="p">.</span><span class="nf">NewEntry</span><span class="p">(</span><span class="nx">key</span><span class="p">,</span> <span class="nx">value</span><span class="p">)</span>
+	<span class="k">return</span> <span class="nx">b</span><span class="p">.</span><span class="nx">curr</span><span class="p">.</span><span class="nf">Write</span><span class="p">(</span><span class="nx">e</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div><p>而合并和压缩SSTable会在后台周期性的执行：</p>
+<ol>
+<li>创建临时表</li>
+<li>查找键是否在 ART 索引叶子节点上，将存在的放入临时表中（合并压缩，老的会被新的代替）</li>
+<li>移除所有SSTable</li>
+<li>重命名临时表为新的SSTable</li>
+<li>重新打开数据库</li>
+</ol>
+<div class="highlight"><pre class="chroma"><code class="language-go" data-lang="go">	<span class="c1">// Rewrite all key/value pairs into merged database
+</span><span class="c1"></span>	<span class="c1">// Doing this automatically strips deleted keys and
+</span><span class="c1"></span>	<span class="c1">// old key/value pairs
+</span><span class="c1"></span>	<span class="nx">err</span> <span class="p">=</span> <span class="nx">b</span><span class="p">.</span><span class="nf">Fold</span><span class="p">(</span><span class="kd">func</span><span class="p">(</span><span class="nx">key</span> <span class="p">[]</span><span class="kt">byte</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
+		<span class="c1">// b.Get的key都是经过ART处理过的
+</span><span class="c1"></span>		<span class="nx">value</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">b</span><span class="p">.</span><span class="nf">Get</span><span class="p">(</span><span class="nx">key</span><span class="p">)</span>
+		<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+			<span class="k">return</span> <span class="nx">err</span>
+		<span class="p">}</span>
+
+		<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">mdb</span><span class="p">.</span><span class="nf">Put</span><span class="p">(</span><span class="nx">key</span><span class="p">,</span> <span class="nx">value</span><span class="p">);</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+			<span class="k">return</span> <span class="nx">err</span>
+		<span class="p">}</span>
+
+		<span class="k">return</span> <span class="kc">nil</span>
+	<span class="p">})</span>
+
+
+<span class="c1">// Fold iterates over all keys in the database calling the function `f` for
+</span><span class="c1">// each key. If the function returns an error, no further keys are processed
+</span><span class="c1">// and the error returned.
+</span><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">b</span> <span class="o">*</span><span class="nx">Bitcask</span><span class="p">)</span> <span class="nf">Fold</span><span class="p">(</span><span class="nx">f</span> <span class="kd">func</span><span class="p">(</span><span class="nx">key</span> <span class="p">[]</span><span class="kt">byte</span><span class="p">)</span> <span class="kt">error</span><span class="p">)</span> <span class="p">(</span><span class="nx">err</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
+	<span class="nx">b</span><span class="p">.</span><span class="nx">mu</span><span class="p">.</span><span class="nf">RLock</span><span class="p">()</span>
+	<span class="k">defer</span> <span class="nx">b</span><span class="p">.</span><span class="nx">mu</span><span class="p">.</span><span class="nf">RUnlock</span><span class="p">()</span>
+	
+	<span class="c1">// key在ART的叶子节点，返回true，否则返回false，不处理
+</span><span class="c1"></span>	<span class="nx">b</span><span class="p">.</span><span class="nx">trie</span><span class="p">.</span><span class="nf">ForEach</span><span class="p">(</span><span class="kd">func</span><span class="p">(</span><span class="nx">node</span> <span class="nx">art</span><span class="p">.</span><span class="nx">Node</span><span class="p">)</span> <span class="kt">bool</span> <span class="p">{</span>
+		<span class="k">if</span> <span class="nx">err</span> <span class="p">=</span> <span class="nf">f</span><span class="p">(</span><span class="nx">node</span><span class="p">.</span><span class="nf">Key</span><span class="p">());</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+			<span class="k">return</span> <span class="kc">false</span>
+		<span class="p">}</span>
+		<span class="k">return</span> <span class="kc">true</span>
+	<span class="p">})</span>
+
+	<span class="k">return</span>
+<span class="p">}</span>
+</code></pre></div><p>参考文献：</p>
+<p>[1]  &ldquo;The Adaptive Radix Tree:ARTful Indexing for Main-Memory Databases&rdquo;, Viktor Leis, Alfons Kemper, Thomas Neumann.</p>
+<p>[2] 《设计数据密集型应用》</p>
+<p>[3] <a href="https://github.com/prologic/bitcask">https://github.com/prologic/bitcask</a></p>
+<p>[4] <a href="https://stackoverflow.com/questions/14708134/what-is-the-difference-between-trie-and-radix-trie-data-structures">https://stackoverflow.com/questions/14708134/what-is-the-difference-between-trie-and-radix-trie-data-structures</a></p>
+</div>
+                    <div class="post_footer">
+                        
+                        <div class="meta">
+                            <div class="info">
+                                <span class="field tags">
+                                    <i class="ri-stack-line"></i>
+                                    
+                                    <a href="https://shiniao.fun/tags/%E6%95%B0%E6%8D%AE%E5%BA%93/">数据库</a>
+                                    
+                                    <a href="https://shiniao.fun/tags/%E7%B4%A2%E5%BC%95/">索引</a>
+                                    
+                                    <a href="https://shiniao.fun/tags/%E9%94%AE%E5%80%BC%E6%95%B0%E6%8D%AE%E5%BA%93/">键值数据库</a>
+                                    
+                                </span>
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
+                
+                
+                
+<div class="doc_comments">
+    <div class="comments_block_title">发表评论</div>
+    <div id="vcomments"></div>
+</div>
+
+<link rel="stylesheet" href="https://shiniao.fun/css/comments.css" />
+<script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+<script src='//unpkg.com/valine/dist/Valine.min.js'></script>
+
+<script type="text/javascript">
+    new Valine({
+        el: '#vcomments',
+        appId: 'tGdQAqUxUGU5WwecI1lrPp3o-gzGzoHsz',
+        appKey: 'SdbHV6Dzu1a7VkerYUpU4tuT',
+        placeholder: ' ',
+        visitor: 'true',
+        avatar: 'retro',
+    })
+</script>
+                
+            </div>
+        </div>
+    </div>    
+
+    <a id="back_to_top" href="#" class="back_to_top"><i class="ri-arrow-up-s-line"></i></a>
+    <footer class="footer">
+    <div class="powered_by">
+        <a href="https://shiniao.fun">Designed by JieChao,</a>
+        <a href="http://www.gohugo.io/">Proudly published with Hugo</a>
+    </div>
+
+    <div class="footer_slogan">
+        <span>请你相信：无论如何，生活是合理的。——里尔克</span>
+    </div>
+</footer>
+    <script src="https://shiniao.fun/js/jquery-3.5.1.min.js"></script>
+<script src="https://shiniao.fun/js/bootstrap.min.js"></script>
+<script src="https://shiniao.fun/js/bootstrap-toc.min.js"></script>
+<link href="https://shiniao.fun/css/fancybox.min.css" rel="stylesheet">
+<script src="https://shiniao.fun/js/fancybox.min.js"></script>
+<script src="https://shiniao.fun/js/zozo.js"></script>
+
+
+<script type="text/javascript" async
+    src="https://cdn.bootcss.com/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+        MathJax.Hub.Config({
+            tex2jax: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\[\[', '\]\]']],
+                processEscapes: true,
+                processEnvironments: true,
+                skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+                TeX: {
+                    equationNumbers: { autoNumber: "AMS" },
+                    extensions: ["AMSmath.js", "AMSsymbols.js"]
+                }
+            }
+        });
+
+        MathJax.Hub.Queue(function () {
+            
+            
+            
+            var all = MathJax.Hub.getAllJax(), i;
+            for (i = 0; i < all.length; i += 1) {
+                all[i].SourceElement().parentNode.className += ' has-jax';
+            }
+        });
+    </script>
+
+<style>
+    code.has-jax {
+        font: inherit;
+        font-size: 100%;
+        background: inherit;
+        border: inherit;
+        color: #515151;
+    }
+</style>
+
+
+
+</body>
+
+</html>

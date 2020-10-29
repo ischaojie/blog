@@ -6,10 +6,19 @@
     <description>Recent content on -O-</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-CN</language>
-    <lastBuildDate>Mon, 28 Sep 2020 15:34:42 +0800</lastBuildDate>
+    <lastBuildDate>Wed, 28 Oct 2020 11:19:00 +0800</lastBuildDate>
     
 	<atom:link href="https://shiniao.fun/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>基于LSM索引的数据库键值存储</title>
+      <link>https://shiniao.fun/posts/%E5%9F%BA%E4%BA%8Elsm%E7%9A%84%E6%95%B0%E6%8D%AE%E5%BA%93%E9%94%AE%E5%80%BC%E5%AD%98%E5%82%A8/</link>
+      <pubDate>Wed, 28 Oct 2020 11:19:00 +0800</pubDate>
+      
+      <guid>https://shiniao.fun/posts/%E5%9F%BA%E4%BA%8Elsm%E7%9A%84%E6%95%B0%E6%8D%AE%E5%BA%93%E9%94%AE%E5%80%BC%E5%AD%98%E5%82%A8/</guid>
+      <description>数据库中使用索引可以加快查询的速度，索引的意思是说，给某些数据添加类似路标的记号，这样从索引中就可以直接检索到该数据的位置。以MySQL为例，添加主键时默认会为该属性加上主键索引，除此之外，MySQL</description>
+    </item>
     
     <item>
       <title>分布式NewSQL数据库简介</title>
@@ -63,6 +72,60 @@
       
       <guid>https://shiniao.fun/posts/%E5%AF%B9raft%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95%E7%9A%84%E7%90%86%E8%A7%A3/</guid>
       <description></description>
+    </item>
+    
+    <item>
+      <title>小燕子</title>
+      <link>https://shiniao.fun/posts/%E5%B0%8F%E7%87%95%E5%AD%90/</link>
+      <pubDate>Mon, 11 Jun 2018 11:19:00 +0800</pubDate>
+      
+      <guid>https://shiniao.fun/posts/%E5%B0%8F%E7%87%95%E5%AD%90/</guid>
+      <description>那是在四月，朱家的老宅住进了一只小燕子。每天飞来飞去的筑巢，衔来树枝，衔来泥土。巢筑在胡同的拐角，遮风挡雨。这件事吸引了朱逸之。 朱逸之是朱家的老二，这宅子里只住着他一个人，无双镇只有这一个宅子。 每天清</description>
+    </item>
+    
+    <item>
+      <title>等等</title>
+      <link>https://shiniao.fun/posts/%E7%AD%89%E7%AD%89/</link>
+      <pubDate>Mon, 20 Nov 2017 11:19:00 +0800</pubDate>
+      
+      <guid>https://shiniao.fun/posts/%E7%AD%89%E7%AD%89/</guid>
+      <description>想起一个事，彗星撞击系守町的那个晩上，我看到有人骑着羊在来回跑。 在工大西门地铁口，手里拿着鞭子。 驾！像骑着一匹马。 天冷的很，我喊了声”天王盖地虎”，羊就停下来看我，眼神像看一个傻子。 这件事情不该发生。</description>
+    </item>
+    
+    <item>
+      <title>失焦的习题</title>
+      <link>https://shiniao.fun/posts/%E5%A4%B1%E7%84%A6%E7%9A%84%E4%B9%A0%E9%A2%98/</link>
+      <pubDate>Mon, 03 Oct 2016 11:19:00 +0800</pubDate>
+      
+      <guid>https://shiniao.fun/posts/%E5%A4%B1%E7%84%A6%E7%9A%84%E4%B9%A0%E9%A2%98/</guid>
+      <description>——记考研之路 习题越看越模糊，不可描述。 不可描述是指你看它一下，答案就不确定。不是解法不正确，是你不该看它。 习题翻到前一页，也可以翻到后一页。可以看十二点之后的习题，也可以看昨天的习题。除了泰勒公式，</description>
+    </item>
+    
+    <item>
+      <title>吃掉图书馆</title>
+      <link>https://shiniao.fun/posts/%E5%90%83%E6%8E%89%E5%9B%BE%E4%B9%A6%E9%A6%86/</link>
+      <pubDate>Sat, 24 Sep 2016 11:19:00 +0800</pubDate>
+      
+      <guid>https://shiniao.fun/posts/%E5%90%83%E6%8E%89%E5%9B%BE%E4%B9%A6%E9%A6%86/</guid>
+      <description>在朱逸之眼里，图书馆是一块食物。 你不要感到惊讶。冰河纪已经过去很久了，什么都可以成为食物。音乐、感伤、故乡，这些都是。不同的人类选择不同种类的食物，咀嚼、吸收、排泄，这是一个必然事件。 杨梓塘路130号</description>
+    </item>
+    
+    <item>
+      <title>元旦随感</title>
+      <link>https://shiniao.fun/posts/%E5%85%83%E6%97%A6%E9%9A%8F%E6%84%9F/</link>
+      <pubDate>Fri, 01 Jan 2016 11:19:00 +0800</pubDate>
+      
+      <guid>https://shiniao.fun/posts/%E5%85%83%E6%97%A6%E9%9A%8F%E6%84%9F/</guid>
+      <description>昨天晚上做了一场惊心动魄的关于抵抗巨虫入侵的梦，具体细节记不大清楚，那场战役中，我所在的村庄被毁灭。然后我就在八点多的时候惊醒，唏嘘不已。2016年1月1日，十八岁的我因抵御外敌入侵立下赫赫战功，在梦</description>
+    </item>
+    
+    <item>
+      <title>朱咸鱼之死</title>
+      <link>https://shiniao.fun/posts/%E6%9C%B1%E5%92%B8%E9%B1%BC%E4%B9%8B%E6%AD%BB/</link>
+      <pubDate>Mon, 14 Sep 2015 11:19:00 +0800</pubDate>
+      
+      <guid>https://shiniao.fun/posts/%E6%9C%B1%E5%92%B8%E9%B1%BC%E4%B9%8B%E6%AD%BB/</guid>
+      <description>砰的一声传来巨响，在夏日的某个清晨。 昔日安静的松园公寓霎时热闹了起来。“快来看呐，有人跳楼了。”人们纷纷驻足，议论，拍照留念。 死者是朱咸鱼，他从六层楼的高处跳下，鲜血淌成一只鸟的形状。 这成了校园里的一</description>
     </item>
     
   </channel>
