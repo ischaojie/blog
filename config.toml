@@ -5,7 +5,7 @@ title = "-O-"                          # site title
 theme = "zozo"
 hasCJKLanguage = true                  # has chinese/japanese/korean ?
 summaryLength = 100
-paginate = 10                           # shows the number of articles
+paginate = 100                           # shows the number of articles
 enableEmoji = true
 enableRobotsTXT =  true
 googleAnalytics = ""                   # your google analytics id
@@ -45,7 +45,7 @@ pygmentscodefencesguesssyntax = true
 [params]
   subTitle = "鸟石写字的地方"                                            # site's subTitle
   footerSlogan = "请你相信：无论如何，生活是合理的。——里尔克"              # site's footer slogan
-  keywords = ["鸟石","shiniao","博客"]                                  # site's keywords
+  keywords = ["鸟石","shiniao","技术","分布式","数据库","博客","潮戒","算法"]    # site's keywords
   description = "鸟石写字的地方."                                        # site's description
   enableMathJax = true                                                 # enable mathjax
   enableSummary = true                                                 # display the article summar
