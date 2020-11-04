@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="zh-CN" >
+<head>
+    <meta name="google-site-verification" content="TjxoSrOSvzF5sflWfkro3NiONSjLWtPoCVrQGbPRq2Y" />
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="author" content="shiniao" />
+	
+	
+	
+	<title>对Python并发编程的思考 ｜ -O-</title>
+	
+    
+    
+    <meta name="description" content="为了提高系统密集型运算的效率，我们常常会使用到多个进程或者是多个线程，python中的Threading包实现了线程，multiprocessing 包则实现了多进程。而在3.2版本的python中，将" />
+    
+
+    
+    
+    <meta name="keywords" content="鸟石, shiniao, 技术, 分布式, 数据库, 博客, 潮戒, 算法" />
+    
+
+	
+    
+    <link rel="shortcut icon" href="https://shiniao.fun/images/favicon.ico" />
+
+    <link rel="stylesheet" type="text/css" media="screen" href="https://shiniao.fun/css/normalize.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://shiniao.fun/css/bootstrap.min.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://shiniao.fun/css/bootstrap-toc.min.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.0/animate.min.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://shiniao.fun/css/zozo.css" />
+	<link rel="stylesheet" type="text/css" media="screen" href="https://cdn.jsdelivr.net/npm/remixicon@2.5.0/fonts/remixicon.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://shiniao.fun/css/highlight.css" />
+
+    
+    
+    <link rel="stylesheet" href="https://shiniao.fun/css/o.css" />
+    
+</head>
+
+<body data-spy="scroll" data-target="#toc">
+
+    <div class="main animate__animated animate__fadeInDown">
+        <div class="nav_container animated fadeInDown">
+    <div class="site_nav" id="site_nav">
+        <ul>
+            
+            <li>
+                <a href="/">Home</a>
+            </li>
+            
+            <li>
+                <a href="/tags/">Tags</a>
+            </li>
+            
+            <li>
+                <a href="/work/">Work</a>
+            </li>
+            
+            <li>
+                <a href="/about/">Me</a>
+            </li>
+            
+        </ul>
+    </div>
+    <div class="menu_icon">
+        <a id="menu_icon"><i class="ri-menu-line"></i></a>
+    </div>
+</div>
+        <div class="header animated fadeInDown">
+    <div class="site_title_container">
+        <div class="site_title">
+            <h1>
+                <a href="https://shiniao.fun/">
+                    <span>-O-</span>
+                </a>
+            </h1>
+        </div>
+        <div class="description">
+            <p class="sub_title">鸟石写字的地方</p>
+            <div class="my_socials">
+                
+                
+                <a href="https://github.com/shiniao/" title="github" target="_blank"><i class="ri-github-fill"></i></a>
+                
+                
+                
+                <a href="https://twitter.com/chaojie_cn/" title="twitter" target="_blank"><i class="ri-twitter-fill"></i></a>
+                
+                
+                
+                <a href="https://weibo.com/zhuzhezhe" title="weibo" target="_blank"><i class="ri-weibo-fill"></i></a>
+                
+                
+                <a href="https://shiniao.fun/index.xml" type="application/rss+xml" title="rss" target="_blank"><i
+                        class="ri-rss-fill"></i></a>
+            </div>
+        </div>
+    </div>
+</div>
+        <div class="content">
+            <div class="post_page">
+                <div class="post animate__animated animate__fadeInDown">
+                    <div class="post_title post_detail_title">
+                        <h2><a href='/posts/%E5%AF%B9python%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E7%9A%84%E6%80%9D%E8%80%83/'>对Python并发编程的思考</a></h2>
+                        <span class="date">2018.01.11</span>
+                    </div>
+                    <div class="post_content markdown"><p>为了提高系统密集型运算的效率，我们常常会使用到多个进程或者是多个线程，python中的<code>Threading</code>包实现了线程，<code>multiprocessing</code> 包则实现了多进程。而在3.2版本的python中，将进程与线程进一步封装成<code>concurrent.futures</code> 这个包，使用起来更加方便。我们以请求网络服务为例，来实际测试一下加入多线程之后的效果。</p>
+<p>首先来看看不使用多线程花费的时间：</p>
+<div class="highlight"><pre class="chroma"><code class="language-python" data-lang="python"><span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">requests</span>
+
+<span class="n">NUMBERS</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="mi">12</span><span class="p">)</span>
+<span class="n">URL</span> <span class="o">=</span> <span class="s1">&#39;http://httpbin.org/get?a={}&#39;</span>
+
+<span class="c1"># 获取网络请求结果</span>
+<span class="k">def</span> <span class="nf">fetch</span><span class="p">(</span><span class="n">a</span><span class="p">):</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">URL</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">a</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">r</span><span class="o">.</span><span class="n">json</span><span class="p">()[</span><span class="s1">&#39;args&#39;</span><span class="p">][</span><span class="s1">&#39;a&#39;</span><span class="p">]</span>
+
+<span class="c1"># 开始时间</span>
+<span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+<span class="k">for</span> <span class="n">num</span> <span class="ow">in</span> <span class="n">NUMBERS</span><span class="p">:</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">fetch</span><span class="p">(</span><span class="n">num</span><span class="p">)</span>
+    <span class="k">print</span><span class="p">(</span><span class="s1">&#39;fetch({}) = {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">num</span><span class="p">,</span> <span class="n">result</span><span class="p">))</span>
+<span class="c1"># 计算花费的时间</span>
+<span class="k">print</span><span class="p">(</span><span class="s1">&#39;cost time: {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start</span><span class="p">))</span>
+
+</code></pre></div><p>执行结果如下：</p>
+<div class="highlight"><pre class="chroma"><code class="language-bash" data-lang="bash">fetch<span class="o">(</span>0<span class="o">)</span> <span class="o">=</span> <span class="m">0</span>
+fetch<span class="o">(</span>1<span class="o">)</span> <span class="o">=</span> <span class="m">1</span>
+fetch<span class="o">(</span>2<span class="o">)</span> <span class="o">=</span> <span class="m">2</span>
+fetch<span class="o">(</span>3<span class="o">)</span> <span class="o">=</span> <span class="m">3</span>
+fetch<span class="o">(</span>4<span class="o">)</span> <span class="o">=</span> <span class="m">4</span>
+fetch<span class="o">(</span>5<span class="o">)</span> <span class="o">=</span> <span class="m">5</span>
+fetch<span class="o">(</span>6<span class="o">)</span> <span class="o">=</span> <span class="m">6</span>
+fetch<span class="o">(</span>7<span class="o">)</span> <span class="o">=</span> <span class="m">7</span>
+fetch<span class="o">(</span>8<span class="o">)</span> <span class="o">=</span> <span class="m">8</span>
+fetch<span class="o">(</span>9<span class="o">)</span> <span class="o">=</span> <span class="m">9</span>
+fetch<span class="o">(</span>10<span class="o">)</span> <span class="o">=</span> <span class="m">10</span>
+fetch<span class="o">(</span>11<span class="o">)</span> <span class="o">=</span> <span class="m">11</span>
+cost time: 6.952988862991333
+</code></pre></div><p>再来看看加入多线程之后的效果：</p>
+<div class="highlight"><pre class="chroma"><code class="language-python" data-lang="python"><span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">requests</span>
+<span class="kn">from</span> <span class="nn">concurrent.futures</span> <span class="kn">import</span> <span class="n">ThreadPoolExecutor</span>
+
+<span class="n">NUMBERS</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="mi">12</span><span class="p">)</span>
+<span class="n">URL</span> <span class="o">=</span> <span class="s1">&#39;http://httpbin.org/get?a={}&#39;</span>
+
+<span class="k">def</span> <span class="nf">fetch</span><span class="p">(</span><span class="n">a</span><span class="p">):</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">URL</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">a</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">r</span><span class="o">.</span><span class="n">json</span><span class="p">()[</span><span class="s1">&#39;args&#39;</span><span class="p">][</span><span class="s1">&#39;a&#39;</span><span class="p">]</span>
+
+<span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+<span class="c1"># 使用线程池（使用5个线程）</span>
+<span class="k">with</span> <span class="n">ThreadPoolExecutor</span><span class="p">(</span><span class="n">max_workers</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span> <span class="k">as</span> <span class="n">executor</span><span class="p">:</span>
+  <span class="c1"># 此处的map操作与原生的map函数功能一样</span>
+    <span class="k">for</span> <span class="n">num</span><span class="p">,</span> <span class="n">result</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">NUMBERS</span><span class="p">,</span> <span class="n">executor</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">fetch</span><span class="p">,</span> <span class="n">NUMBERS</span><span class="p">)):</span>
+        <span class="k">print</span><span class="p">(</span><span class="s1">&#39;fetch({}) = {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">num</span><span class="p">,</span> <span class="n">result</span><span class="p">))</span>
+<span class="k">print</span><span class="p">(</span><span class="s1">&#39;cost time: {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start</span><span class="p">))</span>
+</code></pre></div><p>执行结果如下：</p>
+<div class="highlight"><pre class="chroma"><code class="language-bash" data-lang="bash">fetch<span class="o">(</span>0<span class="o">)</span> <span class="o">=</span> <span class="m">0</span>
+fetch<span class="o">(</span>1<span class="o">)</span> <span class="o">=</span> <span class="m">1</span>
+fetch<span class="o">(</span>2<span class="o">)</span> <span class="o">=</span> <span class="m">2</span>
+fetch<span class="o">(</span>3<span class="o">)</span> <span class="o">=</span> <span class="m">3</span>
+fetch<span class="o">(</span>4<span class="o">)</span> <span class="o">=</span> <span class="m">4</span>
+fetch<span class="o">(</span>5<span class="o">)</span> <span class="o">=</span> <span class="m">5</span>
+fetch<span class="o">(</span>6<span class="o">)</span> <span class="o">=</span> <span class="m">6</span>
+fetch<span class="o">(</span>7<span class="o">)</span> <span class="o">=</span> <span class="m">7</span>
+fetch<span class="o">(</span>8<span class="o">)</span> <span class="o">=</span> <span class="m">8</span>
+fetch<span class="o">(</span>9<span class="o">)</span> <span class="o">=</span> <span class="m">9</span>
+fetch<span class="o">(</span>10<span class="o">)</span> <span class="o">=</span> <span class="m">10</span>
+fetch<span class="o">(</span>11<span class="o">)</span> <span class="o">=</span> <span class="m">11</span>
+cost time: 1.9467740058898926
+</code></pre></div><p>只用了近2秒的时间，如果再多加几个线程时间会更短，而不加入多线程需要接近7秒的时间。</p>
+<p>不是说python中由于全局解释锁的存在，每次只能执行一个线程吗，为什么上面使用多线程还快一些？</p>
+<p>确实，由于python的解释器（只有cpython解释器中存在这个问题）本身不是线程安全的，所以存在着全局解释锁，也就是我们经常听到的GIL，导致一次只能使用一个线程来执行Python的字节码。但是对于上面的I/O操作来说，一个线程在等待网络响应时，执行I/O操作的函数会释放GIL，然后再运行一个线程。</p>
+<p>所以，执行I/O密集型操作时，多线程是有用的，对于CPU密集型操作，则每次只能使用一个线程。那这样说来，想执行CPU密集型操作怎么办？</p>
+<p>答案是使用多进程，使用concurrent.futures包中的<code>ProcessPoolExecutor</code> 。这个模块实现的是真正的并行计算，因为它使用ProcessPoolExecutor 类把工作分配给多个 Python 进程处理。因此，如果需要做 CPU密集型处理，使用这个模块能绕开 GIL，利用所有可用的 CPU 核心。</p>
+<p>说到这里，对于I/O密集型，可以使用多线程或者多进程来提高效率。我们上面的并发请求数只有5个，但是如果同时有1万个并发操作，像淘宝这类的网站同时并发请求数可以达到千万级以上，服务器每次为一个请求开一个线程，还要进行上下文切换，这样的开销会很大，服务器压根承受不住。一个解决办法是采用分布式，大公司有钱有力，能买很多的服务器，小公司呢。</p>
+<p>我们知道系统开进程的个数是有限的，线程的出现就是为了解决这个问题，于是在进程之下又分出多个线程。所以有人就提出了能不能用<strong>同一线程来同时处理若干连接</strong>，再往下分一级。于是<strong>协程</strong>就出现了。</p>
+<blockquote>
+<p>协程在实现上试图用一组少量的线程来实现多个任务，一旦某个任务阻塞，则可能用同一线程继续运行其他任务，避免大量上下文的切换，而且，各个协程之间的切换，往往是用户通过代码来显式指定的，不需要系统参与，可以很方便的实现异步。</p>
+</blockquote>
+<p>协程本质上是异步非阻塞技术，它是将事件回调进行了包装，让程序员看不到里面的事件循环。说到这里，什么是异步非阻塞？同步异步，阻塞，非阻塞有什么区别？</p>
+<p>借用知乎上的一个例子，假如你打电话问书店老板有没有《分布式系统》这本书，如果是同步通信机制，书店老板会说，你稍等，”我查一下”，然后开始查啊查，等查好了（可能是5秒，也可能是一天）告诉你结果（返回结果）。而异步通信机制，书店老板直接告诉你我查一下啊，查好了打电话给你，然后直接挂电话了（不返回结果）。然后查好了，他会主动打电话给你。在这里老板通过“回电”这种方式来回调。</p>
+<p>而阻塞与非阻塞则是你打电话问书店老板有没有《分布式系统》这本书，你如果是阻塞式调用，你会一直把自己“挂起”，直到得到这本书有没有的结果，如果是非阻塞式调用，你不管老板有没有告诉你，你自己先一边去玩了， 当然你也要偶尔过几分钟check一下老板有没有返回结果。在这里阻塞与非阻塞与是否同步异步无关。跟老板通过什么方式回答你结果无关。</p>
+<p>总之一句话，阻塞和非阻塞，描述的是一种状态，而同步与非同步描述的是行为方式。</p>
+<p>回到协程上。</p>
+<p>类似于<code>Threading</code> 包是对线程的实现一样，python3.4之后加入的<code>asyncio</code> 包则是对协程的实现。我们用asyncio改写文章开头的代码，看看使用协程之后能花费多少时间。</p>
+<div class="highlight"><pre class="chroma"><code class="language-python" data-lang="python"><span class="kn">import</span> <span class="nn">asyncio</span>
+<span class="kn">import</span> <span class="nn">aiohttp</span>
+<span class="kn">import</span> <span class="nn">time</span>
+
+<span class="n">NUMBERS</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="mi">12</span><span class="p">)</span>
+<span class="n">URL</span> <span class="o">=</span> <span class="s1">&#39;http://httpbin.org/get?a={}&#39;</span>
+<span class="c1"># 这里的代码不理解没关系</span>
+<span class="c1"># 主要是为了证明协程的强大</span>
+<span class="n">async</span> <span class="k">def</span> <span class="nf">fetch_async</span><span class="p">(</span><span class="n">a</span><span class="p">):</span>
+    <span class="n">async</span> <span class="k">with</span> <span class="n">aiohttp</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s1">&#39;GET&#39;</span><span class="p">,</span> <span class="n">URL</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">a</span><span class="p">))</span> <span class="k">as</span> <span class="n">r</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">await</span> <span class="n">r</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;args&#39;</span><span class="p">][</span><span class="s1">&#39;a&#39;</span><span class="p">]</span>
+
+<span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+<span class="n">loop</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">get_event_loop</span><span class="p">()</span>
+<span class="n">tasks</span> <span class="o">=</span> <span class="p">[</span><span class="n">fetch_async</span><span class="p">(</span><span class="n">num</span><span class="p">)</span> <span class="k">for</span> <span class="n">num</span> <span class="ow">in</span> <span class="n">NUMBERS</span><span class="p">]</span>
+<span class="n">results</span> <span class="o">=</span> <span class="n">loop</span><span class="o">.</span><span class="n">run_until_complete</span><span class="p">(</span><span class="n">asyncio</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="o">*</span><span class="n">tasks</span><span class="p">))</span>
+
+<span class="k">for</span> <span class="n">num</span><span class="p">,</span> <span class="n">results</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">NUMBERS</span><span class="p">,</span> <span class="n">results</span><span class="p">):</span>
+    <span class="k">print</span><span class="p">(</span><span class="s1">&#39;fetch({}) = ()&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">num</span><span class="p">,</span> <span class="n">results</span><span class="p">))</span>
+
+<span class="k">print</span><span class="p">(</span><span class="s1">&#39;cost time: {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start</span><span class="p">))</span>
+</code></pre></div><p>执行结果：</p>
+<div class="highlight"><pre class="chroma"><code class="language-bash" data-lang="bash">fetch<span class="o">(</span>0<span class="o">)</span> <span class="o">=</span> <span class="o">()</span>
+fetch<span class="o">(</span>1<span class="o">)</span> <span class="o">=</span> <span class="o">()</span>
+fetch<span class="o">(</span>2<span class="o">)</span> <span class="o">=</span> <span class="o">()</span>
+fetch<span class="o">(</span>3<span class="o">)</span> <span class="o">=</span> <span class="o">()</span>
+fetch<span class="o">(</span>4<span class="o">)</span> <span class="o">=</span> <span class="o">()</span>
+fetch<span class="o">(</span>5<span class="o">)</span> <span class="o">=</span> <span class="o">()</span>
+fetch<span class="o">(</span>6<span class="o">)</span> <span class="o">=</span> <span class="o">()</span>
+fetch<span class="o">(</span>7<span class="o">)</span> <span class="o">=</span> <span class="o">()</span>
+fetch<span class="o">(</span>8<span class="o">)</span> <span class="o">=</span> <span class="o">()</span>
+fetch<span class="o">(</span>9<span class="o">)</span> <span class="o">=</span> <span class="o">()</span>
+fetch<span class="o">(</span>10<span class="o">)</span> <span class="o">=</span> <span class="o">()</span>
+fetch<span class="o">(</span>11<span class="o">)</span> <span class="o">=</span> <span class="o">()</span>
+cost time: 0.8582110404968262
+</code></pre></div><p>不到一秒！感受到协程的威力了吧。</p>
+<p>asyncio的知识说实在的有点难懂，因为它是用异步的方式在编写代码。上面给出的asyncio示例不理解也没有关系，之后的文章会详细的介绍一些asyncio相关的概念。</p>
+</div>
+                    <div class="post_footer">
+                        
+                        <div class="meta">
+                            <div class="info">
+                                <span class="field tags">
+                                    <i class="ri-stack-line"></i>
+                                    
+                                    <a href="https://shiniao.fun/tags/python/">Python</a>
+                                    
+                                </span>
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
+                
+                
+                
+<div class="doc_comments">
+    <div class="comments_block_title">发表评论</div>
+    <div id="vcomments"></div>
+</div>
+
+<link rel="stylesheet" href="https://shiniao.fun/css/comments.css" />
+<script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+<script src='//unpkg.com/valine/dist/Valine.min.js'></script>
+
+<script type="text/javascript">
+    new Valine({
+        el: '#vcomments',
+        appId: 'tGdQAqUxUGU5WwecI1lrPp3o-gzGzoHsz',
+        appKey: 'SdbHV6Dzu1a7VkerYUpU4tuT',
+        placeholder: ' ',
+        visitor: 'true',
+        avatar: 'retro',
+    })
+</script>
+                
+            </div>
+        </div>
+    </div>    
+
+    <a id="back_to_top" href="#" class="back_to_top"><i class="ri-arrow-up-s-line"></i></a>
+    <footer class="footer">
+    <div class="powered_by">
+        <a href="https://shiniao.fun">Designed by JieChao,</a>
+        <a href="http://www.gohugo.io/">Proudly published with Hugo</a>
+    </div>
+
+    <div class="footer_slogan">
+        <span>请你相信：无论如何，生活是合理的。——里尔克</span>
+    </div>
+</footer>
+    <script src="https://shiniao.fun/js/jquery-3.5.1.min.js"></script>
+<script src="https://shiniao.fun/js/bootstrap.min.js"></script>
+<script src="https://shiniao.fun/js/bootstrap-toc.min.js"></script>
+<link href="https://shiniao.fun/css/fancybox.min.css" rel="stylesheet">
+<script src="https://shiniao.fun/js/fancybox.min.js"></script>
+<script src="https://shiniao.fun/js/zozo.js"></script>
+
+
+<script type="text/javascript" async
+    src="https://cdn.bootcss.com/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+        MathJax.Hub.Config({
+            tex2jax: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\[\[', '\]\]']],
+                processEscapes: true,
+                processEnvironments: true,
+                skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+                TeX: {
+                    equationNumbers: { autoNumber: "AMS" },
+                    extensions: ["AMSmath.js", "AMSsymbols.js"]
+                }
+            }
+        });
+
+        MathJax.Hub.Queue(function () {
+            
+            
+            
+            var all = MathJax.Hub.getAllJax(), i;
+            for (i = 0; i < all.length; i += 1) {
+                all[i].SourceElement().parentNode.className += ' has-jax';
+            }
+        });
+    </script>
+
+<style>
+    code.has-jax {
+        font: inherit;
+        font-size: 100%;
+        background: inherit;
+        border: inherit;
+        color: #515151;
+    }
+</style>
+
+
+
+</body>
+
+</html>

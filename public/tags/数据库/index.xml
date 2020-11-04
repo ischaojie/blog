@@ -17,7 +17,7 @@
       <pubDate>Wed, 28 Oct 2020 11:19:00 +0800</pubDate>
       
       <guid>https://shiniao.fun/posts/%E5%9F%BA%E4%BA%8Elsm%E7%9A%84%E6%95%B0%E6%8D%AE%E5%BA%93%E9%94%AE%E5%80%BC%E5%AD%98%E5%82%A8/</guid>
-      <description>数据库中使用索引可以加快查询的速度，索引的意思是说，给某些数据添加类似路标的记号，这样从索引中就可以直接检索到该数据的位置。以MySQL为例，添加主键时默认会为该属性加上主键索引，除此之外，MySQL</description>
+      <description>ERROR 文章有误，待更新。。。 数据库中使用索引可以加快查询的速度，索引的意思是说，给某些数据添加类似路标的记号，这样从索引中就可以直接检索到该数据的位置。以MySQL为例，添加主键时默认会为该属性加上主键索</description>
     </item>
     
     <item>

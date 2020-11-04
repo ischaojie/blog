@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh-CN" >
+<head>
+    <meta name="google-site-verification" content="TjxoSrOSvzF5sflWfkro3NiONSjLWtPoCVrQGbPRq2Y" />
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="author" content="shiniao" />
+	
+	
+	
+	<title>[源码分析] Flask配置管理与描述符析 ｜ -O-</title>
+	
+    
+    
+    <meta name="description" content="在Flask中可以通过 app.config[&amp;lsquo;NAME&amp;rsquo;] = what 的形式指定一些配置，比如设置 debug = True ： app.debug = True # 或者 app.config[&amp;#39;DEBUG&amp;#39;] = True 有些配置比如设置ENV和TESTING还可以直接利用Flask对象来设置，像这样： app.testing = True 除了在程序中指定配置，也可以将" />
+    
+
+    
+    
+    <meta name="keywords" content="鸟石, shiniao, 技术, 分布式, 数据库, 博客, 潮戒, 算法" />
+    
+
+	
+    
+    <link rel="shortcut icon" href="https://shiniao.fun/images/favicon.ico" />
+
+    <link rel="stylesheet" type="text/css" media="screen" href="https://shiniao.fun/css/normalize.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://shiniao.fun/css/bootstrap.min.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://shiniao.fun/css/bootstrap-toc.min.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.0/animate.min.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://shiniao.fun/css/zozo.css" />
+	<link rel="stylesheet" type="text/css" media="screen" href="https://cdn.jsdelivr.net/npm/remixicon@2.5.0/fonts/remixicon.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://shiniao.fun/css/highlight.css" />
+
+    
+    
+    <link rel="stylesheet" href="https://shiniao.fun/css/o.css" />
+    
+</head>
+
+<body data-spy="scroll" data-target="#toc">
+
+    <div class="main animate__animated animate__fadeInDown">
+        <div class="nav_container animated fadeInDown">
+    <div class="site_nav" id="site_nav">
+        <ul>
+            
+            <li>
+                <a href="/">Home</a>
+            </li>
+            
+            <li>
+                <a href="/tags/">Tags</a>
+            </li>
+            
+            <li>
+                <a href="/work/">Work</a>
+            </li>
+            
+            <li>
+                <a href="/about/">Me</a>
+            </li>
+            
+        </ul>
+    </div>
+    <div class="menu_icon">
+        <a id="menu_icon"><i class="ri-menu-line"></i></a>
+    </div>
+</div>
+        <div class="header animated fadeInDown">
+    <div class="site_title_container">
+        <div class="site_title">
+            <h1>
+                <a href="https://shiniao.fun/">
+                    <span>-O-</span>
+                </a>
+            </h1>
+        </div>
+        <div class="description">
+            <p class="sub_title">鸟石写字的地方</p>
+            <div class="my_socials">
+                
+                
+                <a href="https://github.com/shiniao/" title="github" target="_blank"><i class="ri-github-fill"></i></a>
+                
+                
+                
+                <a href="https://twitter.com/chaojie_cn/" title="twitter" target="_blank"><i class="ri-twitter-fill"></i></a>
+                
+                
+                
+                <a href="https://weibo.com/zhuzhezhe" title="weibo" target="_blank"><i class="ri-weibo-fill"></i></a>
+                
+                
+                <a href="https://shiniao.fun/index.xml" type="application/rss+xml" title="rss" target="_blank"><i
+                        class="ri-rss-fill"></i></a>
+            </div>
+        </div>
+    </div>
+</div>
+        <div class="content">
+            <div class="post_page">
+                <div class="post animate__animated animate__fadeInDown">
+                    <div class="post_title post_detail_title">
+                        <h2><a href='/posts/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90flask%E9%85%8D%E7%BD%AE%E7%AE%A1%E7%90%86%E4%B8%8E%E6%8F%8F%E8%BF%B0%E7%AC%A6/'>[源码分析] Flask配置管理与描述符析</a></h2>
+                        <span class="date">2019.07.03</span>
+                    </div>
+                    <div class="post_content markdown"><p>在Flask中可以通过 <strong>app.config[&lsquo;NAME&rsquo;] = what</strong> 的形式指定一些配置，比如设置 <strong>debug = True</strong> ：</p>
+<div class="highlight"><pre class="chroma"><code class="language-python" data-lang="python"><span class="n">app</span><span class="o">.</span><span class="n">debug</span> <span class="o">=</span> <span class="bp">True</span>
+<span class="c1"># 或者</span>
+<span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;DEBUG&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">True</span>
+</code></pre></div><p>有些配置比如设置ENV和TESTING还可以直接利用Flask对象来设置，像这样：</p>
+<div class="highlight"><pre class="chroma"><code class="language-python" data-lang="python"><span class="n">app</span><span class="o">.</span><span class="n">testing</span> <span class="o">=</span> <span class="bp">True</span>
+</code></pre></div><p>除了在程序中指定配置，也可以将配置写在单独的文件中，比如：</p>
+<div class="highlight"><pre class="chroma"><code class="language-python" data-lang="python"><span class="n">app</span> <span class="o">=</span> <span class="n">Flask</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+<span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">from_object</span><span class="p">(</span><span class="s1">&#39;yourapplication.default_settings&#39;</span><span class="p">)</span>
+<span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">from_envvar</span><span class="p">(</span><span class="s1">&#39;YOURAPPLICATION_SETTINGS&#39;</span><span class="p">)</span>
+</code></pre></div><p>应用首先从 <strong>yourapplication.default_settings</strong> 模块载入配置，然后根据 <code>YOURAPPLICATION_SETTINGS</code> 环境变量所指向的文件的内容重载配置的值。</p>
+<p>除了从配置文件加载，也可以定义类类指定配置，具体用法去看看官方文档就知道了。</p>
+<p>知道了在Flask中如何使用配置，我们来看看它是如何实现的。</p>
+<p>首先 <strong>config</strong> 肯定是个变量，在Flask这个类中被定义为：</p>
+<div class="highlight"><pre class="chroma"><code class="language-python" data-lang="python"><span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_config</span><span class="p">(</span><span class="n">instance_relative_config</span><span class="p">)</span>
+</code></pre></div><p>然后 <strong>make_config</strong> 的代码是这样的：</p>
+<div class="highlight"><pre class="chroma"><code class="language-python" data-lang="python"><span class="k">def</span> <span class="nf">make_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance_relative</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+
+    <span class="n">root_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">root_path</span>
+    <span class="k">if</span> <span class="n">instance_relative</span><span class="p">:</span>
+        <span class="n">root_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">instance_path</span>
+    <span class="c1"># 默认配置</span>
+    <span class="n">defaults</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">default_config</span><span class="p">)</span>
+    <span class="n">defaults</span><span class="p">[</span><span class="s1">&#39;ENV&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_env</span><span class="p">()</span>
+    <span class="n">defaults</span><span class="p">[</span><span class="s1">&#39;DEBUG&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_debug_flag</span><span class="p">()</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">config_class</span><span class="p">(</span><span class="n">root_path</span><span class="p">,</span> <span class="n">defaults</span><span class="p">)</span>
+</code></pre></div><p>make_config方法获取flask中默认的配置，以及ENV和DEBUG这两个配置，之后返回了 <strong>self.config_class</strong> 对象，它在类中是这样定义的：</p>
+<div class="highlight"><pre class="chroma"><code class="language-python" data-lang="python"><span class="n">config_class</span> <span class="o">=</span> <span class="n">Config</span>
+
+<span class="k">class</span> <span class="nc">Config</span><span class="p">(</span><span class="nb">dict</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">root_path</span><span class="p">,</span> <span class="n">defaults</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="c1"># dict.__init__让Config实例拥有字典行为config[&#39;ENV&#39;]</span>
+        <span class="nb">dict</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">defaults</span> <span class="ow">or</span> <span class="p">{})</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">root_path</span> <span class="o">=</span> <span class="n">root_path</span>
+</code></pre></div><p><strong>config_class</strong> 本质上是Config类，注意看Config类的初始化方法，</p>
+<div class="highlight"><pre class="chroma"><code class="language-python" data-lang="python"><span class="nb">dict</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">defaults</span> <span class="ow">or</span> <span class="p">{})</span>
+</code></pre></div><p>这一行代码使得Config类可以像字典一样使用，比如 <code>app.config['TESTING']=True</code>。 当然你也可以使用 <code>__getitem__</code> 和 <code>__setitem__</code> 内置方法使得类具有字典的行为。</p>
+<p>那么像 <strong>app.testing = True</strong> 这样的配置是如何实现的？</p>
+<p>在Flask类中可以看到，这些类变量都是 <strong>ConfigAttribute</strong> 对象。</p>
+<div class="highlight"><pre class="chroma"><code class="language-python" data-lang="python"><span class="n">testing</span> <span class="o">=</span> <span class="n">ConfigAttribute</span><span class="p">(</span><span class="s1">&#39;TESTING&#39;</span><span class="p">)</span>
+<span class="n">secret_key</span> <span class="o">=</span> <span class="n">ConfigAttribute</span><span class="p">(</span><span class="s1">&#39;SECRET_KEY&#39;</span><span class="p">)</span>
+</code></pre></div><p><strong>ConfigAttribute</strong>类如下：</p>
+<div class="highlight"><pre class="chroma"><code class="language-python" data-lang="python"><span class="k">class</span> <span class="nc">ConfigAttribute</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">get_converter</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">get_converter</span> <span class="o">=</span> <span class="n">get_converter</span>
+    
+    <span class="c1"># obj是被托管类实例</span>
+    <span class="k">def</span> <span class="fm">__get__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="c1"># 如果被托管实例不存在，返回描述符自身</span>
+        <span class="k">if</span> <span class="n">obj</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span>
+        <span class="c1"># 返回Flask实例的config[name]</span>
+        <span class="n">rv</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__name__</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_converter</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">rv</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_converter</span><span class="p">(</span><span class="n">rv</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">rv</span>
+
+    <span class="k">def</span> <span class="fm">__set__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="n">obj</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__name__</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+</code></pre></div><p><strong>ConfigAttribute</strong> 是一个描述符类，描述符是什么？</p>
+<blockquote>
+<p>描述符是对多个属性运用相同存取逻辑的一种方式。——《流畅的python》</p>
+</blockquote>
+<p>描述符实现了特定的内置方法，<code>__get__</code> ， <code>__set__</code> 和 <code>__delete__</code> ，常见的比如Django中ORM中的实现就是用的描述符：</p>
+<div class="highlight"><pre class="chroma"><code class="language-python" data-lang="python"><span class="k">class</span> <span class="nc">Person</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
+    <span class="c1"># models.CharField就是一个描述符</span>
+    <span class="n">first_name</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span><span class="n">max_length</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span>
+    <span class="n">last_name</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span><span class="n">max_length</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span>
+</code></pre></div><p>还有python内置的 <strong>@property</strong> <strong>@classmethod</strong> <strong>staticmethod</strong> 装饰器就是用描述符实现的。</p>
+<p>说了这么多，来看看描述符到底怎么用。</p>
+<p>首先来看<strong>ConfigAttribute</strong>类中的 <code>__get__</code> 方法：</p>
+<div class="highlight"><pre class="chroma"><code class="language-python" data-lang="python"><span class="c1"># obj是被托管类实例</span>
+<span class="k">def</span> <span class="fm">__get__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="c1"># 如果被托管实例不存在，返回描述符自身</span>
+    <span class="k">if</span> <span class="n">obj</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span>
+    <span class="c1"># 返回Flask实例的config[name]</span>
+    <span class="n">rv</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__name__</span><span class="p">]</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_converter</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">rv</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_converter</span><span class="p">(</span><span class="n">rv</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">rv</span>
+</code></pre></div><p><code>__get__</code> 方法的参数obj是被托管类的实例，在这里就是Flask类，方法中首先判断被托管类是否存在，不存在就返回描述符本身。之后返回Flask类实例中的 <strong>config[name]</strong>， 看到没有env类变量实际上就是 <strong>config[name]</strong> 中指定的值。</p>
+<p>来看 <code>__set__</code> 方法：</p>
+<div class="highlight"><pre class="chroma"><code class="language-python" data-lang="python"><span class="k">def</span> <span class="fm">__set__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+    <span class="n">obj</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__name__</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+</code></pre></div><p><code>__set__</code>方法中的obj同样是被托管类的实例，然后value被存储在被托管类的config变量中。所以，我们才可以用 <strong>app.testing = True</strong> 来指定配置。</p>
+<p>说到底，描述符有什么用？我们来看，在Flask类中我们要指定类变量 <strong>testing, env, secret_key, session_cookie_name</strong> 等等，都需要从config变量中接收（保证配置的一致性）。我们为这些变量都写一个存取方法是不是很麻烦，使用描述符就可以简化流程，对外封装了具体的存取细节，并且减少代码量。</p>
+<p>当然我们也可以使用一个函数，通过构建特性工厂的方式来实现，比如：</p>
+<div class="highlight"><pre class="chroma"><code class="language-python" data-lang="python"><span class="k">def</span> <span class="nf">config_attribute</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">getter</span><span class="p">(</span><span class="n">instance</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">instance</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">setter</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="n">instance</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="c1"># property实际上就是@property装饰器</span>
+    <span class="k">return</span> <span class="nb">property</span><span class="p">(</span><span class="n">getter</span><span class="p">,</span> <span class="n">setter</span><span class="p">)</span>
+
+<span class="c1"># 在Flask中调用方式一样</span>
+<span class="n">testing</span> <span class="o">=</span> <span class="n">config_attribute</span><span class="p">(</span><span class="s1">&#39;TESTING&#39;</span><span class="p">)</span>
+</code></pre></div><p>关于描述符的更多细节可以查看 <strong>《流畅的python》</strong> 这本书中第20章的内容，有详细的介绍。</p>
+</div>
+                    <div class="post_footer">
+                        
+                        <div class="meta">
+                            <div class="info">
+                                <span class="field tags">
+                                    <i class="ri-stack-line"></i>
+                                    
+                                    <a href="https://shiniao.fun/tags/python/">Python</a>
+                                    
+                                    <a href="https://shiniao.fun/tags/flask/">Flask</a>
+                                    
+                                </span>
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
+                
+                
+                
+<div class="doc_comments">
+    <div class="comments_block_title">发表评论</div>
+    <div id="vcomments"></div>
+</div>
+
+<link rel="stylesheet" href="https://shiniao.fun/css/comments.css" />
+<script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+<script src='//unpkg.com/valine/dist/Valine.min.js'></script>
+
+<script type="text/javascript">
+    new Valine({
+        el: '#vcomments',
+        appId: 'tGdQAqUxUGU5WwecI1lrPp3o-gzGzoHsz',
+        appKey: 'SdbHV6Dzu1a7VkerYUpU4tuT',
+        placeholder: ' ',
+        visitor: 'true',
+        avatar: 'retro',
+    })
+</script>
+                
+            </div>
+        </div>
+    </div>    
+
+    <a id="back_to_top" href="#" class="back_to_top"><i class="ri-arrow-up-s-line"></i></a>
+    <footer class="footer">
+    <div class="powered_by">
+        <a href="https://shiniao.fun">Designed by JieChao,</a>
+        <a href="http://www.gohugo.io/">Proudly published with Hugo</a>
+    </div>
+
+    <div class="footer_slogan">
+        <span>请你相信：无论如何，生活是合理的。——里尔克</span>
+    </div>
+</footer>
+    <script src="https://shiniao.fun/js/jquery-3.5.1.min.js"></script>
+<script src="https://shiniao.fun/js/bootstrap.min.js"></script>
+<script src="https://shiniao.fun/js/bootstrap-toc.min.js"></script>
+<link href="https://shiniao.fun/css/fancybox.min.css" rel="stylesheet">
+<script src="https://shiniao.fun/js/fancybox.min.js"></script>
+<script src="https://shiniao.fun/js/zozo.js"></script>
+
+
+<script type="text/javascript" async
+    src="https://cdn.bootcss.com/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+        MathJax.Hub.Config({
+            tex2jax: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\[\[', '\]\]']],
+                processEscapes: true,
+                processEnvironments: true,
+                skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+                TeX: {
+                    equationNumbers: { autoNumber: "AMS" },
+                    extensions: ["AMSmath.js", "AMSsymbols.js"]
+                }
+            }
+        });
+
+        MathJax.Hub.Queue(function () {
+            
+            
+            
+            var all = MathJax.Hub.getAllJax(), i;
+            for (i = 0; i < all.length; i += 1) {
+                all[i].SourceElement().parentNode.className += ' has-jax';
+            }
+        });
+    </script>
+
+<style>
+    code.has-jax {
+        font: inherit;
+        font-size: 100%;
+        background: inherit;
+        border: inherit;
+        color: #515151;
+    }
+</style>
+
+
+
+</body>
+
+</html>

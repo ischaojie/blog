@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="zh-CN" >
+<head>
+    <meta name="google-site-verification" content="TjxoSrOSvzF5sflWfkro3NiONSjLWtPoCVrQGbPRq2Y" />
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="author" content="shiniao" />
+	
+	
+	
+	<title>分布式缓存中一致性hash算法原理解析与实现 ｜ -O-</title>
+	
+    
+    
+    <meta name="description" content="分布式缓存服务中，提供缓存服务的节点可能有很多个。在单机缓存服务中，数据被缓存的流程是这样的： 第一次查询数据时首先从源数据查询（比如数据库），找到之后，同时放入缓存服务器中，下次查询同样的数据时会直接" />
+    
+
+    
+    
+    <meta name="keywords" content="鸟石, shiniao, 技术, 分布式, 数据库, 博客, 潮戒, 算法" />
+    
+
+	
+    
+    <link rel="shortcut icon" href="https://shiniao.fun/images/favicon.ico" />
+
+    <link rel="stylesheet" type="text/css" media="screen" href="https://shiniao.fun/css/normalize.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://shiniao.fun/css/bootstrap.min.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://shiniao.fun/css/bootstrap-toc.min.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.0/animate.min.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://shiniao.fun/css/zozo.css" />
+	<link rel="stylesheet" type="text/css" media="screen" href="https://cdn.jsdelivr.net/npm/remixicon@2.5.0/fonts/remixicon.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://shiniao.fun/css/highlight.css" />
+
+    
+    
+    <link rel="stylesheet" href="https://shiniao.fun/css/o.css" />
+    
+</head>
+
+<body data-spy="scroll" data-target="#toc">
+
+    <div class="main animate__animated animate__fadeInDown">
+        <div class="nav_container animated fadeInDown">
+    <div class="site_nav" id="site_nav">
+        <ul>
+            
+            <li>
+                <a href="/">Home</a>
+            </li>
+            
+            <li>
+                <a href="/tags/">Tags</a>
+            </li>
+            
+            <li>
+                <a href="/work/">Work</a>
+            </li>
+            
+            <li>
+                <a href="/about/">Me</a>
+            </li>
+            
+        </ul>
+    </div>
+    <div class="menu_icon">
+        <a id="menu_icon"><i class="ri-menu-line"></i></a>
+    </div>
+</div>
+        <div class="header animated fadeInDown">
+    <div class="site_title_container">
+        <div class="site_title">
+            <h1>
+                <a href="https://shiniao.fun/">
+                    <span>-O-</span>
+                </a>
+            </h1>
+        </div>
+        <div class="description">
+            <p class="sub_title">鸟石写字的地方</p>
+            <div class="my_socials">
+                
+                
+                <a href="https://github.com/shiniao/" title="github" target="_blank"><i class="ri-github-fill"></i></a>
+                
+                
+                
+                <a href="https://twitter.com/chaojie_cn/" title="twitter" target="_blank"><i class="ri-twitter-fill"></i></a>
+                
+                
+                
+                <a href="https://weibo.com/zhuzhezhe" title="weibo" target="_blank"><i class="ri-weibo-fill"></i></a>
+                
+                
+                <a href="https://shiniao.fun/index.xml" type="application/rss+xml" title="rss" target="_blank"><i
+                        class="ri-rss-fill"></i></a>
+            </div>
+        </div>
+    </div>
+</div>
+        <div class="content">
+            <div class="post_page">
+                <div class="post animate__animated animate__fadeInDown">
+                    <div class="post_title post_detail_title">
+                        <h2><a href='/posts/%E5%88%86%E5%B8%83%E5%BC%8F%E7%BC%93%E5%AD%98%E4%B8%AD%E4%B8%80%E8%87%B4%E6%80%A7hash%E7%AE%97%E6%B3%95%E5%8E%9F%E7%90%86%E8%A7%A3%E6%9E%90%E4%B8%8E%E5%AE%9E%E7%8E%B0/'>分布式缓存中一致性hash算法原理解析与实现</a></h2>
+                        <span class="date">2019.11.22</span>
+                    </div>
+                    <div class="post_content markdown"><p>分布式缓存服务中，提供缓存服务的节点可能有很多个。在单机缓存服务中，数据被缓存的流程是这样的：</p>
+<p>第一次查询数据时首先从源数据查询（比如数据库），找到之后，同时放入缓存服务器中，下次查询同样的数据时会直接从缓存服务器上查找。</p>
+<p>但是缓存服务器一般不太可能是单机的，往往有多个节点。转换为分布式之后，会出现一些问题。</p>
+<h2 id="问题一数据冗余">问题一数据冗余</h2>
+<p>考虑一下，单机服务的时候，利用LRU算法实现缓存的存取，一个key对应一个数据value。分布式条件下，如果只是单纯的增加节点，这次查找key对应的数据在A节点上，下次查找的时候却在B服务器上。同一个key有多个缓存，完全没必要嘛，这样就是数据冗余了。</p>
+<p>怎么解决？</p>
+<p>利用哈希。首先对key值hash，然后利用节点数取余。</p>
+<div class="highlight"><pre class="chroma"><code class="language-fallback" data-lang="fallback">h = hash(key) %len(node)
+</code></pre></div><p>这样同一个key的数据只会被一个节点缓存。很awesome有没有。</p>
+<p>But，我不可能一直是这几个节点呀，万一有的节点挂了呢，或者我要添加节点呢？</p>
+<h2 id="问题二容错性和扩展性">问题二容错性和扩展性</h2>
+<p>如果有节点挂了或者新增节点，都会导致<strong>len(node)</strong> 的变化，那么利用hash计算出来的值跟之前的就不一样。这样导致新增或者删除一个节点，之前的所有缓存都失效了！我的天哪！！！</p>
+<p>这种问题就是 <strong>缓存雪崩</strong> 。</p>
+<p>怎么办呢？利用一致性hash算法。</p>
+<blockquote>
+<p>一致性哈希算法（Consistent Hashing）最早在论文《<a href="http://www.akamai.com/dl/technical_publications/ConsistenHashingandRandomTreesDistributedCachingprotocolsforrelievingHotSpotsontheworldwideweb.pdf">Consistent Hashing and Random Trees: Distributed Caching Protocols for Relieving Hot Spots on the World Wide Web</a>》中被提出。</p>
+</blockquote>
+<p>它的原理是，把所有的hash值空间（就是上面公式计算出来的h）看成是一个环，取值范围从0到2^32-1。将每个服务器节点通过hash映射到环上，同时将数据key通过hash函数也映射到环上，按顺时针方向，数据key跟哪个节点近就属于哪个节点。</p>
+<p>举个例子，现在有三个缓存服务器节点2，4，6，假设这个hash算法就是原样输出，我们将节点和数据（1，3，7，9）经过hash之后到环上：</p>
+<p><img src="https://tva1.sinaimg.cn/large/0082zybply1gc53lsij1jj30b3079glv.jpg" alt="一致性hash"></p>
+<p>按顺时针方向，数据1属于node2，数据3属于node4，数据7、9输入node6。</p>
+<p>貌似看起来不错，但是还有个问题。在节点较少的情况上，会发生 <strong>数据倾斜</strong> 的问题。比如上图所示，数据可能大量的堆积在node6和node2之间。</p>
+<p>解决办法是添加虚拟节点，利用虚拟节点负载均衡每个数据。虚拟节点的做法是，对一个真实节点计算多个hash，放到环上，所有这些虚拟节点的数据都属于真实节点。</p>
+<p><img src="https://tva1.sinaimg.cn/large/0082zybply1gc54o5rm70j30ax06xwf4.jpg" alt="一致性hash2"></p>
+<p>这样所有的数据都均匀的分布在环上了。</p>
+<h2 id="算法实现">算法实现</h2>
+<p>了解了原理，来动手实现一下一致性hash算法。整个算法模仿go语言的分布式缓存服务<a href="https://github.com/golang/groupcache">groupcache</a> 实现，groupcache可以说是<strong>memcached</strong> 的go语言实现。</p>
+<p>首先定义一致性hash环结构体：</p>
+<div class="highlight"><pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">type</span> <span class="nx">Hash</span> <span class="kd">func</span><span class="p">(</span><span class="nx">data</span> <span class="p">[]</span><span class="kt">byte</span><span class="p">)</span> <span class="kt">uint32</span>
+
+<span class="c1">// ConHash 一致性hash
+</span><span class="c1"></span><span class="kd">type</span> <span class="nx">ConHash</span> <span class="kd">struct</span> <span class="p">{</span>
+	<span class="nx">hash</span>     <span class="nx">Hash</span>           <span class="c1">// hash算法
+</span><span class="c1"></span>	<span class="nx">replicas</span> <span class="kt">int</span>            <span class="c1">// 虚拟节点数
+</span><span class="c1"></span>	<span class="nx">nodes</span>    <span class="p">[]</span><span class="kt">int</span>          <span class="c1">// hash环节点数
+</span><span class="c1"></span>	<span class="nx">hashMap</span>  <span class="kd">map</span><span class="p">[</span><span class="kt">int</span><span class="p">]</span><span class="kt">string</span> <span class="c1">// 虚拟节点-真实节点
+</span><span class="c1"></span><span class="p">}</span>
+</code></pre></div><p>可以看到，类型Hash就是个回调函数，用户可以自定义hash算法。</p>
+<p>然后需要往hash环上添加节点，根据指定的虚拟节点数用hash算法放到环上。</p>
+<div class="highlight"><pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// Add 添加节点到hash环上
+</span><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">m</span> <span class="o">*</span><span class="nx">ConHash</span><span class="p">)</span> <span class="nf">Add</span><span class="p">(</span><span class="nx">nodes</span> <span class="o">...</span><span class="kt">string</span><span class="p">)</span> <span class="p">{</span>
+	<span class="k">for</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">node</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">nodes</span> <span class="p">{</span>
+		<span class="c1">// 将节点值根据指定的虚拟节点数利用hash算法放置到环中
+</span><span class="c1"></span>		<span class="k">for</span> <span class="nx">i</span> <span class="o">:=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="p">&lt;</span> <span class="nx">m</span><span class="p">.</span><span class="nx">replicas</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span> <span class="p">{</span>
+			<span class="nx">h</span> <span class="o">:=</span> <span class="nb">int</span><span class="p">(</span><span class="nx">m</span><span class="p">.</span><span class="nf">hash</span><span class="p">([]</span><span class="nb">byte</span><span class="p">(</span><span class="nx">strconv</span><span class="p">.</span><span class="nf">Itoa</span><span class="p">(</span><span class="nx">i</span><span class="p">)</span> <span class="o">+</span> <span class="nx">node</span><span class="p">)))</span>
+			<span class="nx">m</span><span class="p">.</span><span class="nx">nodes</span> <span class="p">=</span> <span class="nb">append</span><span class="p">(</span><span class="nx">m</span><span class="p">.</span><span class="nx">nodes</span><span class="p">,</span> <span class="nx">h</span><span class="p">)</span>
+			<span class="c1">// 映射虚拟节点到真实节点
+</span><span class="c1"></span>			<span class="nx">m</span><span class="p">.</span><span class="nx">hashMap</span><span class="p">[</span><span class="nx">h</span><span class="p">]</span> <span class="p">=</span> <span class="nx">node</span>
+		<span class="p">}</span>
+	<span class="p">}</span>
+	<span class="nx">sort</span><span class="p">.</span><span class="nf">Ints</span><span class="p">(</span><span class="nx">m</span><span class="p">.</span><span class="nx">nodes</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div><p>同样还需要根据key值从环上获取对应的节点，获取到节点之后从该节点查找数据。</p>
+<div class="highlight"><pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// Get 从hash环上获取key对应的节点
+</span><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">m</span> <span class="o">*</span><span class="nx">ConHash</span><span class="p">)</span> <span class="nf">Get</span><span class="p">(</span><span class="nx">key</span> <span class="kt">string</span><span class="p">)</span> <span class="kt">string</span> <span class="p">{</span>
+	<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nx">m</span><span class="p">.</span><span class="nx">nodes</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="s">&#34;&#34;</span>
+	<span class="p">}</span>
+	<span class="c1">// 计算key的hash值
+</span><span class="c1"></span>	<span class="nx">h</span> <span class="o">:=</span> <span class="nb">int</span><span class="p">(</span><span class="nx">m</span><span class="p">.</span><span class="nf">hash</span><span class="p">([]</span><span class="nb">byte</span><span class="p">(</span><span class="nx">key</span><span class="p">)))</span>
+	<span class="c1">// 顺时针找到第一个匹配的虚拟节点
+</span><span class="c1"></span>	<span class="nx">idx</span> <span class="o">:=</span> <span class="nx">sort</span><span class="p">.</span><span class="nf">Search</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="nx">m</span><span class="p">.</span><span class="nx">nodes</span><span class="p">),</span> <span class="kd">func</span><span class="p">(</span><span class="nx">i</span> <span class="kt">int</span><span class="p">)</span> <span class="kt">bool</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="nx">m</span><span class="p">.</span><span class="nx">nodes</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="nx">h</span>
+	<span class="p">})</span>
+
+	<span class="c1">// 从hash环查找
+</span><span class="c1"></span>	<span class="c1">// 返回hash映射的真实节点
+</span><span class="c1"></span>	<span class="k">return</span> <span class="nx">m</span><span class="p">.</span><span class="nx">hashMap</span><span class="p">[</span><span class="nx">m</span><span class="p">.</span><span class="nx">nodes</span><span class="p">[</span><span class="nx">idx</span><span class="o">%</span><span class="nb">len</span><span class="p">(</span><span class="nx">m</span><span class="p">.</span><span class="nx">nodes</span><span class="p">)]]</span>
+
+<span class="p">}</span>
+</code></pre></div><p>有的人说不对啊，为啥添加的都是服务器节点，数据不是也放在环上吗？</p>
+<p>其实是因为groupcache将数据划分出一个group的概念，数据在内部存储上利用hash+双向链表实现，缓存的数据被放在链表中。</p>
+<p>整个流程是这样的，查找key值对应的数据时，根据url链接中的group和key值确定节点，如何确定的？上面的代码已经解释了，计算key值的hash，看它属于哪个节点。</p>
+<p>然后从该节点的双向链表中查找。如果节点不存在这个key，从用户定义的数据源查找（比如数据库），找到之后将数据存入该group中。</p>
+<p>以上，希望有帮助。</p>
+</div>
+                    <div class="post_footer">
+                        
+                        <div class="meta">
+                            <div class="info">
+                                <span class="field tags">
+                                    <i class="ri-stack-line"></i>
+                                    
+                                    <a href="https://shiniao.fun/tags/%E5%88%86%E5%B8%83%E5%BC%8F/">分布式</a>
+                                    
+                                    <a href="https://shiniao.fun/tags/cache/">cache</a>
+                                    
+                                    <a href="https://shiniao.fun/tags/go/">Go</a>
+                                    
+                                    <a href="https://shiniao.fun/tags/%E7%AE%97%E6%B3%95/">算法</a>
+                                    
+                                </span>
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
+                
+                
+                
+<div class="doc_comments">
+    <div class="comments_block_title">发表评论</div>
+    <div id="vcomments"></div>
+</div>
+
+<link rel="stylesheet" href="https://shiniao.fun/css/comments.css" />
+<script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+<script src='//unpkg.com/valine/dist/Valine.min.js'></script>
+
+<script type="text/javascript">
+    new Valine({
+        el: '#vcomments',
+        appId: 'tGdQAqUxUGU5WwecI1lrPp3o-gzGzoHsz',
+        appKey: 'SdbHV6Dzu1a7VkerYUpU4tuT',
+        placeholder: ' ',
+        visitor: 'true',
+        avatar: 'retro',
+    })
+</script>
+                
+            </div>
+        </div>
+    </div>    
+
+    <a id="back_to_top" href="#" class="back_to_top"><i class="ri-arrow-up-s-line"></i></a>
+    <footer class="footer">
+    <div class="powered_by">
+        <a href="https://shiniao.fun">Designed by JieChao,</a>
+        <a href="http://www.gohugo.io/">Proudly published with Hugo</a>
+    </div>
+
+    <div class="footer_slogan">
+        <span>请你相信：无论如何，生活是合理的。——里尔克</span>
+    </div>
+</footer>
+    <script src="https://shiniao.fun/js/jquery-3.5.1.min.js"></script>
+<script src="https://shiniao.fun/js/bootstrap.min.js"></script>
+<script src="https://shiniao.fun/js/bootstrap-toc.min.js"></script>
+<link href="https://shiniao.fun/css/fancybox.min.css" rel="stylesheet">
+<script src="https://shiniao.fun/js/fancybox.min.js"></script>
+<script src="https://shiniao.fun/js/zozo.js"></script>
+
+
+<script type="text/javascript" async
+    src="https://cdn.bootcss.com/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+        MathJax.Hub.Config({
+            tex2jax: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\[\[', '\]\]']],
+                processEscapes: true,
+                processEnvironments: true,
+                skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+                TeX: {
+                    equationNumbers: { autoNumber: "AMS" },
+                    extensions: ["AMSmath.js", "AMSsymbols.js"]
+                }
+            }
+        });
+
+        MathJax.Hub.Queue(function () {
+            
+            
+            
+            var all = MathJax.Hub.getAllJax(), i;
+            for (i = 0; i < all.length; i += 1) {
+                all[i].SourceElement().parentNode.className += ' has-jax';
+            }
+        });
+    </script>
+
+<style>
+    code.has-jax {
+        font: inherit;
+        font-size: 100%;
+        background: inherit;
+        border: inherit;
+        color: #515151;
+    }
+</style>
+
+
+
+</body>
+
+</html>

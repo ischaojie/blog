@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Tree on -O-</title>
+    <link>https://shiniao.fun/tags/tree/</link>
+    <description>Recent content in Tree on -O-</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-CN</language>
+    <lastBuildDate>Mon, 28 Oct 2019 11:19:00 +0800</lastBuildDate>
+    
+	<atom:link href="https://shiniao.fun/tags/tree/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>前缀树算法实现路由匹配原理解析</title>
+      <link>https://shiniao.fun/posts/%E5%89%8D%E7%BC%80%E6%A0%91%E7%AE%97%E6%B3%95%E5%AE%9E%E7%8E%B0%E8%B7%AF%E7%94%B1%E5%8C%B9%E9%85%8D%E5%8E%9F%E7%90%86%E8%A7%A3%E6%9E%90/</link>
+      <pubDate>Mon, 28 Oct 2019 11:19:00 +0800</pubDate>
+      
+      <guid>https://shiniao.fun/posts/%E5%89%8D%E7%BC%80%E6%A0%91%E7%AE%97%E6%B3%95%E5%AE%9E%E7%8E%B0%E8%B7%AF%E7%94%B1%E5%8C%B9%E9%85%8D%E5%8E%9F%E7%90%86%E8%A7%A3%E6%9E%90/</guid>
+      <description>路由功能是web框架中一个很重要的功能，它将不同的请求转发给不同的函数(handler)处理，很容易能想到，我们可以用一个字典保存它们之间的对应关系，字典的key存放path，value存放handl</description>
+    </item>
+    
+  </channel>
+</rss>

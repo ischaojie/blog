@@ -39,6 +39,15 @@
     </item>
     
     <item>
+      <title>分布式缓存中一致性hash算法原理解析与实现</title>
+      <link>https://shiniao.fun/posts/%E5%88%86%E5%B8%83%E5%BC%8F%E7%BC%93%E5%AD%98%E4%B8%AD%E4%B8%80%E8%87%B4%E6%80%A7hash%E7%AE%97%E6%B3%95%E5%8E%9F%E7%90%86%E8%A7%A3%E6%9E%90%E4%B8%8E%E5%AE%9E%E7%8E%B0/</link>
+      <pubDate>Fri, 22 Nov 2019 15:34:42 +0800</pubDate>
+      
+      <guid>https://shiniao.fun/posts/%E5%88%86%E5%B8%83%E5%BC%8F%E7%BC%93%E5%AD%98%E4%B8%AD%E4%B8%80%E8%87%B4%E6%80%A7hash%E7%AE%97%E6%B3%95%E5%8E%9F%E7%90%86%E8%A7%A3%E6%9E%90%E4%B8%8E%E5%AE%9E%E7%8E%B0/</guid>
+      <description>分布式缓存服务中，提供缓存服务的节点可能有很多个。在单机缓存服务中，数据被缓存的流程是这样的： 第一次查询数据时首先从源数据查询（比如数据库），找到之后，同时放入缓存服务器中，下次查询同样的数据时会直接</description>
+    </item>
+    
+    <item>
       <title>对Raft一致性算法的理解</title>
       <link>https://shiniao.fun/posts/%E5%AF%B9raft%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95%E7%9A%84%E7%90%86%E8%A7%A3/</link>
       <pubDate>Wed, 21 Aug 2019 22:02:53 +0800</pubDate>

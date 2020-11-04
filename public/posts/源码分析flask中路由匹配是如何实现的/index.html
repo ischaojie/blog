@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="zh-CN" >
+<head>
+    <meta name="google-site-verification" content="TjxoSrOSvzF5sflWfkro3NiONSjLWtPoCVrQGbPRq2Y" />
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="author" content="shiniao" />
+	
+	
+	
+	<title>[源码分析] Flask中路由匹配是如何实现的 ｜ -O-</title>
+	
+    
+    
+    <meta name="description" content="首先让我们来了解下WSGI规范是啥？ 简单来说，WSGI是服务器和应用之间的接口，前端过来的请求传到服务器之后比如gunicorn，之后服务器会将请求转发给应用。因为有很多个服务器，如果我们为我们的应用" />
+    
+
+    
+    
+    <meta name="keywords" content="鸟石, shiniao, 技术, 分布式, 数据库, 博客, 潮戒, 算法" />
+    
+
+	
+    
+    <link rel="shortcut icon" href="https://shiniao.fun/images/favicon.ico" />
+
+    <link rel="stylesheet" type="text/css" media="screen" href="https://shiniao.fun/css/normalize.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://shiniao.fun/css/bootstrap.min.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://shiniao.fun/css/bootstrap-toc.min.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.0/animate.min.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://shiniao.fun/css/zozo.css" />
+	<link rel="stylesheet" type="text/css" media="screen" href="https://cdn.jsdelivr.net/npm/remixicon@2.5.0/fonts/remixicon.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://shiniao.fun/css/highlight.css" />
+
+    
+    
+    <link rel="stylesheet" href="https://shiniao.fun/css/o.css" />
+    
+</head>
+
+<body data-spy="scroll" data-target="#toc">
+
+    <div class="main animate__animated animate__fadeInDown">
+        <div class="nav_container animated fadeInDown">
+    <div class="site_nav" id="site_nav">
+        <ul>
+            
+            <li>
+                <a href="/">Home</a>
+            </li>
+            
+            <li>
+                <a href="/tags/">Tags</a>
+            </li>
+            
+            <li>
+                <a href="/work/">Work</a>
+            </li>
+            
+            <li>
+                <a href="/about/">Me</a>
+            </li>
+            
+        </ul>
+    </div>
+    <div class="menu_icon">
+        <a id="menu_icon"><i class="ri-menu-line"></i></a>
+    </div>
+</div>
+        <div class="header animated fadeInDown">
+    <div class="site_title_container">
+        <div class="site_title">
+            <h1>
+                <a href="https://shiniao.fun/">
+                    <span>-O-</span>
+                </a>
+            </h1>
+        </div>
+        <div class="description">
+            <p class="sub_title">鸟石写字的地方</p>
+            <div class="my_socials">
+                
+                
+                <a href="https://github.com/shiniao/" title="github" target="_blank"><i class="ri-github-fill"></i></a>
+                
+                
+                
+                <a href="https://twitter.com/chaojie_cn/" title="twitter" target="_blank"><i class="ri-twitter-fill"></i></a>
+                
+                
+                
+                <a href="https://weibo.com/zhuzhezhe" title="weibo" target="_blank"><i class="ri-weibo-fill"></i></a>
+                
+                
+                <a href="https://shiniao.fun/index.xml" type="application/rss+xml" title="rss" target="_blank"><i
+                        class="ri-rss-fill"></i></a>
+            </div>
+        </div>
+    </div>
+</div>
+        <div class="content">
+            <div class="post_page">
+                <div class="post animate__animated animate__fadeInDown">
+                    <div class="post_title post_detail_title">
+                        <h2><a href='/posts/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90flask%E4%B8%AD%E8%B7%AF%E7%94%B1%E5%8C%B9%E9%85%8D%E6%98%AF%E5%A6%82%E4%BD%95%E5%AE%9E%E7%8E%B0%E7%9A%84/'>[源码分析] Flask中路由匹配是如何实现的</a></h2>
+                        <span class="date">2019.07.04</span>
+                    </div>
+                    <div class="post_content markdown"><p>首先让我们来了解下WSGI规范是啥？</p>
+<p>简单来说，WSGI是服务器和应用之间的接口，前端过来的请求传到服务器之后比如gunicorn，之后服务器会将请求转发给应用。因为有很多个服务器，如果我们为我们的应用根据不同的服务写不同的代码，会很麻烦，所以就出现了WSGI。</p>
+<p>WSGI规定了application应该实现一个可调用的对象（函数，类，方法或者带<code>__call__</code>的实例），这个对象应该接受两个位置参数：</p>
+<ol>
+<li>环境变量（比如header信息，状态码等）</li>
+<li>回调函数（WSGI服务器负责），用来发送http状态和header等</li>
+</ol>
+<p>同时，该对象需要返回可迭代的响应文本。</p>
+<p>更具体的解释可以去google搜索相关知识。</p>
+<p>一个最简单的实现：</p>
+<div class="highlight"><pre class="chroma"><code class="language-python" data-lang="python"><span class="k">def</span> <span class="nf">app</span><span class="p">(</span><span class="n">environ</span><span class="p">,</span> <span class="n">start_response</span><span class="p">):</span>
+    <span class="n">response_body</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&#34;Hello, World!&#34;</span>
+    <span class="n">status</span> <span class="o">=</span> <span class="s2">&#34;200 OK&#34;</span>
+    <span class="c1"># 将响应状态和header交给WSGI服务器比如gunicorn</span>
+    <span class="n">start_response</span><span class="p">(</span><span class="n">status</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="p">[])</span>
+    <span class="k">return</span> <span class="nb">iter</span><span class="p">([</span><span class="n">response_body</span><span class="p">])</span>
+</code></pre></div><p>我们可以直接使用gunicorn之类的服务启动这个app。</p>
+<p>有了WSGI规定，框架中就要实现规范中所要求的部分。我们来看看Flask是如何实现的。</p>
+<p>Flask0.1版本的实现中只有一个文件，一共600多行代码。根据官方文档，一个最简单的web服务像这样：</p>
+<div class="highlight"><pre class="chroma"><code class="language-python" data-lang="python"><span class="kn">from</span> <span class="nn">flask</span> <span class="kn">import</span> <span class="n">Flask</span>
+<span class="n">app</span> <span class="o">=</span> <span class="n">Flask</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="nd">@app.route</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">hello_world</span><span class="p">():</span>
+    <span class="k">return</span> <span class="s1">&#39;Hello World!&#39;</span>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">app</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+</code></pre></div><p>调用 <strong>Flask()</strong> 之后发生了什么？</p>
+<p>首先在 <code>__init__</code> 内置方法中有这么几个变量：</p>
+<div class="highlight"><pre class="chroma"><code class="language-python" data-lang="python"><span class="k">class</span> <span class="nc">Flask</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">package_name</span><span class="p">):</span>
+        <span class="c1"># view_functions存储视图函数名称和视图函数</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">view_functions</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="c1"># 路由字典</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">url_map</span> <span class="o">=</span> <span class="n">Map</span><span class="p">()</span>
+</code></pre></div><p>根据名字可以猜测，<strong>view_functions</strong> 用来存放视图函数，<strong>url_map</strong> 用来存放路由字典。暂时跳过，来看看 <code>__call__</code>内置方法：</p>
+<div class="highlight"><pre class="chroma"><code class="language-python" data-lang="python"><span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">environ</span><span class="p">,</span> <span class="n">start_response</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">wsgi_app</span><span class="p">(</span><span class="n">environ</span><span class="p">,</span> <span class="n">start_response</span><span class="p">)</span>
+</code></pre></div><p>environ，start_response，是不是在哪里见过？WSGI规范中要求实现的对不对。它返回了 <strong>wsgi_app</strong> 方法：</p>
+<div class="highlight"><pre class="chroma"><code class="language-python" data-lang="python"><span class="k">def</span> <span class="nf">wsgi_app</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">environ</span><span class="p">,</span> <span class="n">start_response</span><span class="p">):</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">request_context</span><span class="p">(</span><span class="n">environ</span><span class="p">):</span>
+            <span class="n">rv</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">preprocess_request</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">rv</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="n">rv</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dispatch_request</span><span class="p">()</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_response</span><span class="p">(</span><span class="n">rv</span><span class="p">)</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_response</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">response</span><span class="p">(</span><span class="n">environ</span><span class="p">,</span> <span class="n">start_response</span><span class="p">)</span>
+</code></pre></div><p>看到了没，跟我们上面实现的那个简单的app是不是很像。</p>
+<p>首先预处理请求，然后分发请求到不同的视图函数，最后响应。</p>
+<p>我们先来看 <strong>dispatch_request</strong> 是如何实现的：</p>
+<div class="highlight"><pre class="chroma"><code class="language-python" data-lang="python"><span class="k">def</span> <span class="nf">dispatch_request</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    	<span class="c1"># 精简了下代码</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">endpoint</span><span class="p">,</span> <span class="n">values</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">match_request</span><span class="p">()</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">view_functions</span><span class="p">[</span><span class="n">endpoint</span><span class="p">](</span><span class="o">**</span><span class="n">values</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">HTTPException</span><span class="p">,</span> <span class="n">e</span><span class="p">:</span>
+            <span class="o">......</span>
+            
+<span class="k">def</span> <span class="nf">match_request</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">rv</span> <span class="o">=</span> <span class="n">_request_ctx_stack</span><span class="o">.</span><span class="n">top</span><span class="o">.</span><span class="n">url_adapter</span><span class="o">.</span><span class="n">match</span><span class="p">()</span>
+        <span class="n">request</span><span class="o">.</span><span class="n">endpoint</span><span class="p">,</span> <span class="n">request</span><span class="o">.</span><span class="n">view_args</span> <span class="o">=</span> <span class="n">rv</span>
+        <span class="k">return</span> <span class="n">rv</span>
+</code></pre></div><p><strong>dispatch_request</strong> 首先获取endpoint和一些变量，然后在视图函数字典里找到对应的视图函数返回。endpoint和values就是我们在定义路由的处理函数时，比如：</p>
+<div class="highlight"><pre class="chroma"><code class="language-python" data-lang="python"><span class="n">url_for</span><span class="p">(</span><span class="s1">&#39;profile&#39;</span><span class="p">,</span> <span class="n">username</span><span class="o">=</span><span class="s1">&#39;John Doe&#39;</span><span class="p">)</span>
+</code></pre></div><p>其中profile就是endpoint，也就是对应视图函数的名称，username就是变量。</p>
+<p><strong>match_request</strong> 中这个 <strong>_request_ctx_stack</strong> 又是个啥。看起来它像是用来匹配路由的。</p>
+<p><strong>_request_ctx_stack</strong> 是请求上下文栈，用一个栈把当前请求相关的数据压入栈中，然后进行路由分发和后续处理，处理完成后退出。</p>
+<p>具体来说，我们回过头看 <strong>wsgi_app</strong>方法中有个with语句，控制请求上下文的进入和退出。</p>
+<div class="highlight"><pre class="chroma"><code class="language-python" data-lang="python"><span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">request_context</span><span class="p">(</span><span class="n">environ</span><span class="p">):</span>
+</code></pre></div><p>这个 <strong>request_context</strong>是这样的：</p>
+<div class="highlight"><pre class="chroma"><code class="language-python" data-lang="python"><span class="k">class</span> <span class="nc">_RequestContext</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">app</span><span class="p">,</span> <span class="n">environ</span><span class="p">):</span>
+		<span class="o">...</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">url_adapter</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">url_map</span><span class="o">.</span><span class="n">bind_to_environ</span><span class="p">(</span><span class="n">environ</span><span class="p">)</span>
+        <span class="o">...</span>
+
+    <span class="k">def</span> <span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">_request_ctx_stack</span><span class="o">.</span><span class="n">push</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_value</span><span class="p">,</span> <span class="n">tb</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">tb</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">debug</span><span class="p">:</span>
+            <span class="n">_request_ctx_stack</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+</code></pre></div><p>其中的 <strong>url_adapter</strong> 获取了路由字典，然后连同其他变量一起被压入栈中，这样在上面的 <strong>match_request</strong> 方法中，从栈中获取 <strong>url_adapter</strong> ， 然后匹配路由找到对应的endpoint和参数，然后根据endpoint和参数从<strong>view_functions</strong> 中查找对应的视图函数。</p>
+<div class="highlight"><pre class="chroma"><code class="language-python" data-lang="python"><span class="bp">self</span><span class="o">.</span><span class="n">url_adapter</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">url_map</span><span class="o">.</span><span class="n">bind_to_environ</span><span class="p">(</span><span class="n">environ</span><span class="p">)</span>
+<span class="n">rv</span> <span class="o">=</span> <span class="n">_request_ctx_stack</span><span class="o">.</span><span class="n">top</span><span class="o">.</span><span class="n">url_adapter</span><span class="o">.</span><span class="n">match</span><span class="p">()</span>
+</code></pre></div><p>其中，<strong>bind_to_environ</strong> 将 url绑定到目前的环境返回一个适配器，然后适配器去匹配请求。这两个方法都来自Flask的底层调用 <strong>werkzeug</strong> 。</p>
+<p>梳理一下流程，首先适配器在 url_map中查找当前路由对应的endpoint和values，然后dispatch_request根据endpoint找到对应的视图函数，然后返回。</p>
+<p>那么，url_map中的路由和endpoint对应关系是从哪里来的？</p>
+<p>我们在使用Flask是不是要用装饰器给视图函数加上路由和方法对吧，像这样：</p>
+<div class="highlight"><pre class="chroma"><code class="language-python" data-lang="python"><span class="nd">@app.route</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">hello_world</span><span class="p">():</span>
+    <span class="k">return</span> <span class="s1">&#39;Hello World!&#39;</span>
+</code></pre></div><p>这个route装饰器长这样，可以看到它调用了add_url_rule方法。</p>
+<div class="highlight"><pre class="chroma"><code class="language-python" data-lang="python"><span class="k">def</span> <span class="nf">route</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rule</span><span class="p">,</span> <span class="o">**</span><span class="n">options</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">decorator</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_url_rule</span><span class="p">(</span><span class="n">rule</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="o">**</span><span class="n">options</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">view_functions</span><span class="p">[</span><span class="n">f</span><span class="o">.</span><span class="vm">__name__</span><span class="p">]</span> <span class="o">=</span> <span class="n">f</span>
+            <span class="k">return</span> <span class="n">f</span>
+        <span class="k">return</span> <span class="n">decorator</span>
+    
+<span class="k">def</span> <span class="nf">add_url_rule</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rule</span><span class="p">,</span> <span class="n">endpoint</span><span class="p">,</span> <span class="o">**</span><span class="n">options</span><span class="p">):</span>
+    <span class="n">options</span><span class="p">[</span><span class="s1">&#39;endpoint&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">endpoint</span>
+    <span class="n">options</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;methods&#39;</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;GET&#39;</span><span class="p">,))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">url_map</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">Rule</span><span class="p">(</span><span class="n">rule</span><span class="p">,</span> <span class="o">**</span><span class="n">options</span><span class="p">))</span>
+</code></pre></div><p>add_url_rule添加了路由和 endpoint 到 url_map 中，这样一个请求的路由过来后，<strong>url_adapter.match()</strong> 就能匹配到对应的 endpoint ，然后根据 endpoint 从 view_functions 里面查找视图函数。</p>
+<p>url_map 是werkzeug中的Map对象，然后添加的是Rule对象。它看起来像这样：</p>
+<div class="highlight"><pre class="chroma"><code class="language-python" data-lang="python"><span class="bp">self</span><span class="o">.</span><span class="n">url_map</span> <span class="o">=</span> <span class="n">Map</span><span class="p">([</span>
+    <span class="n">Rule</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="n">endpoint</span><span class="o">=</span><span class="s1">&#39;home&#39;</span><span class="p">),</span>
+    <span class="n">Rule</span><span class="p">(</span><span class="s1">&#39;/book/&lt;id&gt;&#39;</span><span class="p">,</span> <span class="n">endpoint</span><span class="o">=</span><span class="s1">&#39;book&#39;</span><span class="p">)</span>
+<span class="p">])</span>
+</code></pre></div><p>除了利用装饰器，我们也可以这样使用：</p>
+<div class="highlight"><pre class="chroma"><code class="language-python" data-lang="python"><span class="k">def</span> <span class="nf">index</span><span class="p">():</span>
+    <span class="k">pass</span>
+<span class="n">app</span><span class="o">.</span><span class="n">add_url_rule</span><span class="p">(</span><span class="s1">&#39;index&#39;</span><span class="p">,</span> <span class="s1">&#39;/&#39;</span><span class="p">)</span>
+<span class="n">app</span><span class="o">.</span><span class="n">view_functions</span><span class="p">[</span><span class="s1">&#39;index&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">index</span>
+</code></pre></div><p>现在，一切都解释清楚了，定义好视图函数后，<strong>app.run</strong>运行即可。</p>
+<p>可以看到，Flask中路由匹配是利用字典实现的，还有一种利用前缀树来实现路由的，比如go语言中的gin框架，关于如何用前缀树实现路由可以看我的另一篇文章：</p>
+<blockquote>
+<p><a href="https://shiniao.fun/posts/%E5%89%8D%E7%BC%80%E6%A0%91%E7%AE%97%E6%B3%95%E5%AE%9E%E7%8E%B0%E8%B7%AF%E7%94%B1%E5%8C%B9%E9%85%8D%E5%8E%9F%E7%90%86%E8%A7%A3%E6%9E%90">前缀树算法实现路由匹配原理解析</a></p>
+</blockquote>
+</div>
+                    <div class="post_footer">
+                        
+                        <div class="meta">
+                            <div class="info">
+                                <span class="field tags">
+                                    <i class="ri-stack-line"></i>
+                                    
+                                    <a href="https://shiniao.fun/tags/python/">Python</a>
+                                    
+                                    <a href="https://shiniao.fun/tags/flask/">Flask</a>
+                                    
+                                </span>
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
+                
+                
+                
+<div class="doc_comments">
+    <div class="comments_block_title">发表评论</div>
+    <div id="vcomments"></div>
+</div>
+
+<link rel="stylesheet" href="https://shiniao.fun/css/comments.css" />
+<script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+<script src='//unpkg.com/valine/dist/Valine.min.js'></script>
+
+<script type="text/javascript">
+    new Valine({
+        el: '#vcomments',
+        appId: 'tGdQAqUxUGU5WwecI1lrPp3o-gzGzoHsz',
+        appKey: 'SdbHV6Dzu1a7VkerYUpU4tuT',
+        placeholder: ' ',
+        visitor: 'true',
+        avatar: 'retro',
+    })
+</script>
+                
+            </div>
+        </div>
+    </div>    
+
+    <a id="back_to_top" href="#" class="back_to_top"><i class="ri-arrow-up-s-line"></i></a>
+    <footer class="footer">
+    <div class="powered_by">
+        <a href="https://shiniao.fun">Designed by JieChao,</a>
+        <a href="http://www.gohugo.io/">Proudly published with Hugo</a>
+    </div>
+
+    <div class="footer_slogan">
+        <span>请你相信：无论如何，生活是合理的。——里尔克</span>
+    </div>
+</footer>
+    <script src="https://shiniao.fun/js/jquery-3.5.1.min.js"></script>
+<script src="https://shiniao.fun/js/bootstrap.min.js"></script>
+<script src="https://shiniao.fun/js/bootstrap-toc.min.js"></script>
+<link href="https://shiniao.fun/css/fancybox.min.css" rel="stylesheet">
+<script src="https://shiniao.fun/js/fancybox.min.js"></script>
+<script src="https://shiniao.fun/js/zozo.js"></script>
+
+
+<script type="text/javascript" async
+    src="https://cdn.bootcss.com/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+        MathJax.Hub.Config({
+            tex2jax: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\[\[', '\]\]']],
+                processEscapes: true,
+                processEnvironments: true,
+                skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+                TeX: {
+                    equationNumbers: { autoNumber: "AMS" },
+                    extensions: ["AMSmath.js", "AMSsymbols.js"]
+                }
+            }
+        });
+
+        MathJax.Hub.Queue(function () {
+            
+            
+            
+            var all = MathJax.Hub.getAllJax(), i;
+            for (i = 0; i < all.length; i += 1) {
+                all[i].SourceElement().parentNode.className += ' has-jax';
+            }
+        });
+    </script>
+
+<style>
+    code.has-jax {
+        font: inherit;
+        font-size: 100%;
+        background: inherit;
+        border: inherit;
+        color: #515151;
+    }
+</style>
+
+
+
+</body>
+
+</html>

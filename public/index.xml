@@ -17,7 +17,7 @@
       <pubDate>Wed, 28 Oct 2020 11:19:00 +0800</pubDate>
       
       <guid>https://shiniao.fun/posts/%E5%9F%BA%E4%BA%8Elsm%E7%9A%84%E6%95%B0%E6%8D%AE%E5%BA%93%E9%94%AE%E5%80%BC%E5%AD%98%E5%82%A8/</guid>
-      <description>数据库中使用索引可以加快查询的速度，索引的意思是说，给某些数据添加类似路标的记号，这样从索引中就可以直接检索到该数据的位置。以MySQL为例，添加主键时默认会为该属性加上主键索引，除此之外，MySQL</description>
+      <description>ERROR 文章有误，待更新。。。 数据库中使用索引可以加快查询的速度，索引的意思是说，给某些数据添加类似路标的记号，这样从索引中就可以直接检索到该数据的位置。以MySQL为例，添加主键时默认会为该属性加上主键索</description>
     </item>
     
     <item>
@@ -44,7 +44,7 @@
       <pubDate>Sun, 23 Aug 2020 22:20:04 +0800</pubDate>
       
       <guid>https://shiniao.fun/work/</guid>
-      <description>开源作品 啦啦啦 论文&amp;amp;专利 - 朱哲哲，段娟，肖创柏. 一种实时搜索数据分析系统. 发明专利. 专利号/申请号：202010233677.5</description>
+      <description>开源作品 bitcask(pr): 基于LSM+WAL的键值数据库（使用自适应基数树） https://github.com/prologic/bitcask mini-search: 基于elasticsearch的电影搜索引擎 https://github.com/shiniao/mini_search gaga: just another web framework base on go language https://github.com/shiniao/gaga ...... 论文&amp;amp;专利 - 朱哲哲，段娟，肖创柏. 一种实时搜索数据分析系统.</description>
     </item>
     
     <item>
@@ -66,6 +66,33 @@
     </item>
     
     <item>
+      <title>你好哇，Lan</title>
+      <link>https://shiniao.fun/posts/%E4%BD%A0%E5%A5%BD%E5%93%87-lan/</link>
+      <pubDate>Thu, 13 Feb 2020 15:34:42 +0800</pubDate>
+      
+      <guid>https://shiniao.fun/posts/%E4%BD%A0%E5%A5%BD%E5%93%87-lan/</guid>
+      <description>通惠河开始结冰之后，有人在岸边写到，生活是合理的。 世界正在科幻化，我这样对lan说过。 常数开始崩塌，不可变消失，生活变成一种缓慢受锤的过程。躯体也开始斑斑锈迹，挣扎，粉碎，甚至剥离，血管迸出蓝色液体。</description>
+    </item>
+    
+    <item>
+      <title>分布式缓存中一致性hash算法原理解析与实现</title>
+      <link>https://shiniao.fun/posts/%E5%88%86%E5%B8%83%E5%BC%8F%E7%BC%93%E5%AD%98%E4%B8%AD%E4%B8%80%E8%87%B4%E6%80%A7hash%E7%AE%97%E6%B3%95%E5%8E%9F%E7%90%86%E8%A7%A3%E6%9E%90%E4%B8%8E%E5%AE%9E%E7%8E%B0/</link>
+      <pubDate>Fri, 22 Nov 2019 15:34:42 +0800</pubDate>
+      
+      <guid>https://shiniao.fun/posts/%E5%88%86%E5%B8%83%E5%BC%8F%E7%BC%93%E5%AD%98%E4%B8%AD%E4%B8%80%E8%87%B4%E6%80%A7hash%E7%AE%97%E6%B3%95%E5%8E%9F%E7%90%86%E8%A7%A3%E6%9E%90%E4%B8%8E%E5%AE%9E%E7%8E%B0/</guid>
+      <description>分布式缓存服务中，提供缓存服务的节点可能有很多个。在单机缓存服务中，数据被缓存的流程是这样的： 第一次查询数据时首先从源数据查询（比如数据库），找到之后，同时放入缓存服务器中，下次查询同样的数据时会直接</description>
+    </item>
+    
+    <item>
+      <title>前缀树算法实现路由匹配原理解析</title>
+      <link>https://shiniao.fun/posts/%E5%89%8D%E7%BC%80%E6%A0%91%E7%AE%97%E6%B3%95%E5%AE%9E%E7%8E%B0%E8%B7%AF%E7%94%B1%E5%8C%B9%E9%85%8D%E5%8E%9F%E7%90%86%E8%A7%A3%E6%9E%90/</link>
+      <pubDate>Mon, 28 Oct 2019 11:19:00 +0800</pubDate>
+      
+      <guid>https://shiniao.fun/posts/%E5%89%8D%E7%BC%80%E6%A0%91%E7%AE%97%E6%B3%95%E5%AE%9E%E7%8E%B0%E8%B7%AF%E7%94%B1%E5%8C%B9%E9%85%8D%E5%8E%9F%E7%90%86%E8%A7%A3%E6%9E%90/</guid>
+      <description>路由功能是web框架中一个很重要的功能，它将不同的请求转发给不同的函数(handler)处理，很容易能想到，我们可以用一个字典保存它们之间的对应关系，字典的key存放path，value存放handl</description>
+    </item>
+    
+    <item>
       <title>对Raft一致性算法的理解</title>
       <link>https://shiniao.fun/posts/%E5%AF%B9raft%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95%E7%9A%84%E7%90%86%E8%A7%A3/</link>
       <pubDate>Wed, 21 Aug 2019 22:02:53 +0800</pubDate>
@@ -75,12 +102,57 @@
     </item>
     
     <item>
+      <title>[源码分析] Flask中路由匹配是如何实现的</title>
+      <link>https://shiniao.fun/posts/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90flask%E4%B8%AD%E8%B7%AF%E7%94%B1%E5%8C%B9%E9%85%8D%E6%98%AF%E5%A6%82%E4%BD%95%E5%AE%9E%E7%8E%B0%E7%9A%84/</link>
+      <pubDate>Thu, 04 Jul 2019 11:19:00 +0800</pubDate>
+      
+      <guid>https://shiniao.fun/posts/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90flask%E4%B8%AD%E8%B7%AF%E7%94%B1%E5%8C%B9%E9%85%8D%E6%98%AF%E5%A6%82%E4%BD%95%E5%AE%9E%E7%8E%B0%E7%9A%84/</guid>
+      <description>首先让我们来了解下WSGI规范是啥？ 简单来说，WSGI是服务器和应用之间的接口，前端过来的请求传到服务器之后比如gunicorn，之后服务器会将请求转发给应用。因为有很多个服务器，如果我们为我们的应用</description>
+    </item>
+    
+    <item>
+      <title>[源码分析] Flask配置管理与描述符析</title>
+      <link>https://shiniao.fun/posts/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90flask%E9%85%8D%E7%BD%AE%E7%AE%A1%E7%90%86%E4%B8%8E%E6%8F%8F%E8%BF%B0%E7%AC%A6/</link>
+      <pubDate>Wed, 03 Jul 2019 11:19:00 +0800</pubDate>
+      
+      <guid>https://shiniao.fun/posts/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90flask%E9%85%8D%E7%BD%AE%E7%AE%A1%E7%90%86%E4%B8%8E%E6%8F%8F%E8%BF%B0%E7%AC%A6/</guid>
+      <description>在Flask中可以通过 app.config[&amp;lsquo;NAME&amp;rsquo;] = what 的形式指定一些配置，比如设置 debug = True ： app.debug = True # 或者 app.config[&amp;#39;DEBUG&amp;#39;] = True 有些配置比如设置ENV和TESTING还可以直接利用Flask对象来设置，像这样： app.testing = True 除了在程序中指定配置，也可以将</description>
+    </item>
+    
+    <item>
+      <title>[源码分析] Flask蓝图实现原理分析</title>
+      <link>https://shiniao.fun/posts/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90flask%E8%93%9D%E5%9B%BE%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86%E5%88%86%E6%9E%90/</link>
+      <pubDate>Mon, 01 Jul 2019 11:19:00 +0800</pubDate>
+      
+      <guid>https://shiniao.fun/posts/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90flask%E8%93%9D%E5%9B%BE%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86%E5%88%86%E6%9E%90/</guid>
+      <description>看这篇文章之前，建议看一下我之前写的：[源码分析]Flask中路由匹配是如何实现的 BluePrint（蓝图）的概念说白了就是路由组，所有注册到该蓝图上的路由都使用同一个前缀。这样方便了管理，不同的功能</description>
+    </item>
+    
+    <item>
+      <title>Vue登录及权限相关问题</title>
+      <link>https://shiniao.fun/posts/vue%E7%99%BB%E5%BD%95%E5%8F%8A%E6%9D%83%E9%99%90%E7%9B%B8%E5%85%B3%E9%97%AE%E9%A2%98/</link>
+      <pubDate>Mon, 08 Apr 2019 15:17:05 +0800</pubDate>
+      
+      <guid>https://shiniao.fun/posts/vue%E7%99%BB%E5%BD%95%E5%8F%8A%E6%9D%83%E9%99%90%E7%9B%B8%E5%85%B3%E9%97%AE%E9%A2%98/</guid>
+      <description>最近在做一个小应用，需要用到vue实现登录，以及给不同路由设置权限。在网上看了很多文章，讲的是乱七八糟。感叹国内技术类文章实在是差劲，抄来抄去。这篇文章就说说我最后是如何实现的。 前后端分离项目中，后端</description>
+    </item>
+    
+    <item>
       <title>小燕子</title>
       <link>https://shiniao.fun/posts/%E5%B0%8F%E7%87%95%E5%AD%90/</link>
       <pubDate>Mon, 11 Jun 2018 11:19:00 +0800</pubDate>
       
       <guid>https://shiniao.fun/posts/%E5%B0%8F%E7%87%95%E5%AD%90/</guid>
       <description>那是在四月，朱家的老宅住进了一只小燕子。每天飞来飞去的筑巢，衔来树枝，衔来泥土。巢筑在胡同的拐角，遮风挡雨。这件事吸引了朱逸之。 朱逸之是朱家的老二，这宅子里只住着他一个人，无双镇只有这一个宅子。 每天清</description>
+    </item>
+    
+    <item>
+      <title>对Python并发编程的思考</title>
+      <link>https://shiniao.fun/posts/%E5%AF%B9python%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E7%9A%84%E6%80%9D%E8%80%83/</link>
+      <pubDate>Thu, 11 Jan 2018 22:02:53 +0800</pubDate>
+      
+      <guid>https://shiniao.fun/posts/%E5%AF%B9python%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E7%9A%84%E6%80%9D%E8%80%83/</guid>
+      <description>为了提高系统密集型运算的效率，我们常常会使用到多个进程或者是多个线程，python中的Threading包实现了线程，multiprocessing 包则实现了多进程。而在3.2版本的python中，将</description>
     </item>
     
     <item>

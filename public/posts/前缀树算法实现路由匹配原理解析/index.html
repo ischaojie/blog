@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="zh-CN" >
+<head>
+    <meta name="google-site-verification" content="TjxoSrOSvzF5sflWfkro3NiONSjLWtPoCVrQGbPRq2Y" />
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="author" content="shiniao" />
+	
+	
+	
+	<title>前缀树算法实现路由匹配原理解析 ｜ -O-</title>
+	
+    
+    
+    <meta name="description" content="路由功能是web框架中一个很重要的功能，它将不同的请求转发给不同的函数(handler)处理，很容易能想到，我们可以用一个字典保存它们之间的对应关系，字典的key存放path，value存放handl" />
+    
+
+    
+    
+    <meta name="keywords" content="鸟石, shiniao, 技术, 分布式, 数据库, 博客, 潮戒, 算法" />
+    
+
+	
+    
+    <link rel="shortcut icon" href="https://shiniao.fun/images/favicon.ico" />
+
+    <link rel="stylesheet" type="text/css" media="screen" href="https://shiniao.fun/css/normalize.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://shiniao.fun/css/bootstrap.min.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://shiniao.fun/css/bootstrap-toc.min.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.0/animate.min.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://shiniao.fun/css/zozo.css" />
+	<link rel="stylesheet" type="text/css" media="screen" href="https://cdn.jsdelivr.net/npm/remixicon@2.5.0/fonts/remixicon.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://shiniao.fun/css/highlight.css" />
+
+    
+    
+    <link rel="stylesheet" href="https://shiniao.fun/css/o.css" />
+    
+</head>
+
+<body data-spy="scroll" data-target="#toc">
+
+    <div class="main animate__animated animate__fadeInDown">
+        <div class="nav_container animated fadeInDown">
+    <div class="site_nav" id="site_nav">
+        <ul>
+            
+            <li>
+                <a href="/">Home</a>
+            </li>
+            
+            <li>
+                <a href="/tags/">Tags</a>
+            </li>
+            
+            <li>
+                <a href="/work/">Work</a>
+            </li>
+            
+            <li>
+                <a href="/about/">Me</a>
+            </li>
+            
+        </ul>
+    </div>
+    <div class="menu_icon">
+        <a id="menu_icon"><i class="ri-menu-line"></i></a>
+    </div>
+</div>
+        <div class="header animated fadeInDown">
+    <div class="site_title_container">
+        <div class="site_title">
+            <h1>
+                <a href="https://shiniao.fun/">
+                    <span>-O-</span>
+                </a>
+            </h1>
+        </div>
+        <div class="description">
+            <p class="sub_title">鸟石写字的地方</p>
+            <div class="my_socials">
+                
+                
+                <a href="https://github.com/shiniao/" title="github" target="_blank"><i class="ri-github-fill"></i></a>
+                
+                
+                
+                <a href="https://twitter.com/chaojie_cn/" title="twitter" target="_blank"><i class="ri-twitter-fill"></i></a>
+                
+                
+                
+                <a href="https://weibo.com/zhuzhezhe" title="weibo" target="_blank"><i class="ri-weibo-fill"></i></a>
+                
+                
+                <a href="https://shiniao.fun/index.xml" type="application/rss+xml" title="rss" target="_blank"><i
+                        class="ri-rss-fill"></i></a>
+            </div>
+        </div>
+    </div>
+</div>
+        <div class="content">
+            <div class="post_page">
+                <div class="post animate__animated animate__fadeInDown">
+                    <div class="post_title post_detail_title">
+                        <h2><a href='/posts/%E5%89%8D%E7%BC%80%E6%A0%91%E7%AE%97%E6%B3%95%E5%AE%9E%E7%8E%B0%E8%B7%AF%E7%94%B1%E5%8C%B9%E9%85%8D%E5%8E%9F%E7%90%86%E8%A7%A3%E6%9E%90/'>前缀树算法实现路由匹配原理解析</a></h2>
+                        <span class="date">2019.10.28</span>
+                    </div>
+                    <div class="post_content markdown"><p>路由功能是web框架中一个很重要的功能，它将不同的请求转发给不同的函数(handler)处理，很容易能想到，我们可以用一个字典保存它们之间的对应关系，字典的key存放path，value存放handler。当一个请求过来后，使用 <strong>routers.get(path, None)</strong> 就可以找到对应的handler。</p>
+<p>使用字典有一个问题，不支持动态路由。如果路由像这样呢？</p>
+<div class="highlight"><pre class="chroma"><code class="language-bash" data-lang="bash">/hello/:name/profile
+</code></pre></div><p>name前面是通配符 <strong>:</strong> ，表示这是个动态的值。一个解决办法是使用前缀树trie。</p>
+<h3 id="前缀树">前缀树</h3>
+<blockquote>
+<p>leetcode中有这个算法，<a href="https://leetcode-cn.com/problems/implement-trie-prefix-tree/">点这里</a> 查看。</p>
+</blockquote>
+<p>前缀树前缀树，首先是一棵树。不同的是树中一个节点的所有子孙都有相同的前缀。前缀树将单词中的每个字母依次插入树中，插入前首先确认该单词是否存在，不存在才创建新节点，如果一个单词已经全部插入，则将末尾单词设置为标志位。</p>
+<div class="highlight"><pre class="chroma"><code class="language-go" data-lang="go">
+<span class="kd">type</span> <span class="nx">Node</span> <span class="kd">struct</span> <span class="p">{</span>
+	<span class="nx">isWord</span> <span class="kt">bool</span> <span class="c1">// 是否是单词结尾
+</span><span class="c1"></span>	<span class="nx">next</span>   <span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="o">*</span><span class="nx">Node</span> <span class="c1">// 子节点
+</span><span class="c1"></span><span class="p">}</span>
+
+<span class="kd">type</span> <span class="nx">Trie</span> <span class="kd">struct</span> <span class="p">{</span>
+	<span class="nx">root</span> <span class="o">*</span><span class="nx">Node</span>
+<span class="p">}</span>
+</code></pre></div><p>以单词leetcode，leetd和code为例，首先一次插入leetcode中的每个单词，然后插入leetd的时候，leet在树中已经存在，跳过往下，现在要插入字母d，不存在，所以新建节点插入树中，并将该节点的isWord置位true，表明到了单词末尾。</p>
+<p>最终插入结果为：</p>
+<p><img src="https://shiniao.fun/images/006tNbRwly1gbdilnat8bj30ea0aaabe.jpg" alt=""></p>
+<div class="highlight"><pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="p">(</span><span class="nx">this</span> <span class="o">*</span><span class="nx">Trie</span><span class="p">)</span> <span class="nf">Insert</span><span class="p">(</span><span class="nx">word</span> <span class="kt">string</span><span class="p">)</span> <span class="p">{</span>
+	<span class="nx">cur</span> <span class="o">:=</span> <span class="nx">this</span><span class="p">.</span><span class="nx">root</span>
+	<span class="k">for</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">w</span> <span class="o">:=</span> <span class="k">range</span> <span class="p">[]</span><span class="nb">rune</span><span class="p">(</span><span class="nx">word</span><span class="p">)</span> <span class="p">{</span>
+		<span class="nx">c</span> <span class="o">:=</span> <span class="nb">string</span><span class="p">(</span><span class="nx">w</span><span class="p">)</span>
+		<span class="k">if</span> <span class="nx">cur</span><span class="p">.</span><span class="nx">next</span><span class="p">[</span><span class="nx">c</span><span class="p">]</span> <span class="o">==</span> <span class="kc">nil</span> <span class="p">{</span>
+			<span class="nx">cur</span><span class="p">.</span><span class="nx">next</span><span class="p">[</span><span class="nx">c</span><span class="p">]</span> <span class="p">=</span> <span class="o">&amp;</span><span class="nx">Node</span><span class="p">{</span><span class="nx">next</span><span class="p">:</span> <span class="nb">make</span><span class="p">(</span><span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="o">*</span><span class="nx">Node</span><span class="p">)}</span>
+		<span class="p">}</span>
+		<span class="nx">cur</span> <span class="p">=</span> <span class="nx">cur</span><span class="p">.</span><span class="nx">next</span><span class="p">[</span><span class="nx">c</span><span class="p">]</span>
+	<span class="p">}</span>
+	<span class="nx">cur</span><span class="p">.</span><span class="nx">isWord</span> <span class="p">=</span> <span class="kc">true</span>
+<span class="p">}</span>
+</code></pre></div><p>那么，当我们要搜索单词leetd的时候，从根节点开始查找，如果找到某条路径是leetd，并且末尾的d是单词标志位，则表示搜索成功。</p>
+<div class="highlight"><pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="p">(</span><span class="nx">this</span> <span class="o">*</span><span class="nx">Trie</span><span class="p">)</span> <span class="nf">Search</span><span class="p">(</span><span class="nx">word</span> <span class="kt">string</span><span class="p">)</span> <span class="kt">bool</span> <span class="p">{</span>
+	<span class="nx">cur</span> <span class="o">:=</span> <span class="nx">this</span><span class="p">.</span><span class="nx">root</span>
+	<span class="k">for</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">w</span> <span class="o">:=</span> <span class="k">range</span> <span class="p">[]</span><span class="nb">rune</span><span class="p">(</span><span class="nx">word</span><span class="p">)</span> <span class="p">{</span>
+		<span class="nx">c</span> <span class="o">:=</span> <span class="nb">string</span><span class="p">(</span><span class="nx">w</span><span class="p">)</span>
+		<span class="k">if</span> <span class="nx">cur</span><span class="p">.</span><span class="nx">next</span><span class="p">[</span><span class="nx">c</span><span class="p">]</span> <span class="o">==</span> <span class="kc">nil</span> <span class="p">{</span>
+			<span class="k">return</span> <span class="kc">false</span>
+		<span class="p">}</span>
+		<span class="nx">cur</span> <span class="p">=</span> <span class="nx">cur</span><span class="p">.</span><span class="nx">next</span><span class="p">[</span><span class="nx">c</span><span class="p">]</span>
+	<span class="p">}</span>
+	<span class="k">return</span> <span class="nx">cur</span><span class="p">.</span><span class="nx">isWord</span>
+<span class="p">}</span>
+</code></pre></div><p>明白了前缀树的原理，我们来看看路由匹配是如何利用前缀树来实现的。</p>
+<h3 id="路由前缀树">路由前缀树</h3>
+<p>go语言中gin框架的路由实现就是利用前缀树，可以看看它的源代码是如何实现的。</p>
+<p>考虑一下，路由或者说路径的特点，是以 <strong>/</strong> 分隔的单词组成的，那我们将 <strong>/</strong> 的每一部分挂靠在前缀树上就可以了。如下图所示：</p>
+<p>还有一点需要考虑，我们在用web框架定义路由的时候，常见的做法是根据不同的HTTP方法来定义。比如：</p>
+<div class="highlight"><pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// 以go语言gin框架为例
+</span><span class="c1"></span><span class="nx">g</span> <span class="o">:=</span> <span class="nx">gin</span><span class="p">.</span><span class="nf">New</span><span class="p">()</span>
+<span class="nx">g</span><span class="p">.</span><span class="nf">GET</span><span class="p">(</span><span class="s">&#34;/hello&#34;</span><span class="p">,</span> <span class="nx">Hello</span><span class="p">)</span>
+<span class="nx">g</span><span class="p">.</span><span class="nf">POST</span><span class="p">(</span><span class="s">&#34;/form&#34;</span><span class="p">,</span> <span class="nx">Form</span><span class="p">)</span>
+</code></pre></div><p>对于同一个路径，可能有多个方法支持。所以我们要以不同HTTP方法为树根创建前缀树。当一个GET请求过来的时候，就从GET树上搜索，POST请求就从POST树上搜索。</p>
+<p><img src="https://shiniao.fun/images/006tNbRwly1gbdinl7e8mj30eo05ejs3.jpg" alt=""></p>
+<p>除了为不同的HTTP方法定义树之外，还要给那些是通配符的节点增加一个标志位。所以，我们的路由前缀树结构看起来像这样：</p>
+<div class="highlight"><pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">type</span> <span class="nx">node</span> <span class="kd">struct</span> <span class="p">{</span>
+	<span class="nx">path</span>     <span class="kt">string</span>           <span class="c1">// 路由路径
+</span><span class="c1"></span>	<span class="nx">part</span>     <span class="kt">string</span>           <span class="c1">// 路由中由&#39;/&#39;分隔的部分
+</span><span class="c1"></span>	<span class="nx">children</span> <span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="o">*</span><span class="nx">node</span> <span class="c1">// 子节点
+</span><span class="c1"></span>	<span class="nx">isWild</span>   <span class="kt">bool</span>             <span class="c1">// 是否是通配符节点
+</span><span class="c1"></span><span class="p">}</span>
+
+<span class="kd">type</span> <span class="nx">router</span> <span class="kd">struct</span> <span class="p">{</span>
+	<span class="nx">root</span>  <span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="o">*</span><span class="nx">node</span>       <span class="c1">// 路由树根节点
+</span><span class="c1"></span>	<span class="nx">route</span> <span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="nx">HandlerFunc</span> <span class="c1">// 路由处理handler
+</span><span class="c1"></span><span class="p">}</span>
+</code></pre></div><p>依照上面的前缀树算法的实现，照葫芦画瓢，我们可以写出插入路由和搜索路由的方法：</p>
+<div class="highlight"><pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// addRoute 绑定路由到handler
+</span><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">r</span> <span class="o">*</span><span class="nx">router</span><span class="p">)</span> <span class="nf">addRoute</span><span class="p">(</span><span class="nx">method</span><span class="p">,</span> <span class="nx">path</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">handler</span> <span class="nx">HandlerFunc</span><span class="p">)</span> <span class="p">{</span>
+	<span class="nx">parts</span> <span class="o">:=</span> <span class="nf">parsePath</span><span class="p">(</span><span class="nx">path</span><span class="p">)</span>
+	<span class="k">if</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">ok</span> <span class="o">:=</span> <span class="nx">r</span><span class="p">.</span><span class="nx">root</span><span class="p">[</span><span class="nx">method</span><span class="p">];</span> <span class="p">!</span><span class="nx">ok</span> <span class="p">{</span>
+		<span class="nx">r</span><span class="p">.</span><span class="nx">root</span><span class="p">[</span><span class="nx">method</span><span class="p">]</span> <span class="p">=</span> <span class="o">&amp;</span><span class="nx">node</span><span class="p">{</span><span class="nx">children</span><span class="p">:</span> <span class="nb">make</span><span class="p">(</span><span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="o">*</span><span class="nx">node</span><span class="p">)}</span>
+	<span class="p">}</span>
+	<span class="nx">root</span> <span class="o">:=</span> <span class="nx">r</span><span class="p">.</span><span class="nx">root</span><span class="p">[</span><span class="nx">method</span><span class="p">]</span>
+	<span class="nx">key</span> <span class="o">:=</span> <span class="nx">method</span> <span class="o">+</span> <span class="s">&#34;-&#34;</span> <span class="o">+</span> <span class="nx">path</span>
+	<span class="c1">// 将parts插入到路由树
+</span><span class="c1"></span>	<span class="k">for</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">part</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">parts</span> <span class="p">{</span>
+		<span class="k">if</span> <span class="nx">root</span><span class="p">.</span><span class="nx">children</span><span class="p">[</span><span class="nx">part</span><span class="p">]</span> <span class="o">==</span> <span class="kc">nil</span> <span class="p">{</span>
+			<span class="nx">root</span><span class="p">.</span><span class="nx">children</span><span class="p">[</span><span class="nx">part</span><span class="p">]</span> <span class="p">=</span> <span class="o">&amp;</span><span class="nx">node</span><span class="p">{</span>
+				<span class="nx">part</span><span class="p">:</span>     <span class="nx">part</span><span class="p">,</span>
+				<span class="nx">children</span><span class="p">:</span> <span class="nb">make</span><span class="p">(</span><span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="o">*</span><span class="nx">node</span><span class="p">),</span>
+				<span class="nx">isWild</span><span class="p">:</span>   <span class="nx">part</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="sc">&#39;:&#39;</span> <span class="o">||</span> <span class="nx">part</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="sc">&#39;*&#39;</span><span class="p">}</span>
+		<span class="p">}</span>
+		<span class="nx">root</span> <span class="p">=</span> <span class="nx">root</span><span class="p">.</span><span class="nx">children</span><span class="p">[</span><span class="nx">part</span><span class="p">]</span>
+	<span class="p">}</span>
+	<span class="nx">root</span><span class="p">.</span><span class="nx">path</span> <span class="p">=</span> <span class="nx">path</span>
+	<span class="c1">// 绑定路由和handler
+</span><span class="c1"></span>	<span class="nx">r</span><span class="p">.</span><span class="nx">route</span><span class="p">[</span><span class="nx">key</span><span class="p">]</span> <span class="p">=</span> <span class="nx">handler</span>
+<span class="p">}</span>
+
+<span class="c1">// getRoute 获取路由树节点以及路由变量
+</span><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">r</span> <span class="o">*</span><span class="nx">router</span><span class="p">)</span> <span class="nf">getRoute</span><span class="p">(</span><span class="nx">method</span><span class="p">,</span> <span class="nx">path</span> <span class="kt">string</span><span class="p">)</span> <span class="p">(</span><span class="nx">node</span> <span class="o">*</span><span class="nx">node</span><span class="p">,</span> <span class="nx">params</span> <span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">string</span><span class="p">)</span> <span class="p">{</span>
+	<span class="nx">params</span> <span class="p">=</span> <span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">string</span><span class="p">{}</span>
+	<span class="nx">searchParts</span> <span class="o">:=</span> <span class="nf">parsePath</span><span class="p">(</span><span class="nx">path</span><span class="p">)</span>
+
+	<span class="c1">// get method trie
+</span><span class="c1"></span>	<span class="kd">var</span> <span class="nx">ok</span> <span class="kt">bool</span>
+	<span class="k">if</span> <span class="nx">node</span><span class="p">,</span> <span class="nx">ok</span> <span class="p">=</span> <span class="nx">r</span><span class="p">.</span><span class="nx">root</span><span class="p">[</span><span class="nx">method</span><span class="p">];</span> <span class="p">!</span><span class="nx">ok</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="kc">nil</span><span class="p">,</span> <span class="kc">nil</span>
+	<span class="p">}</span>
+
+	<span class="c1">// 在该方法的路由树上查找该路径
+</span><span class="c1"></span>	<span class="k">for</span> <span class="nx">i</span><span class="p">,</span> <span class="nx">part</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">searchParts</span> <span class="p">{</span>
+		<span class="kd">var</span> <span class="nx">temp</span> <span class="kt">string</span>
+		<span class="c1">// 查找child是否等于part
+</span><span class="c1"></span>		<span class="k">for</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">child</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">node</span><span class="p">.</span><span class="nx">children</span> <span class="p">{</span>
+			<span class="k">if</span> <span class="nx">child</span><span class="p">.</span><span class="nx">part</span> <span class="o">==</span> <span class="nx">part</span> <span class="o">||</span> <span class="nx">child</span><span class="p">.</span><span class="nx">isWild</span> <span class="p">{</span>
+				<span class="c1">// 添加参数
+</span><span class="c1"></span>				<span class="k">if</span> <span class="nx">child</span><span class="p">.</span><span class="nx">part</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="sc">&#39;*&#39;</span> <span class="p">{</span>
+					<span class="nx">params</span><span class="p">[</span><span class="nx">child</span><span class="p">.</span><span class="nx">part</span><span class="p">[</span><span class="mi">1</span><span class="p">:]]</span> <span class="p">=</span> <span class="nx">strings</span><span class="p">.</span><span class="nf">Join</span><span class="p">(</span><span class="nx">searchParts</span><span class="p">[</span><span class="nx">i</span><span class="p">:],</span> <span class="s">&#34;/&#34;</span><span class="p">)</span>
+				<span class="p">}</span>
+				<span class="k">if</span> <span class="nx">child</span><span class="p">.</span><span class="nx">part</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="sc">&#39;:&#39;</span> <span class="p">{</span>
+					<span class="nx">params</span><span class="p">[</span><span class="nx">child</span><span class="p">.</span><span class="nx">part</span><span class="p">[</span><span class="mi">1</span><span class="p">:]]</span> <span class="p">=</span> <span class="nx">part</span>
+				<span class="p">}</span>
+				<span class="nx">temp</span> <span class="p">=</span> <span class="nx">child</span><span class="p">.</span><span class="nx">part</span>
+			<span class="p">}</span>
+
+		<span class="p">}</span>
+		<span class="c1">// 遇到通配符*，直接返回
+</span><span class="c1"></span>		<span class="k">if</span> <span class="nx">temp</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="sc">&#39;*&#39;</span> <span class="p">{</span>
+			<span class="k">return</span> <span class="nx">node</span><span class="p">.</span><span class="nx">children</span><span class="p">[</span><span class="nx">temp</span><span class="p">],</span> <span class="nx">params</span>
+		<span class="p">}</span>
+		<span class="nx">node</span> <span class="p">=</span> <span class="nx">node</span><span class="p">.</span><span class="nx">children</span><span class="p">[</span><span class="nx">temp</span><span class="p">]</span>
+
+	<span class="p">}</span>
+
+	<span class="k">return</span>
+
+<span class="p">}</span>
+</code></pre></div><p>上面的代码是我自己实现的一个web框架 <a href="https://github.com/shiniao/gaga"><strong>gaga</strong></a> 中路由前缀树相关的代码，有需要的可以去看看源代码。另外，欢迎<strong>star</strong> 呀。</p>
+<p>其中的 <strong>addRoute</strong> 用来将路由插入到对应method的路由树中，如果节点是通配符，将其设置为 <strong>isWild</strong> ， 同时绑定路由和handler方法。</p>
+<p><strong>getRoute</strong> 方法首先查找路由方法对应的路由前缀树，然后在树中查找是否存在该路径。</p>
+<h2 id="总结">总结</h2>
+<p>前缀树trie算法不光可以用在路由的实现上，搜索引擎中自动补全的实现，拼写检查等等都是用trie实现的。trie树查找的时间和空间复杂度都是线性的，效率很高，很适合路由这种场景使用。</p>
+<p>路由的实现上，go语言中 <strong>httpRouter</strong> 这个库除了使用前缀树之外，还加入了优先级，有兴趣的可以看看它的源码了解下。</p>
+</div>
+                    <div class="post_footer">
+                        
+                        <div class="meta">
+                            <div class="info">
+                                <span class="field tags">
+                                    <i class="ri-stack-line"></i>
+                                    
+                                    <a href="https://shiniao.fun/tags/%E7%AE%97%E6%B3%95/">算法</a>
+                                    
+                                    <a href="https://shiniao.fun/tags/go/">Go</a>
+                                    
+                                    <a href="https://shiniao.fun/tags/tree/">Tree</a>
+                                    
+                                </span>
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
+                
+                
+                
+<div class="doc_comments">
+    <div class="comments_block_title">发表评论</div>
+    <div id="vcomments"></div>
+</div>
+
+<link rel="stylesheet" href="https://shiniao.fun/css/comments.css" />
+<script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+<script src='//unpkg.com/valine/dist/Valine.min.js'></script>
+
+<script type="text/javascript">
+    new Valine({
+        el: '#vcomments',
+        appId: 'tGdQAqUxUGU5WwecI1lrPp3o-gzGzoHsz',
+        appKey: 'SdbHV6Dzu1a7VkerYUpU4tuT',
+        placeholder: ' ',
+        visitor: 'true',
+        avatar: 'retro',
+    })
+</script>
+                
+            </div>
+        </div>
+    </div>    
+
+    <a id="back_to_top" href="#" class="back_to_top"><i class="ri-arrow-up-s-line"></i></a>
+    <footer class="footer">
+    <div class="powered_by">
+        <a href="https://shiniao.fun">Designed by JieChao,</a>
+        <a href="http://www.gohugo.io/">Proudly published with Hugo</a>
+    </div>
+
+    <div class="footer_slogan">
+        <span>请你相信：无论如何，生活是合理的。——里尔克</span>
+    </div>
+</footer>
+    <script src="https://shiniao.fun/js/jquery-3.5.1.min.js"></script>
+<script src="https://shiniao.fun/js/bootstrap.min.js"></script>
+<script src="https://shiniao.fun/js/bootstrap-toc.min.js"></script>
+<link href="https://shiniao.fun/css/fancybox.min.css" rel="stylesheet">
+<script src="https://shiniao.fun/js/fancybox.min.js"></script>
+<script src="https://shiniao.fun/js/zozo.js"></script>
+
+
+<script type="text/javascript" async
+    src="https://cdn.bootcss.com/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+        MathJax.Hub.Config({
+            tex2jax: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\[\[', '\]\]']],
+                processEscapes: true,
+                processEnvironments: true,
+                skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+                TeX: {
+                    equationNumbers: { autoNumber: "AMS" },
+                    extensions: ["AMSmath.js", "AMSsymbols.js"]
+                }
+            }
+        });
+
+        MathJax.Hub.Queue(function () {
+            
+            
+            
+            var all = MathJax.Hub.getAllJax(), i;
+            for (i = 0; i < all.length; i += 1) {
+                all[i].SourceElement().parentNode.className += ' has-jax';
+            }
+        });
+    </script>
+
+<style>
+    code.has-jax {
+        font: inherit;
+        font-size: 100%;
+        background: inherit;
+        border: inherit;
+        color: #515151;
+    }
+</style>
+
+
+
+</body>
+
+</html>
