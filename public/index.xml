@@ -6,10 +6,15 @@
     <description>Recent content on -O-</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-CN</language>
-    <lastBuildDate>Wed, 28 Oct 2020 11:19:00 +0800</lastBuildDate>
-    
-	<atom:link href="https://shiniao.fun/index.xml" rel="self" type="application/rss+xml" />
-    
+    <lastBuildDate>Mon, 09 Nov 2020 15:17:05 +0800</lastBuildDate><atom:link href="https://shiniao.fun/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>数据库索引略知一二</title>
+      <link>https://shiniao.fun/posts/%E6%95%B0%E6%8D%AE%E5%BA%93%E7%B4%A2%E5%BC%95%E7%95%A5%E7%9F%A5%E4%B8%80%E4%BA%8C/</link>
+      <pubDate>Mon, 09 Nov 2020 15:17:05 +0800</pubDate>
+      
+      <guid>https://shiniao.fun/posts/%E6%95%B0%E6%8D%AE%E5%BA%93%E7%B4%A2%E5%BC%95%E7%95%A5%E7%9F%A5%E4%B8%80%E4%BA%8C/</guid>
+      <description>说到索引，很多人肯定会立马想到 MySQL 中使用了 B+ 树这种索引结构，毕竟是面试常考题型。我在准备面试的过程中，也只是浅显的了解到 MySQL 在创建主键时会自动创建一个主键索引，除此之外，还有联合索引、唯一索引等索引结构。</description>
+    </item>
     
     <item>
       <title>基于LSM索引的数据库键值存储</title>

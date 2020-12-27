@@ -6,11 +6,7 @@
     <description>Recent content in 共识 on -O-</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-CN</language>
-    <lastBuildDate>Wed, 21 Aug 2019 22:02:53 +0800</lastBuildDate>
-    
-	<atom:link href="https://shiniao.fun/tags/%E5%85%B1%E8%AF%86/index.xml" rel="self" type="application/rss+xml" />
-    
-    
+    <lastBuildDate>Wed, 21 Aug 2019 22:02:53 +0800</lastBuildDate><atom:link href="https://shiniao.fun/tags/%E5%85%B1%E8%AF%86/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>对Raft一致性算法的理解</title>
       <link>https://shiniao.fun/posts/%E5%AF%B9raft%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95%E7%9A%84%E7%90%86%E8%A7%A3/</link>
