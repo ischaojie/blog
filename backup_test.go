@@ -13,22 +13,6 @@ import (
 	"testing"
 )
 
-var (
-	token string
-)
-
-func init() {
-	// t := "8d44b5b6e5b94321e1a875f9c60cfac2d175ad54"
-	// token = os.Getenv("GITHUB_AUTH_TOKEN")
-	token = "8d44b5b6e5b94321e1a875f9c60cfac2d175ad54"
-
-	if token == "" {
-		// print("!!! No OAuth token. Some tests won't run. !!!\n\n")
-		return
-	}
-
-}
-
 func createTempArticle(t *testing.T, fileName string) string {
 	// create temp md file
 	tempDir := t.TempDir()
