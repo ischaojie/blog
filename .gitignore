@@ -3,6 +3,7 @@ public
 
 .jetbrains
 .vscode
+.idea
 
 
 # ---Go---
