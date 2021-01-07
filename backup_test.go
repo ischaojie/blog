@@ -4,11 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/google/go-github/v33/github"
 	"github.com/shurcooL/githubv4"
 	"io/ioutil"
 	"log"
-	"os"
 	"path/filepath"
 	"testing"
 )
@@ -25,23 +23,27 @@ func createTempArticle(t *testing.T, fileName string) string {
 	return articlePath
 }
 
-func TestArticlePath(t *testing.T) {
-
-	dir, err := filepath.Abs(filepath.Dir("./content/posts/"))
-	if err != nil {
-		log.Fatal(err)
-	}
-	token := os.Getenv("GITHUB_AUTH_TOKEN")
-	t.Log(token)
-	t.Logf("dir: %s", dir)
-}
-
 func TestNewBackup(t *testing.T) {
 	backup := NewBackup("github")
-	client := backup.client.(*github.Client)
-	user, _, _ := client.Users.Get(context.Background(), "")
-	if *user.Name != "shiniao" {
-		t.Fatalf("github client error")
+	client := backup.client.(*githubv4.Client)
+
+	var q struct {
+		User struct {
+			ID githubv4.ID
+		} `graphql:"user(login:$login)"`
+	}
+
+	variables := map[string]interface{}{
+		"login": githubv4.String("shiniao"),
+	}
+
+	err := client.Query(context.Background(), &q, variables)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if q.User.ID != "MDQ6VXNlcjEyOTg2MDgy" {
+		t.Fatalf("github auth fail\n")
 	}
 }
 
@@ -66,10 +68,10 @@ func TestParseArticle(t *testing.T) {
 
 		article, _ := ParseArticle(c.in)
 		if c.want[0] != article.Title {
-			t.Errorf("result: %q, want: %q", article.Title, c.want[0])
+			t.Fatalf("result: %q, want: %q", article.Title, c.want[0])
 		}
 		if c.want[1] != article.Content {
-			t.Errorf("result: %q, want: %q", article.Content, c.want[1])
+			t.Fatalf("result: %q, want: %q", article.Content, c.want[1])
 		}
 	}
 }
@@ -79,7 +81,7 @@ func TestBackup_QueryBlogRepoID(t *testing.T) {
 	actualID := "MDEwOlJlcG9zaXRvcnkyODk4MDA1NTY="
 	id, _ := backup.QueryBlogRepoID("shiniao", "blog")
 	if id != actualID {
-		t.Errorf("query blog repo error")
+		t.Fatalf("query blog repo error")
 	}
 }
 
@@ -95,6 +97,8 @@ func TestBackup_CreateAndDeleteIssue(t *testing.T) {
 
 	backup := NewBackup("github")
 	client := backup.client.(*githubv4.Client)
+
+	// get issue count
 	var q struct {
 		Repository struct {
 			Issues struct {
@@ -112,14 +116,13 @@ func TestBackup_CreateAndDeleteIssue(t *testing.T) {
 	}
 	beforeIssuesCount := q.Repository.Issues.TotalCount
 
+	// create
 	path := createTempArticle(t, "test.md")
 	article, _ := ParseArticle(path)
-
 	id, err := backup.CreateIssue(article, "shiniao", "blog")
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Logf("issue id: %s", id)
 
 	issuesCount, err := backup.DeleteIssue(id)
 	if err != nil {
@@ -174,8 +177,9 @@ func TestConcurrentDeleteIssues(t *testing.T) {
 func TestBackup_BackupToGithub(t *testing.T) {
 
 	backup := NewBackup("github")
+
 	tempDir := t.TempDir()
-	for i := 0; i < 3; i++ {
+	for i := 0; i < 10; i++ {
 		// create temp md file
 		articleName := fmt.Sprintf("test%d.md", i+1)
 		err := ioutil.WriteFile(filepath.Join(tempDir, articleName), []byte("test"), 0644)
@@ -185,11 +189,13 @@ func TestBackup_BackupToGithub(t *testing.T) {
 
 	}
 
-	result, err := backup.BackupToGithub("shiniao", "blog", tempDir)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if result != "ok" {
-		t.Fatalf("result: %s", result)
-	}
+	// result, err := backup.BackupToGithub("shiniao", "blog", tempDir)
+	// if err != nil {
+	// 	t.Fatal(err)
+	// }
+	// if result != "ok" {
+	// 	t.Fatalf("result: %s", result)
+	// }
+
+	backup.BackupToGithubCon("shiniao", "blog", tempDir)
 }

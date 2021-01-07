@@ -2,8 +2,10 @@ package blog
 
 import (
 	"context"
+	"errors"
 	"github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
+	"io/fs"
 	"io/ioutil"
 	"log"
 	"os"
@@ -87,17 +89,8 @@ func (b Backup) QueryBlogRepoID(owner, repo string) (githubv4.ID, error) {
 
 }
 
+// CreateIssue create an github issue from article
 func (b Backup) CreateIssue(article Article, owner, repo string) (githubv4.ID, error) {
-	/*
-		mutation{
-			createIssue(input:{title:"shiniao", body:"test", repositoryId: "MDEwOlJlcG9zaXRvcnkyODk4MDA1NTY="}){
-				issue{
-					title
-					id
-					body
-				}
-			}
-		}*/
 	client := b.client.(*githubv4.Client)
 
 	blogRepoID, err := b.QueryBlogRepoID(owner, repo)
@@ -232,3 +225,87 @@ func (b Backup) BackupToGithub(owner, repo, articlesDir string) (string, error) 
 	return "ok", nil
 
 }
+
+func (b Backup) BackupToGithubCon(owner, repo, articlesDir string) {
+
+	// get all issues
+	issuesID, err := b.QueryRepoIssues(owner, repo)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	deleteErrorChan := make(chan error, len(issuesID))
+
+	// delete all issues
+	for _, id := range issuesID {
+
+		go func(id githubv4.ID) {
+			_, err := b.DeleteIssue(id)
+			if err != nil {
+				deleteErrorChan <- err
+			}
+			deleteErrorChan <- nil
+
+		}(id)
+	}
+
+	var deleteError string
+	for i := 0; i < len(issuesID); i++ {
+		if err := <-deleteErrorChan; err != nil {
+			deleteError = deleteError + "" + err.Error()
+		}
+	}
+
+	if deleteError != "" {
+		log.Fatalf("delete issue err: %s", errors.New(deleteError))
+	}
+
+	log.Print("delete all issues ok")
+
+	// read articles
+	articles, err := ioutil.ReadDir(articlesDir)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+	// upload all articles to issue
+	createIssueChan := make(chan githubv4.ID, len(articles))
+	createIssueErrorChan := make(chan error, len(articles))
+	for _, articlePath := range articles {
+
+		go func(articlePath fs.FileInfo) {
+			// abs article path
+			path := filepath.Join(articlesDir, articlePath.Name())
+			article, err := ParseArticle(path)
+			if err != nil {
+				createIssueChan <- -1
+				createIssueErrorChan <- err
+			}
+			// create Issue
+			id, err := b.CreateIssue(article, owner, repo)
+			if err != nil {
+				createIssueChan <- -1
+				createIssueErrorChan <- err
+			}
+			createIssueChan <- id
+			createIssueErrorChan <- nil
+		}(articlePath)
+
+	}
+	var createErrorStr string
+	var createIssuesID []githubv4.ID
+	for i := 0; i < len(articles); i++ {
+		createIssuesID = append(createIssuesID, <-createIssueChan)
+		if err := <-createIssueErrorChan; err != nil {
+			createErrorStr = createErrorStr + "" + err.Error()
+		}
+	}
+
+	if createErrorStr != "" {
+		log.Fatal(errors.New(createErrorStr))
+	}
+
+	log.Print("backup ok")
+
+}
+
