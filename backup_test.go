@@ -28,21 +28,17 @@ func TestNewBackup(t *testing.T) {
 	client := backup.client.(*githubv4.Client)
 
 	var q struct {
-		User struct {
-			ID githubv4.ID
-		} `graphql:"user(login:$login)"`
+		Viewer struct {
+			Login githubv4.String
+		}
 	}
 
-	variables := map[string]interface{}{
-		"login": githubv4.String("shiniao"),
-	}
-
-	err := client.Query(context.Background(), &q, variables)
+	err := client.Query(context.Background(), &q, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if q.User.ID != "MDQ6VXNlcjEyOTg2MDgy" {
+	if q.Viewer.Login != "shiniao" {
 		t.Fatalf("github auth fail\n")
 	}
 }
@@ -79,7 +75,7 @@ func TestParseArticle(t *testing.T) {
 func TestBackup_QueryBlogRepoID(t *testing.T) {
 	backup := NewBackup("github")
 	actualID := "MDEwOlJlcG9zaXRvcnkyODk4MDA1NTY="
-	id, _ := backup.QueryBlogRepoID("shiniao", "blog")
+	id, _ := backup.QueryBlogRepoID("blog")
 	if id != actualID {
 		t.Fatalf("query blog repo error")
 	}
@@ -87,7 +83,7 @@ func TestBackup_QueryBlogRepoID(t *testing.T) {
 
 func TestBackup_QueryRepoIssues(t *testing.T) {
 	backup := NewBackup("github")
-	_, err := backup.QueryRepoIssues("shiniao", "blog")
+	_, err := backup.QueryRepoIssues("blog")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -119,7 +115,7 @@ func TestBackup_CreateAndDeleteIssue(t *testing.T) {
 	// create
 	path := createTempArticle(t, "test.md")
 	article, _ := ParseArticle(path)
-	id, err := backup.CreateIssue(article, "shiniao", "blog")
+	id, err := backup.CreateIssue(article, "blog")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -136,7 +132,7 @@ func TestBackup_CreateAndDeleteIssue(t *testing.T) {
 
 func TestConcurrentDeleteIssues(t *testing.T) {
 	backup := NewBackup("github")
-	issuesID, err := backup.QueryRepoIssues("shiniao", "blog")
+	issuesID, err := backup.QueryRepoIssues("blog")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -197,5 +193,5 @@ func TestBackup_BackupToGithub(t *testing.T) {
 	// 	t.Fatalf("result: %s", result)
 	// }
 
-	backup.BackupToGithubCon("shiniao", "blog", tempDir)
+	backup.BackupToGithubCon("blog", tempDir)
 }

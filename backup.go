@@ -66,8 +66,30 @@ func ParseArticle(articlePath string) (article Article, err error) {
 
 }
 
-func (b Backup) QueryBlogRepoID(owner, repo string) (githubv4.ID, error) {
+func (b Backup) QueryOwner() (githubv4.String, error) {
 	client := b.client.(*githubv4.Client)
+
+	var q struct {
+		Viewer struct {
+			Login githubv4.String
+		}
+	}
+
+	err := client.Query(context.Background(), &q, nil)
+	if err != nil {
+		return "", err
+	}
+
+	return q.Viewer.Login, nil
+}
+
+func (b Backup) QueryBlogRepoID(repo string) (githubv4.ID, error) {
+	client := b.client.(*githubv4.Client)
+
+	owner, err := b.QueryOwner()
+	if err != nil {
+		return nil, err
+	}
 
 	var q struct {
 		Repository struct {
@@ -76,11 +98,11 @@ func (b Backup) QueryBlogRepoID(owner, repo string) (githubv4.ID, error) {
 	}
 
 	variables := map[string]interface{}{
-		"repositoryOwner": githubv4.String(owner),
+		"repositoryOwner": owner,
 		"repositoryName":  githubv4.String(repo),
 	}
 
-	err := client.Query(context.Background(), &q, variables)
+	err = client.Query(context.Background(), &q, variables)
 	if err != nil {
 		return nil, err
 	}
@@ -90,10 +112,10 @@ func (b Backup) QueryBlogRepoID(owner, repo string) (githubv4.ID, error) {
 }
 
 // CreateIssue create an github issue from article
-func (b Backup) CreateIssue(article Article, owner, repo string) (githubv4.ID, error) {
+func (b Backup) CreateIssue(article Article, repo string) (githubv4.ID, error) {
 	client := b.client.(*githubv4.Client)
 
-	blogRepoID, err := b.QueryBlogRepoID(owner, repo)
+	blogRepoID, err := b.QueryBlogRepoID(repo)
 	if err != nil {
 		return nil, err
 	}
@@ -145,8 +167,12 @@ func (b Backup) DeleteIssue(issueID githubv4.ID) (githubv4.Int, error) {
 
 }
 
-func (b Backup) QueryRepoIssues(owner, name string) ([]githubv4.ID, error) {
+func (b Backup) QueryRepoIssues(name string) ([]githubv4.ID, error) {
 	client := b.client.(*githubv4.Client)
+	owner, err := b.QueryOwner()
+	if err != nil {
+		return nil, err
+	}
 
 	var q1 struct {
 		Repository struct {
@@ -156,10 +182,10 @@ func (b Backup) QueryRepoIssues(owner, name string) ([]githubv4.ID, error) {
 		} `graphql:"repository(owner:$repositoryOwner,name:$repositoryName)"`
 	}
 	variables := map[string]interface{}{
-		"repositoryOwner": githubv4.String(owner),
+		"repositoryOwner": owner,
 		"repositoryName":  githubv4.String(name),
 	}
-	err := client.Query(context.Background(), &q1, variables)
+	err = client.Query(context.Background(), &q1, variables)
 	if err != nil {
 		return nil, err
 	}
@@ -193,10 +219,10 @@ func (b Backup) QueryRepoIssues(owner, name string) ([]githubv4.ID, error) {
 
 // BackupToGithub backup blog articles to github issue
 // first delete all issues, then backup(maybe have a better solution)
-func (b Backup) BackupToGithub(owner, repo, articlesDir string) (string, error) {
+func (b Backup) BackupToGithub(repo, articlesDir string) (string, error) {
 
 	// get all issues
-	issuesID, err := b.QueryRepoIssues(owner, repo)
+	issuesID, err := b.QueryRepoIssues(repo)
 	if err != nil {
 		return "", err
 	}
@@ -219,17 +245,17 @@ func (b Backup) BackupToGithub(owner, repo, articlesDir string) (string, error) 
 			return "", err
 		}
 		// create Issue concurrent
-		b.CreateIssue(article, owner, repo)
+		b.CreateIssue(article, repo)
 
 	}
 	return "ok", nil
 
 }
 
-func (b Backup) BackupToGithubCon(owner, repo, articlesDir string) {
+func (b Backup) BackupToGithubCon(repo, articlesDir string) {
 
 	// get all issues
-	issuesID, err := b.QueryRepoIssues(owner, repo)
+	issuesID, err := b.QueryRepoIssues(repo)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -282,7 +308,7 @@ func (b Backup) BackupToGithubCon(owner, repo, articlesDir string) {
 				createIssueErrorChan <- err
 			}
 			// create Issue
-			id, err := b.CreateIssue(article, owner, repo)
+			id, err := b.CreateIssue(article, repo)
 			if err != nil {
 				createIssueChan <- -1
 				createIssueErrorChan <- err
@@ -308,4 +334,3 @@ func (b Backup) BackupToGithubCon(owner, repo, articlesDir string) {
 	log.Print("backup ok")
 
 }
-
