@@ -19,27 +19,10 @@ jobs:
       - name: setup go
         uses: actions/setup-go@v2
 
-      - name: setup gh cli
-        run: |
-          go get -v github.com/cli/cli/cmd/gh
-
       - name: backup blog articles
         env:
           TOKEN: ${{ secrets.TOKEN }}
         run: |
-          gh auth login --with-token $TOKEN
-          cp ./content
-
-
-
-      - name: deploy to qiniu
-        env:
-          QINIU_ACCESSKEY: ${{ secrets.QINIU_ACCESSKEY }}
-          QINIU_SECRETKEY: ${{ secrets.QINIU_SECRETKEY }}
-          SERVER_SCKEY: ${{ secrets.SERVER_SCKEY }}
-        run: |
-          chmod +x ./qshell
-          ./qshell account $QINIU_ACCESSKEY $QINIU_SECRETKEY zhuzhezhe95@gmail.com
-          ./qshell qupload2 --src-dir=./public --bucket=blog --overwrite=true
-          wget https://sc.ftqq.com/$SERVER_SCKEY.send?text="blog部署OK"
+          go install ./cmd/backup/
+          ./backup github --token=$TOKEN
 
