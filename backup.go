@@ -2,6 +2,7 @@ package blog
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
@@ -10,6 +11,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
@@ -54,15 +56,27 @@ func ParseArticle(articlePath string) (article Article, err error) {
 
 	// title
 	articleName := filepath.Base(articlePath)
-	article.Title = strings.TrimSuffix(articleName, ".md")
+	title := strings.TrimSuffix(articleName, ".md")
+	article.Title = title
 
 	// read from article file
 	content, err := ioutil.ReadFile(articlePath)
-	article.Content = string(content)
+	dateRe := regexp.MustCompile(`date:\s(.*)\n`)
+	date := dateRe.FindSubmatch(content)[1]
+	article.Date = string(date)
+
+	tagsRe := regexp.MustCompile(`tags:\s(.*)\n`)
+	t := tagsRe.FindSubmatch(content)[1]
+	var tags []string
+	err = json.Unmarshal(t, &tags)
 	if err != nil {
-		return article, err
+		return Article{}, err
 	}
-	return article, err
+	article.Tags = tags
+
+	article.Content = string(content)
+
+	return article, nil
 
 }
 
