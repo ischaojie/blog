@@ -1,0 +1,42 @@
+name: ci 
+on:
+  push:
+    branches: 
+      - master
+      - main
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+          fetch-depth: 0 
+      
+      - uses: peaceiris/actions-hugo@v2
+        with:
+          hugo-version: 'latest'
+      
+      - name: hugo generate
+        run: hugo --minify
+
+      - name: hugo gh pages
+        uses: peaceiris/actions-gh-pages@v3
+        if: github.ref == 'refs/heads/main'
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./public
+
+      - name: swith to gh-pages
+        uses: actions/checkout@v2
+        with:
+          ref: gh-pages
+
+      - name: upload docs
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.KEY }}
+          source: "."
+          target: "/var/www/blog"

@@ -1,0 +1,55 @@
+baseURL = "http://blog.chaojie.fun/"
+languageCode = "en-us"
+title = "潮戒写字的地方"
+theme = "cactus"
+rss = true
+
+
+[[menu.main]]
+name = "Home"
+url = "/"
+weight = 1
+ 
+[[menu.main]]
+name = "Coding"
+url = "/coding"
+weight = 2
+
+[[menu.main]]
+name = "Prose"
+url = "/prose"
+weight = 2
+
+[[menu.main]]
+name = "Tags"
+url = "/tags"
+weight = 3
+
+[[menu.main]]
+name = "About"
+url = "/about"
+weight = 4
+
+[params]
+  description = """
+  你好，我是潮戒。
+  
+  自诩工程师，禁用码农称号 / 不学无术，自由散漫，些许理想主义，好奇心严重 / 热爱电影与编程 / Python & Go，会点前端，会点硬件，梦想有自己的独立产品 / 贾樟柯 & 昆汀 & 韦斯·安德森等，学习电影理论中 / 养狗名π，爱咬人，会握手，干饭狗。
+  
+  “愿你自己有充分的忍耐去担当，有充分单纯的心去信仰。” ------ 里尔克
+  """
+  mainSectionTitle = "Articles"
+  postsOnHomePage = 6
+  mathjax = true
+
+[[params.social]]
+  name = "github"
+  link = "https://github.com/ischaojie"
+
+[[params.social]]
+  name = "twitter"
+  link = "https://twitter.com/chaojie_cn"
+
+[[params.social]]
+  name = "email"
+  link = "zhuzhezhe95@gmail.com"
