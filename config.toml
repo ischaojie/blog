@@ -1,4 +1,4 @@
-baseURL = "http://blog.chaojie.fun/"
+baseURL = "https://blog.chaojie.fun/"
 languageCode = "en-us"
 title = "潮戒写字的地方"
 theme = "cactus"
