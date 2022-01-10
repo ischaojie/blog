@@ -41,6 +41,7 @@ weight = 4
   mainSectionTitle = "Articles"
   postsOnHomePage = 6
   mathjax = true
+  rss = true
 
 [[params.social]]
   name = "github"
