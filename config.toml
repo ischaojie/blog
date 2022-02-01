@@ -11,13 +11,8 @@ url = "/"
 weight = 1
  
 [[menu.main]]
-name = "Coding"
-url = "/coding"
-weight = 2
-
-[[menu.main]]
-name = "Prose"
-url = "/prose"
+name = "Articles"
+url = "/posts"
 weight = 2
 
 [[menu.main]]
@@ -39,9 +34,12 @@ weight = 4
   “愿你自己有充分的忍耐去担当，有充分单纯的心去信仰。” ------ 里尔克
   """
   mainSectionTitle = "Articles"
+  mainSection = "posts"
+  showAllPostsOnHomePage = false
   postsOnHomePage = 6
   mathjax = true
   rss = true
+  showAllPostsArchive = true
 
 [[params.social]]
   name = "github"
