@@ -52,3 +52,11 @@ weight = 4
 [[params.social]]
   name = "email"
   link = "zhuzhezhe95@gmail.com"
+
+[params.comments]
+  enabled = true
+  engine = "utterances"
+  [params.comments.utterances]
+    repo = "ischaojie/blog"
+    label = "comments"
+    theme = "github-light"
