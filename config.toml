@@ -60,3 +60,4 @@ weight = 4
     repo = "ischaojie/blog"
     label = "comments"
     theme = "github-light"
+    IssueTerm = "title"
