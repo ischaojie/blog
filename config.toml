@@ -9,28 +9,33 @@ rss = true
 name = "Home"
 url = "/"
 weight = 1
- 
+
+[[menu.main]]
+name = "Open Source"
+url = "/open_source"
+weight = 2
+
 [[menu.main]]
 name = "Articles"
 url = "/posts"
-weight = 2
+weight = 3
 
 [[menu.main]]
 name = "Tags"
 url = "/tags"
-weight = 3
+weight = 4
 
 [[menu.main]]
 name = "About"
 url = "/about"
-weight = 4
+weight = 5
 
 [params]
   description = """
-  你好，我是潮戒。
-  
+  Hi, I'm chaojie(潮戒)。
+
   自诩工程师，禁用码农称号 / 不学无术，自由散漫，些许理想主义，好奇心严重 / 热爱电影与编程 / Python & Go，会点前端，会点硬件，梦想有自己的独立产品 / 贾樟柯 & 昆汀 & 韦斯·安德森等，学习电影理论中 / 养狗名π，爱咬人，会握手，干饭狗。
-  
+
   “愿你自己有充分的忍耐去担当，有充分单纯的心去信仰。” ------ 里尔克
   """
   mainSectionTitle = "Articles"
