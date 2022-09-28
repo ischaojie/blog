@@ -32,7 +32,7 @@ weight = 5
 
 [params]
   description = """
-  Hi, I'm chaojie([潮戒](/about/))。
+  Hi, I'm chaojie([潮戒](/about/))。正在豆瓣工作。
 
   不学无术，自由散漫 / 热爱电影与编程 / 贾樟柯 & 王小波 / Python & Rust(不会) / 会一点硬件 / 独立开发者计划中 / 养狗名 π，爱咬人，会握手。
 
@@ -49,6 +49,10 @@ weight = 5
 [[params.social]]
   name = "github"
   link = "https://github.com/ischaojie"
+
+[[params.social]]
+  name = "douban"
+  link = "https://douban.com/people/218724191"
 
 [[params.social]]
   name = "twitter"
