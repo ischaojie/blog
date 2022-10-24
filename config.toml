@@ -1,6 +1,6 @@
 baseURL = "https://chaojie.fun/"
 languageCode = "en-us"
-title = "潮戒写字的地方"
+title = "✍️Where Chaojie Writes"
 theme = "cactus"
 rss = true
 
@@ -32,11 +32,12 @@ weight = 5
 
 [params]
   description = """
-  Hi, I'm chaojie([潮戒](/about/))。正在豆瓣工作。
+  Hi, I'm chaojie([潮戒](/about/)). I'm working at [Douban](https://en.wikipedia.org/wiki/Douban).
 
-  不学无术，自由散漫 / 热爱电影与编程 / 贾樟柯 & 王小波 / Python & Rust(不会) / 会一点硬件 / 独立开发者计划中 / 养狗名 π，爱咬人，会握手。
+  Not learning, free and loose / Love movies and programming / [Jia Zhangke](https://en.wikipedia.org/wiki/Jia_Zhangke) & [Wang Xiaobo](https://en.wikipedia.org/wiki/Wang_Xiaobo) / Python & Rust(won't) / Can a little hardware / Independent developer plan in progress / Have dog name π, love to bite, can shake hands.
 
-  “愿你自己有充分的忍耐去担当，有充分单纯的心去信仰。” ------ 里尔克
+  "May you yourself have sufficient patience to bear, and a sufficiently simple heart to believe." ------ Rilke
+
   """
   mainSectionTitle = "Articles"
   mainSection = "posts"
