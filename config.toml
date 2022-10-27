@@ -1,6 +1,6 @@
 baseURL = "https://chaojie.fun/"
 languageCode = "en-us"
-title = "✍️Where Chaojie Writes"
+title = "Chaojie's Home✍️"
 theme = "cactus"
 rss = true
 
@@ -11,8 +11,8 @@ url = "/"
 weight = 1
 
 [[menu.main]]
-name = "Open Source"
-url = "/open_source"
+name = "Projects"
+url = "/projects"
 weight = 2
 
 [[menu.main]]
@@ -34,7 +34,7 @@ weight = 5
   description = """
   Hi, I'm chaojie([潮戒](/about/)). I'm working at [Douban](https://en.wikipedia.org/wiki/Douban).
 
-  Not learning, free and loose / Love movies and programming / [Jia Zhangke](https://en.wikipedia.org/wiki/Jia_Zhangke) & [Wang Xiaobo](https://en.wikipedia.org/wiki/Wang_Xiaobo) / Python & Rust(won't) / Can a little hardware / Independent developer plan in progress / Have dog name π, love to bite, can shake hands.
+  Unrealistic fantasies, free and loose / Python & Rust(won't) & JavaScript / Love movies and programming / Can a little hardware / Independent developer plan in progress / Have dog name π, love to bite, can shake hands.
 
   "May you yourself have sufficient patience to bear, and a sufficiently simple heart to believe." ------ Rilke
 
