@@ -32,11 +32,13 @@ weight = 5
 
 [params]
   description = """
-  Hi, I'm chaojie([潮戒](/about/)). I'm working at [Douban](https://en.wikipedia.org/wiki/Douban).
+  Hi, I'm chaojie([潮戒](/about/)). I'm working at [Douban](https://en.wikipedia.org/wiki/Douban) as Python engineer.
 
-  Unrealistic fantasies, free and loose / Python & Rust(won't) & JavaScript / Love movies and programming / Can a little hardware / Independent developer plan in progress / Have dog name π, love to bite, can shake hands.
+  I'm interested in programming, movies, design and some hardware stuffs. Sometimes have unrealistic fantasies.
 
-  "May you yourself have sufficient patience to bear, and a sufficiently simple heart to believe." ------ Rilke
+  I have a dog🐶 named [π](https://pai.dog/).
+
+  “愿你自己有充分的忍耐去担当，有充分单纯的心去信仰。” ------ 里尔克
 
   """
   mainSectionTitle = "Articles"
