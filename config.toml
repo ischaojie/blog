@@ -67,9 +67,17 @@ weight = 5
 
 [params.comments]
   enabled = true
-  engine = "utterances"
+  engine = "giscus"
   [params.comments.utterances]
     repo = "ischaojie/blog"
     label = "comments"
     theme = "github-light"
     IssueTerm = "title"
+  [params.comments.giscus]
+    repo = "ischaojie/blog"
+    repoId = "MDEwOlJlcG9zaXRvcnkyODk4MDA1NTY="
+    category = "Announcements"
+    categoryId = "DIC_kwDOEUYBbM4CPWbs"
+    theme = "light"
+    mapping = "title"
+
