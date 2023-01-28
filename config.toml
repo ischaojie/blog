@@ -48,6 +48,7 @@ weight = 5
   mathjax = true
   rss = true
   showAllPostsArchive = true
+  googleAnalytics = "G-XDREGKCZH0"
 
 [[params.social]]
   name = "github"
