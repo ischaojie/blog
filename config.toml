@@ -82,3 +82,6 @@ weight = 5
     theme = "light"
     mapping = "title"
 
+[markup]
+  [markup.highlight]
+    style = "github-dark"
