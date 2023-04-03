@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% import 'partical/social.html' as social %}
+
+{% block content %}
+<!-- intro -->
+<section class="row">
+    <div class="markdown tracking-wide">
+        {% set section = get_section(path="_index.md") %}
+        {{ section.content | safe }}
+    </div>
+</section>
+<!-- social -->
+<section class="row" style="margin-top: 24px;">
+    <div class="d-flex flex-row align-items-center gap-2">
+        <div class="fs-2"><strong>Find me on</strong></div>
+        <div class="d-flex flex-row gap-2">
+            {% for name, identi in config.extra.social %}
+            {{ social::main(name=name, identi=identi) }}
+            {% if not loop.last %}|{% endif %}
+            {% endfor %}
+        </div>.
+    </div>
+</section>
+<!-- articles -->
+<section class="row gap-2" style="margin-top: 48px;">
+    <h1><a href="{{ get_url(path='@/posts/_index.md') }}">Articles</a></h1>
+    {% set posts = get_section(path="posts/_index.md") %}
+    {% for page in posts.pages %}
+    {% if not page.draft %}
+    {% if config.extra.show_article_num %}
+    {% set article_num = config.extra.show_article_num %}
+    {% else %}
+    {% set article_num = 10 %}
+    {% endif %}
+    {% if loop.index <= article_num %}
+    <div class="d-flex">
+        <div class="col-2 font-monospace">
+            {{ page.date | date(format="%Y-%m-%d") }}
+        </div>
+        <div class="col text-start">
+            <a href="{{ page.permalink }}">{{ page.title }}</a>
+        </div>
+    </div>
+    {% endif %}
+    {% endif %}
+    {% endfor %}
+</section>
+{% endblock content %}

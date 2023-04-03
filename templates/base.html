@@ -1,0 +1,32 @@
+{% import 'partical/header.html' as header %}
+{% import 'partical/footer.html' as footer %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>{% block title %}{{ config.title }}{% endblock title %}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta17/dist/css/tabler.min.css">
+</head>
+
+<body>
+    <div class="page-body">
+        <div class="container-xl">
+            <div class="row justify-content-center">
+                <div class="col-lg-10 col-xl-9">
+                    {{ header::main() }}
+                    <div class="card card-lg">
+                        <div class="card-body markdown">
+                            {% block content %} {% endblock %}
+                        </div>
+                    </div>
+                    {{ footer::main() }}
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta17/dist/js/tabler.min.js"></script>
+    <script src="{{ get_url(path='js/fslightbox.js') }}"
+</body>
+
+</html>

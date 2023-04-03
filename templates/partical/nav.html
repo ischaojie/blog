@@ -1,0 +1,29 @@
+{% macro main() %}
+<ul class="list-inline list-inline-dots mb-0">
+    <li class="list-inline-item">
+        <a class="link-secondary" href="{{ get_url(path='@/_index.md') }}">
+            {{ trans(key="home", lang=lang) }}
+        </a>
+    </li>
+    <li class="list-inline-item">
+        <a class="link-secondary" href="{{ get_url(path='@/posts/_index.md') }}">
+            {{ trans(key="posts", lang=lang) }}
+        </a>
+    </li>
+    <li class="list-inline-item">
+        <a class="link-secondary" href="{{ get_url(path='@/photography/index.md') }}">
+            {{ trans(key="photography", lang=lang) }}
+        </a>
+    </li>
+    <li class="list-inline-item">
+        <a class="link-secondary" href="{{ get_url(path='@/_index.md') }}/tags/">
+            {{ trans(key="tags", lang=lang) }}
+        </a>
+    </li>
+    <li class="list-inline-item">
+        <a class="link-secondary" href="{{ get_url(path='@/about/index.md') }}">
+            {{ trans(key="about", lang=lang) }}
+        </a>
+    </li>
+</ul>
+{% endmacro main %}

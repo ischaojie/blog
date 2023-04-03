@@ -1,0 +1,26 @@
+{% import 'partical/nav.html' as nav %}
+
+{% macro main() %}
+<div class="col" style="margin-bottom: 24px;">
+    <div class="row g-2">
+        <div class="col-auto" style="margin: auto 0;">
+            <a href=".">
+                <img src="{{ get_url(path='images/logo.png') }}" width="40" height="42" class="">
+            </a>
+        </div>
+        <div class="col">
+            <div class="row">
+                <div class="col">
+                    <h2 class="mb-0"><a href="#">{{ config.title }}</a></h2>
+                </div>
+            </div>
+            <div class="row">
+                <nav>
+                    {{ nav::main() }}
+                </nav>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endmacro main %}

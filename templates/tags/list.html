@@ -1,0 +1,8 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="d-flex gap-4">
+    {% for tag in terms %}
+    <a class="tag" href="{{ get_taxonomy_url(kind='tags', name=tag.name) | safe }}">#{{tag.name}}</a>
+    {% endfor %}
+</div>
+{% endblock content %}

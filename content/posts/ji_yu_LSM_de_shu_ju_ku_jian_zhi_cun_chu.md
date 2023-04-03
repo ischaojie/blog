@@ -1,9 +1,10 @@
----
-title: "基于LSM索引的数据库键值存储"
-date: 2020-10-28T11:19:00+08:00
-draft: false
-tags: ["数据库", "索引", "k-v store"]
----
++++
+title = "基于LSM索引的数据库键值存储"
+date = 2020-10-28T11:19:00+08:00
+draft = false
+[taxonomies]
+tags = ["数据库", "索引", "k-v store"]
++++
 
 > ERROR
 >
@@ -213,7 +214,7 @@ func (b *Bitcask) put(key, value []byte) (int64, int64, error) {
 func (b *Bitcask) Fold(f func(key []byte) error) (err error) {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
-	
+
 	// key在ART的叶子节点，返回true，否则返回false，不处理
 	b.trie.ForEach(func(node art.Node) bool {
 		if err = f(node.Key()); err != nil {
