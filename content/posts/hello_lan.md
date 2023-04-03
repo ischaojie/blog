@@ -1,9 +1,10 @@
----
-title: "你好哇，Lan"
-date: 2020-02-13T11:19:00+08:00
-draft: false
-tags: ["随笔"]
----
++++
+title = "你好哇，Lan"
+date = 2020-02-13T11:19:00+08:00
+draft = false
+[taxonomies]
+tags = ["随笔"]
++++
 
 通惠河开始结冰之后，有人在岸边写到，生活是合理的。
 

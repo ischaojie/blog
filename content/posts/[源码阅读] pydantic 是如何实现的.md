@@ -1,8 +1,8 @@
----
-title: "[源码阅读] Pydantic 是如何实现的"
-date: 2021-12-25T22:12:17+08:00
-draft: true
----
++++
+title = "[源码阅读] Pydantic 是如何实现的"
+date = 2021-12-25T22:12:17+08:00
+draft = true
++++
 
 Pydantic 是一个使用类型注解进行数据解析和校验的 lib。有点像 marshmallow，但特点是使用了 type hints。有名的 fastapi 就使用 pydantic 进行 api 数据的校验。
 

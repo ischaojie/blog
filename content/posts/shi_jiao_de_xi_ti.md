@@ -1,9 +1,10 @@
----
-title: "失焦的习题"
-date: 2016-10-03T11:19:00+08:00
-draft: false
-tags: ["随笔"]
----
++++
+title = "失焦的习题"
+date = 2016-10-03T11:19:00+08:00
+draft = false
+[taxonomies]
+tags = ["随笔"]
++++
 
 ——记考研之路
 

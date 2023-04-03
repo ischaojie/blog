@@ -1,5 +1,5 @@
 ---
-title: "摄影"
+title: "摄影作品"
 date: "2023-04-01"
 template: "photography.html"
 ---

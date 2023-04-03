@@ -1,9 +1,10 @@
----
-title: "How to Run Hatch Within Github Workflow"
-date: 2023-01-28T22:10:02+08:00
-draft: false
-tags: ["Hatch", "Python"]
----
++++
+title = "How to Run Hatch Within Github Workflow"
+date = 2023-01-28T22:10:02+08:00
+draft = false
+[taxonomies]
+tags = ["Hatch", "Python"]
++++
 
 Hatch support support define matrix within a environment ([matrix docs](https://hatch.pypa.io/latest/config/environment/advanced/#matrix)), this is so useful when you want to run test against different python version. For example:
 
