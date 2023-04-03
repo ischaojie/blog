@@ -5,7 +5,7 @@
 {% endblock title %}
 
 {% block ogtitle %}{{ super() }} | {{ page.title }}{% endblock ogtitle %}
-{% block ogurl %}{{ page.permalink }}{% endblock ogurl %}
+{% block ogurl %}{{ page.permalink | safe }}{% endblock ogurl %}
 
 {% block content %}
 <div class="">
