@@ -12,11 +12,11 @@
 <!-- social -->
 <section class="row" style="margin-top: 24px;">
     <div class="d-flex flex-row align-items-center gap-2">
-        <div class="fs-2"><strong>Find me on</strong></div>
+        <div class="fs-2">Find me on</div>
         <div class="d-flex flex-row gap-2">
             {% for name, identi in config.extra.social %}
             {{ social::main(name=name, identi=identi) }}
-            {% if not loop.last %}|{% endif %}
+            {% if not loop.last %}<div class="opacity-50">|</div>{% endif %}
             {% endfor %}
         </div>.
     </div>

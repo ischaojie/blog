@@ -27,7 +27,7 @@ date_format = "%Y-%m-%d"
 next_page = "Next Page"
 last_page = "Last Page"
 
-[languages.zh.translations]
+[languages.zh-CN.translations]
 language_name = "中文"
 home = "首页"
 posts = "文章"
@@ -40,7 +40,7 @@ last_page = "上一页"
 
 [extra]
 # The number of posts to show on the homepage
-show_article_num = 7
+show_article_num = 10
 
 [extra.social]
 twitter = "chaojie_cn"
