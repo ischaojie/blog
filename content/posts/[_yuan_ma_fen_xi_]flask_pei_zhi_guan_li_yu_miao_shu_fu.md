@@ -1,9 +1,10 @@
----
-title: "[源码分析] Flask配置管理与描述符析"
-date: 2019-07-03T11:19:00+08:00
-draft: false
-tags: ["Python", "Flask"]
----
++++
+title = "[源码分析] Flask配置管理与描述符析"
+date = 2019-07-03T11:19:00+08:00
+draft = false
+[taxonomies]
+tags = ["Python", "Flask"]
++++
 
 在Flask中可以通过 **app.config['NAME'] = what** 的形式指定一些配置，比如设置 **debug = True** ：
 

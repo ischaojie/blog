@@ -1,9 +1,10 @@
----
-title: "[源码分析] Flask中路由匹配是如何实现的"
-date: 2019-07-04T11:19:00+08:00
-draft: false
-tags: ["Python", "Flask"]
----
++++
+title = "[源码分析] Flask中路由匹配是如何实现的"
+date = 2019-07-04T11:19:00+08:00
+draft = false
+[taxonomies]
+tags = ["Python", "Flask"]
++++
 
 首先让我们来了解下WSGI规范是啥？
 

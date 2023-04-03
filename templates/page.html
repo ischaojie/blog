@@ -1,5 +1,12 @@
 {% extends "base.html" %}
 
+{% block title %}
+{{ super() }} | {{ page.title }}
+{% endblock title %}
+
+{% block ogtitle %}{{ super() }} | {{ page.title }}{% endblock ogtitle %}
+{% block ogurl %}{{ page.permalink }}{% endblock ogurl %}
+
 {% block content %}
 <div class="">
     {% if page.path != '/about/' %}

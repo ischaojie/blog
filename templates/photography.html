@@ -1,5 +1,10 @@
 {% extends 'base.html' %}
 {% import 'partical/photo.html' as photo %}
+
+{% block title %}
+{{ super() }} | {{ page.title }}
+{% endblock title %}
+
 {% block content %}
 <h2>{{ page.title }}</h2>
 {{ page.content | safe }}

@@ -1,9 +1,10 @@
----
-title: "Lock Free是什么"
-date: 2020-08-28T15:17:05+08:00
-draft: false
-tags: ["分布式", "算法"]
----
++++
+title = "Lock Free是什么"
+date = 2020-08-28T15:17:05+08:00
+draft = false
+[taxonomies]
+tags = ["分布式", "算法"]
++++
 
 什么是Lock-Free？
 

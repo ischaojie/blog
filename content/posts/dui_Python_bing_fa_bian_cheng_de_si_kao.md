@@ -1,9 +1,10 @@
----
-title: "对Python并发编程的思考"
-date: 2018-01-11T22:02:53+08:00
-draft: false
-tags: ["Python"]
----
++++
+title = "对Python并发编程的思考"
+date = 2018-01-11T22:02:53+08:00
+draft = false
+[taxonomies]
+tags = ["Python"]
++++
 
 为了提高系统密集型运算的效率，我们常常会使用到多个进程或者是多个线程，python中的`Threading`包实现了线程，`multiprocessing` 包则实现了多进程。而在3.2版本的python中，将进程与线程进一步封装成`concurrent.futures` 这个包，使用起来更加方便。我们以请求网络服务为例，来实际测试一下加入多线程之后的效果。
 
