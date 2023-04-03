@@ -1,5 +1,8 @@
-on: push
-name: Build and deploy GH Pages
+name: Zola on GitHub Pages
+on:
+  push:
+    branches:
+      - main
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -7,8 +10,8 @@ jobs:
     steps:
       - name: checkout
         uses: actions/checkout@v3.0.0
-      - name: build_and_deploy
+      - name: build and deploy
         uses: shalzz/zola-deploy-action@v0.17.2
         env:
           PAGES_BRANCH: gh-pages
-          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.TOKEN }}
