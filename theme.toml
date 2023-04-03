@@ -13,15 +13,6 @@ demo = ""
 # Use snake_casing to be consistent with the rest of Zola
 [extra]
 
-[extra.cacus]
-google_analytics_enabled = true
-google_analytics_id = ''
-utterances_enabled = true
-utterances_repo = ''
-utterances_issue_term = 'pathname'
-utterances_theme = 'github-light'
-disqus_enabled = false
-
 [author]
 name = "chaojie"
 homepage = "https://chaojie.fun"
