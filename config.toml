@@ -1,87 +1,59 @@
-baseURL = "https://chaojie.fun/"
-languageCode = "en-us"
-title = "Chaojie's Home✍️"
-theme = "cactus"
-rss = true
-googleAnalytics = "G-XDREGKCZH0"
+base_url = "https://chaojie.fun"
+title = "Chaojie's Home ✍️"
+description = "Chaojie's blog"
+
+default_language = "en"
+
+# Whether to automatically compile all Sass files in the sass directory
+compile_sass = true
+
+# Whether to build a search index to be used later on by a JavaScript library
+build_search_index = false
+
+# 按 tag 分类
+taxonomies = [
+    {name = "tags", feed=true},
+]
+
+[markdown]
+# Whether to do syntax highlighting
+# Theme can be customised by setting the `highlight_theme` variable to a theme supported by Zola
+highlight_code = true
 
 
-[[menu.main]]
-name = "Home"
-url = "/"
-weight = 1
+[languages.en.translations]
+language_name = "English"
+home = "Home"
+posts = "Posts"
+tags = "Tags"
+photography = "Photography"
+about = "About"
+date_format = "%Y-%m-%d"
+next_page = "Next Page"
+last_page = "Last Page"
 
-[[menu.main]]
-name = "Projects"
-url = "/projects"
-weight = 2
+[languages.zh.translations]
+language_name = "中文"
+home = "首页"
+posts = "文章"
+tags = "标签"
+photography = "摄影"
+about = "关于"
+date_format = "%Y-%m-%d"
+next_page = "下一页"
+last_page = "上一页"
 
-[[menu.main]]
-name = "Articles"
-url = "/posts"
-weight = 3
+[extra]
+# The number of posts to show on the homepage
+show_article_num = 7
 
-[[menu.main]]
-name = "Tags"
-url = "/tags"
-weight = 4
+[extra.social]
+twitter = "chaojie_cn"
+douban = "218724191"
+github = "ischaojie"
 
-[[menu.main]]
-name = "About"
-url = "/about"
-weight = 5
-
-[params]
-  description = """
-  Hi, I'm chaojie([潮戒](/about/)). I'm working at [Douban](https://en.wikipedia.org/wiki/Douban) as Python engineer.
-
-  I'm interested in programming, movies, design and some hardware stuffs. Sometimes have unrealistic fantasies.
-
-  I have a dog🐶 named [π](https://pai.dog/).
-
-  “愿你自己有充分的忍耐去担当，有充分单纯的心去信仰。” ------ 里尔克
-
-  """
-  mainSectionTitle = "Articles"
-  mainSection = "posts"
-  showAllPostsOnHomePage = false
-  postsOnHomePage = 6
-  mathjax = true
-  rss = true
-  showAllPostsArchive = true
-
-[[params.social]]
-  name = "github"
-  link = "https://github.com/ischaojie"
-
-[[params.social]]
-  name = "douban"
-  link = "https://douban.com/people/218724191"
-
-[[params.social]]
-  name = "twitter"
-  link = "https://twitter.com/chaojie_cn"
-
-[[params.social]]
-  name = "email"
-  link = "hi@chaojie.fun"
-
-[params.comments]
-  enabled = true
-  engine = "giscus"
-  [params.comments.utterances]
-    repo = "ischaojie/blog"
-    label = "comments"
-    theme = "github-light"
-    IssueTerm = "title"
-  [params.comments.giscus]
-    repo = "ischaojie/blog"
-    repoId = "MDEwOlJlcG9zaXRvcnkyODk4MDA1NTY="
-    category = "Announcements"
-    categoryId = "DIC_kwDOEUYBbM4CPWbs"
-    theme = "light"
-    mapping = "title"
-
-[markup]
-  [markup.highlight]
-    style = "github-dark"
+[extra.photography]
+photos = [
+    "过春天.jpg",
+    "lan.jpg"
+]
