@@ -52,3 +52,10 @@ photos = [
     "过春天.jpg",
     "lan.jpg"
 ]
+
+[extra.giscus]
+repo = "ischaojie/blog"
+repo_id = "MDEwOlJlcG9zaXRvcnkyODk4MDA1NTY="
+category = "Announcements"
+category_id = "DIC_kwDOEUYBbM4CPWbs"
+mapping = "title"
