@@ -13,7 +13,7 @@
             {{ page.date | date(format="%Y-%m-%d") }}
         </div>
         <div class="col text-start">
-            <a href="{{ page.permalink }}">{{ page.title }}</a>
+            <a href="{{ page.permalink | safe }}">{{ page.title }}</a>
         </div>
     </div>
     {% endfor %}
