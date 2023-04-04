@@ -1,17 +1,17 @@
 {% import 'partical/nav.html' as nav %}
 
 {% macro main() %}
-<div class="col" style="margin-bottom: 24px;">
-    <div class="row g-2">
+<div class="col" style="margin: 24px 0;">
+    <div class="row">
         <div class="col-auto" style="margin: auto 0;">
-            <a href=".">
+            <a href="{{ get_url(path='@/_index.md') }}">
                 <img src="{{ get_url(path='images/logo.png') }}" width="40" height="46" class="">
             </a>
         </div>
         <div class="col">
             <div class="row">
                 <div class="col">
-                    <h2 class="mb-0"><a class="" href="{{ get_url(path='@/_index.md') }}">{{ config.title }}</a></h2>
+                    <h2 class="mb-0">{{ config.title }}</h2>
                 </div>
             </div>
             <div class="row">
