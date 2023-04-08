@@ -17,3 +17,6 @@ date: "2023-04-01"
 >
 > ———— 博尔赫斯《恶棍列传》
 
+## 关于本站
+
+Build with [zola](https://www.getzola.org/) and theme [willow](https://github.com/ischaojie/willow)
