@@ -1,7 +1,7 @@
 +++
 title = "Home"
 +++
-Hi, I’m chaojie(潮戒). I’m working at Douban as Python engineer.
+Hi, I’m chaojie([潮戒](/about/)). I’m working at Douban as Python engineer.
 
 I’m interested in programming, movies, design and some hardware stuffs. Sometimes have unrealistic fantasies.
 

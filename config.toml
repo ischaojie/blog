@@ -1,7 +1,7 @@
 base_url = "https://chaojie.fun"
 title = "Chaojie's Home ✍️"
 description = "The place where Chaojie writes"
-default_language = "zh-CN"
+default_language = "en"
 compile_sass = true
 build_search_index = false
 generate_feed = true
@@ -22,7 +22,7 @@ articles = "Articles"
 tags = "Tags"
 photography = "Photography"
 about = "About"
-memos = "Momo"
+memos = "Memos"
 date_format = "%Y-%m-%d"
 next_page = "Next Page"
 last_page = "Last Page"
