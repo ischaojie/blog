@@ -49,6 +49,7 @@ last_page = "上一页"
 # The order of the navigation bar, home is the first by default
 nav = ["articles", "memos", "photography", "tags", "about"]
 
+google_analytics = "G-XDREGKCZH0"
 
 # Social accounts
 # currently supported: twitter, douban, github
