@@ -7,7 +7,6 @@ build_search_index = false
 generate_feed = true
 theme = "willow"
 
-# 按 tag 分类
 taxonomies = [{ name = "tags", feed = true }]
 
 [markdown]
@@ -43,23 +42,19 @@ last_page = "上一页"
 
 
 [extra.willow]
-# The number of articles to show on the home page
 # show_article_num = 2
-
-# The order of the navigation bar, home is the first by default
 nav = ["articles", "memos", "photography", "tags", "about"]
-
 google_analytics = "G-XDREGKCZH0"
 
-# Social accounts
-# currently supported: twitter, douban, github
 [extra.willow.social]
 twitter = "chaojie_cn"
 douban = "218724191"
 github = "ischaojie"
 
 [extra.willow.photography]
-# Put the photos you want to show on the photography page here
+type = "unsplash"
+unsplash_client_id = "Nzn8Fo0oteghIaTz-B0AAH3GQ-7BH2XNqWiJpE1AsB8"
+unsplash_author = "chaojie"
 photos = [
     "https://file.chaojie.fun/photography/过春天.jpg",
     "https://file.chaojie.fun/photography/lan.jpg",
@@ -68,7 +63,6 @@ photos = [
 ]
 
 
-# Comment with giscus, see https://giscus.app/ for more details
 [extra.willow.comment.giscus]
 repo = "ischaojie/blog"
 repo_id = "MDEwOlJlcG9zaXRvcnkyODk4MDA1NTY="
