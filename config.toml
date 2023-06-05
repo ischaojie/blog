@@ -43,7 +43,7 @@ last_page = "上一页"
 
 [extra.willow]
 # show_article_num = 2
-nav = ["articles", "memos", "photography", "tags", "about"]
+nav = ["articles", "memos", "tags", "about"]
 google_analytics = "G-XDREGKCZH0"
 
 [extra.willow.social]
