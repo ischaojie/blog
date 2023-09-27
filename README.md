@@ -1,5 +1,6 @@
 # Blog
 
+更新 theme
 ```
-zola
+git submodule update --remote --rebase
 ```
