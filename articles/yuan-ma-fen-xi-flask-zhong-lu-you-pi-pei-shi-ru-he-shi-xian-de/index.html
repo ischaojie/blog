@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>
+Chaojie&#x27;s Home ✍️ | [源码分析] Flask中路由匹配是如何实现的
+</title>
+    <meta name="description" content="The place where Chaojie writes">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta property="og:title" content=" Chaojie&#x27;s Home ✍️  | [源码分析] Flask中路由匹配是如何实现的">
+    <meta property="og:description" content="The place where Chaojie writes">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://chaojie.fun/articles/yuan-ma-fen-xi-flask-zhong-lu-you-pi-pei-shi-ru-he-shi-xian-de/">
+
+    
+    <link rel="alternate" type="application/atom+xml" title="RSS"
+        href="https://chaojie.fun/atom.xml">
+    
+    <link rel="icon" href="https://chaojie.fun/images/favicon.ico" sizes="any">
+    <link rel="stylesheet" href="https://chaojie.fun/libs/tabler.min.css">
+    <link rel="stylesheet" href="https://chaojie.fun/css/uno.css">
+    <link rel="stylesheet" href="https://chaojie.fun/assets/willow.css">
+
+    
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XDREGKCZH0"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+
+        gtag('config', 'G-XDREGKCZH0');
+    </script>
+    
+</head>
+
+<body>
+    <div class="theme-light text-base font-sans" id="theme">
+        <div class="container-xl subpixel-antialiased">
+            <div class="row justify-content-center">
+                <div class="col-lg-10 col-xl-9">
+                    
+<div class="col" style="margin: 24px 0;">
+    <div class="row align-items-end">
+        <div class="col-auto" style="margin: auto 0;">
+            <a href="https://chaojie.fun/">
+                <img src="https://chaojie.fun/images/logo.png" width="40" height="46" class="">
+            </a>
+        </div>
+        <div class="col">
+            <div class="row">
+                <div class="col">
+                    <h2 class="mb-0 tracking-wide">Chaojie&#x27;s Home ✍️</h2>
+                </div>
+            </div>
+            <div class="row">
+                <nav>
+                    
+<ul class="list-inline list-inline-dots mb-0">
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/">
+            Home
+        </a>
+    </li>
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/articles/">
+            Articles
+        </a>
+    </li>
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/memos/">
+            Memos
+        </a>
+    </li>
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/tags/">
+            Tags
+        </a>
+    </li>
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/about/">
+            About
+        </a>
+    </li>
+    
+    
+    
+</ul>
+
+                </nav>
+            </div>
+        </div>
+        <div class="col align-self-end">
+            <div class="d-flex justify-content-end space-x">
+                
+                
+                <a href="https://chaojie.fun/atom.xml" target="_blank">
+                    
+                    <img src="https://chaojie.fun/images/social/douban.svg" alt=douban width="18" height="18">
+                </a>
+                
+                <a href="https://chaojie.fun/atom.xml" target="_blank">
+                    
+                    <img src="https://chaojie.fun/images/social/github.svg" alt=github width="18" height="18">
+                </a>
+                
+                <a href="https://chaojie.fun/atom.xml" target="_blank">
+                    
+                    <img src="https://chaojie.fun/images/social/twitter.svg" alt=twitter width="18" height="18">
+                </a>
+                
+                
+                <a href="https://chaojie.fun/atom.xml" target="_blank">
+                    <img src="https://chaojie.fun/images/social/rss.svg" alt="RSS" width="18" height="18">
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+                    
+
+<div class="card card-lg">
+    <div class="card-body markdown text-justify">
+        <div class="">
+            
+            
+            <div class="d-flex justify-content-between" style="margin-bottom: 18px;">
+                <div>2019-07-04</div>
+                
+                <i class="fas fa-tags"></i>
+                <ul class="list-inline list-inline-dots mb-0">
+                    
+                    <li class="list-inline-item">
+                        <a class="tag"
+                            href="https://chaojie.fun/tags/python/">#Python</a>
+                    </li>
+                    
+                    <li class="list-inline-item">
+                        <a class="tag"
+                            href="https://chaojie.fun/tags/flask/">#Flask</a>
+                    </li>
+                    
+
+                </ul>
+                
+            </div>
+            
+
+            <h1>[源码分析] Flask中路由匹配是如何实现的</h1>
+            <p><p>首先让我们来了解下WSGI规范是啥？</p>
+<p>简单来说，WSGI是服务器和应用之间的接口，前端过来的请求传到服务器之后比如gunicorn，之后服务器会将请求转发给应用。因为有很多个服务器，如果我们为我们的应用根据不同的服务写不同的代码，会很麻烦，所以就出现了WSGI。</p>
+<p>WSGI规定了application应该实现一个可调用的对象（函数，类，方法或者带<code>__call__</code>的实例），这个对象应该接受两个位置参数：</p>
+<ol>
+<li>环境变量（比如header信息，状态码等）</li>
+<li>回调函数（WSGI服务器负责），用来发送http状态和header等</li>
+</ol>
+<p>同时，该对象需要返回可迭代的响应文本。</p>
+<p>更具体的解释可以去google搜索相关知识。</p>
+<p>一个最简单的实现：</p>
+<pre data-lang="python" style="background-color:#2b303b;color:#c0c5ce;" class="language-python "><code class="language-python" data-lang="python"><span style="color:#b48ead;">def </span><span style="color:#8fa1b3;">app</span><span>(</span><span style="color:#bf616a;">environ</span><span>, </span><span style="color:#bf616a;">start_response</span><span>):
+</span><span>    response_body = </span><span style="color:#b48ead;">b</span><span>&quot;</span><span style="color:#a3be8c;">Hello, World!</span><span>&quot;
+</span><span>    status = &quot;</span><span style="color:#a3be8c;">200 OK</span><span>&quot;
+</span><span>    </span><span style="color:#65737e;"># 将响应状态和header交给WSGI服务器比如gunicorn
+</span><span>    </span><span style="color:#bf616a;">start_response</span><span>(status, </span><span style="color:#bf616a;">headers</span><span>=[])
+</span><span>    </span><span style="color:#b48ead;">return </span><span style="color:#96b5b4;">iter</span><span>([response_body])
+</span></code></pre>
+<p>我们可以直接使用gunicorn之类的服务启动这个app。</p>
+<p>有了WSGI规定，框架中就要实现规范中所要求的部分。我们来看看Flask是如何实现的。</p>
+<p>Flask0.1版本的实现中只有一个文件，一共600多行代码。根据官方文档，一个最简单的web服务像这样：</p>
+<pre data-lang="python" style="background-color:#2b303b;color:#c0c5ce;" class="language-python "><code class="language-python" data-lang="python"><span style="color:#b48ead;">from </span><span>flask </span><span style="color:#b48ead;">import </span><span>Flask
+</span><span>app = </span><span style="color:#bf616a;">Flask</span><span>(__name__)
+</span><span>
+</span><span>@app.</span><span style="color:#bf616a;">route</span><span>(&#39;</span><span style="color:#a3be8c;">/</span><span>&#39;)
+</span><span style="color:#b48ead;">def </span><span style="color:#8fa1b3;">hello_world</span><span>():
+</span><span>    </span><span style="color:#b48ead;">return </span><span>&#39;</span><span style="color:#a3be8c;">Hello World!</span><span>&#39;
+</span><span>
+</span><span style="color:#b48ead;">if </span><span>__name__ == &#39;</span><span style="color:#a3be8c;">__main__</span><span>&#39;:
+</span><span>    app.</span><span style="color:#bf616a;">run</span><span>()
+</span></code></pre>
+<p>调用 <strong>Flask()</strong> 之后发生了什么？</p>
+<p>首先在 <code>__init__</code> 内置方法中有这么几个变量：</p>
+<pre data-lang="python" style="background-color:#2b303b;color:#c0c5ce;" class="language-python "><code class="language-python" data-lang="python"><span style="color:#b48ead;">class </span><span style="color:#ebcb8b;">Flask</span><span style="color:#eff1f5;">(</span><span style="color:#a3be8c;">object</span><span style="color:#eff1f5;">):
+</span><span>    </span><span style="color:#b48ead;">def </span><span style="color:#96b5b4;">__init__</span><span>(</span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">package_name</span><span>):
+</span><span>        </span><span style="color:#65737e;"># view_functions存储视图函数名称和视图函数
+</span><span>        </span><span style="color:#bf616a;">self</span><span>.view_functions = {}
+</span><span>        </span><span style="color:#65737e;"># 路由字典
+</span><span>        </span><span style="color:#bf616a;">self</span><span>.url_map = </span><span style="color:#bf616a;">Map</span><span>()
+</span></code></pre>
+<p>根据名字可以猜测，<strong>view_functions</strong> 用来存放视图函数，<strong>url_map</strong> 用来存放路由字典。暂时跳过，来看看 <code>__call__</code>内置方法：</p>
+<pre data-lang="python" style="background-color:#2b303b;color:#c0c5ce;" class="language-python "><code class="language-python" data-lang="python"><span style="color:#b48ead;">def </span><span style="color:#96b5b4;">__call__</span><span>(</span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">environ</span><span>, </span><span style="color:#bf616a;">start_response</span><span>):
+</span><span>        </span><span style="color:#b48ead;">return </span><span style="color:#bf616a;">self</span><span>.</span><span style="color:#bf616a;">wsgi_app</span><span>(environ, start_response)
+</span></code></pre>
+<p>environ，start_response，是不是在哪里见过？WSGI规范中要求实现的对不对。它返回了 <strong>wsgi_app</strong> 方法：</p>
+<pre data-lang="python" style="background-color:#2b303b;color:#c0c5ce;" class="language-python "><code class="language-python" data-lang="python"><span style="color:#b48ead;">def </span><span style="color:#8fa1b3;">wsgi_app</span><span>(</span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">environ</span><span>, </span><span style="color:#bf616a;">start_response</span><span>):
+</span><span>        </span><span style="color:#b48ead;">with </span><span style="color:#bf616a;">self</span><span>.</span><span style="color:#bf616a;">request_context</span><span>(environ):
+</span><span>            rv = </span><span style="color:#bf616a;">self</span><span>.</span><span style="color:#bf616a;">preprocess_request</span><span>()
+</span><span>            </span><span style="color:#b48ead;">if </span><span>rv is </span><span style="color:#d08770;">None</span><span>:
+</span><span>                rv = </span><span style="color:#bf616a;">self</span><span>.</span><span style="color:#bf616a;">dispatch_request</span><span>()
+</span><span>            response = </span><span style="color:#bf616a;">self</span><span>.</span><span style="color:#bf616a;">make_response</span><span>(rv)
+</span><span>            response = </span><span style="color:#bf616a;">self</span><span>.</span><span style="color:#bf616a;">process_response</span><span>(response)
+</span><span>            </span><span style="color:#b48ead;">return </span><span style="color:#bf616a;">response</span><span>(environ, start_response)
+</span></code></pre>
+<p>看到了没，跟我们上面实现的那个简单的app是不是很像。</p>
+<p>首先预处理请求，然后分发请求到不同的视图函数，最后响应。</p>
+<p>我们先来看 <strong>dispatch_request</strong> 是如何实现的：</p>
+<pre data-lang="python" style="background-color:#2b303b;color:#c0c5ce;" class="language-python "><code class="language-python" data-lang="python"><span style="color:#b48ead;">def </span><span style="color:#8fa1b3;">dispatch_request</span><span>(</span><span style="color:#bf616a;">self</span><span>):
+</span><span>    	</span><span style="color:#65737e;"># 精简了下代码
+</span><span>        </span><span style="color:#b48ead;">try</span><span>:
+</span><span>            endpoint, values = </span><span style="color:#bf616a;">self</span><span>.</span><span style="color:#bf616a;">match_request</span><span>()
+</span><span>            </span><span style="color:#b48ead;">return </span><span style="color:#bf616a;">self</span><span>.view_functions[endpoint](**values)
+</span><span>        </span><span style="color:#b48ead;">except </span><span>HTTPException, e:
+</span><span>            </span><span style="color:#d08770;">......
+</span><span>            
+</span><span style="color:#b48ead;">def </span><span style="color:#8fa1b3;">match_request</span><span>(</span><span style="color:#bf616a;">self</span><span>):
+</span><span>        rv = _request_ctx_stack.top.url_adapter.</span><span style="color:#bf616a;">match</span><span>()
+</span><span>        request.endpoint, request.view_args = rv
+</span><span>        </span><span style="color:#b48ead;">return </span><span>rv
+</span></code></pre>
+<p><strong>dispatch_request</strong> 首先获取endpoint和一些变量，然后在视图函数字典里找到对应的视图函数返回。endpoint和values就是我们在定义路由的处理函数时，比如：</p>
+<pre data-lang="python" style="background-color:#2b303b;color:#c0c5ce;" class="language-python "><code class="language-python" data-lang="python"><span style="color:#bf616a;">url_for</span><span>(&#39;</span><span style="color:#a3be8c;">profile</span><span>&#39;, </span><span style="color:#bf616a;">username</span><span>=&#39;</span><span style="color:#a3be8c;">John Doe</span><span>&#39;)
+</span></code></pre>
+<p>其中profile就是endpoint，也就是对应视图函数的名称，username就是变量。</p>
+<p><strong>match_request</strong> 中这个 <strong>_request_ctx_stack</strong> 又是个啥。看起来它像是用来匹配路由的。</p>
+<p><strong>_request_ctx_stack</strong> 是请求上下文栈，用一个栈把当前请求相关的数据压入栈中，然后进行路由分发和后续处理，处理完成后退出。</p>
+<p>具体来说，我们回过头看 <strong>wsgi_app</strong>方法中有个with语句，控制请求上下文的进入和退出。</p>
+<pre data-lang="python" style="background-color:#2b303b;color:#c0c5ce;" class="language-python "><code class="language-python" data-lang="python"><span style="color:#b48ead;">with </span><span style="color:#bf616a;">self</span><span>.</span><span style="color:#bf616a;">request_context</span><span>(environ):
+</span></code></pre>
+<p>这个 <strong>request_context</strong>是这样的：</p>
+<pre data-lang="python" style="background-color:#2b303b;color:#c0c5ce;" class="language-python "><code class="language-python" data-lang="python"><span style="color:#b48ead;">class </span><span style="color:#ebcb8b;">_RequestContext</span><span style="color:#eff1f5;">(</span><span style="color:#a3be8c;">object</span><span style="color:#eff1f5;">):
+</span><span>    </span><span style="color:#b48ead;">def </span><span style="color:#96b5b4;">__init__</span><span>(</span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">app</span><span>, </span><span style="color:#bf616a;">environ</span><span>):
+</span><span>		</span><span style="color:#d08770;">...
+</span><span>        </span><span style="color:#bf616a;">self</span><span>.url_adapter = app.url_map.</span><span style="color:#bf616a;">bind_to_environ</span><span>(environ)
+</span><span>        </span><span style="color:#d08770;">...
+</span><span>
+</span><span>    </span><span style="color:#b48ead;">def </span><span style="color:#96b5b4;">__enter__</span><span>(</span><span style="color:#bf616a;">self</span><span>):
+</span><span>        _request_ctx_stack.</span><span style="color:#bf616a;">push</span><span>(</span><span style="color:#bf616a;">self</span><span>)
+</span><span>
+</span><span>    </span><span style="color:#b48ead;">def </span><span style="color:#96b5b4;">__exit__</span><span>(</span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">exc_type</span><span>, </span><span style="color:#bf616a;">exc_value</span><span>, </span><span style="color:#bf616a;">tb</span><span>):
+</span><span>        </span><span style="color:#b48ead;">if </span><span>tb is </span><span style="color:#d08770;">None </span><span>or not </span><span style="color:#bf616a;">self</span><span>.app.debug:
+</span><span>            _request_ctx_stack.</span><span style="color:#bf616a;">pop</span><span>()
+</span></code></pre>
+<p>其中的 <strong>url_adapter</strong> 获取了路由字典，然后连同其他变量一起被压入栈中，这样在上面的 <strong>match_request</strong> 方法中，从栈中获取 <strong>url_adapter</strong> ， 然后匹配路由找到对应的endpoint和参数，然后根据endpoint和参数从<strong>view_functions</strong> 中查找对应的视图函数。</p>
+<pre data-lang="python" style="background-color:#2b303b;color:#c0c5ce;" class="language-python "><code class="language-python" data-lang="python"><span style="color:#bf616a;">self</span><span>.url_adapter = app.url_map.</span><span style="color:#bf616a;">bind_to_environ</span><span>(environ)
+</span><span>rv = _request_ctx_stack.top.url_adapter.</span><span style="color:#bf616a;">match</span><span>()
+</span></code></pre>
+<p>其中，<strong>bind_to_environ</strong> 将 url绑定到目前的环境返回一个适配器，然后适配器去匹配请求。这两个方法都来自Flask的底层调用 <strong>werkzeug</strong> 。</p>
+<p>梳理一下流程，首先适配器在 url_map中查找当前路由对应的endpoint和values，然后dispatch_request根据endpoint找到对应的视图函数，然后返回。</p>
+<p>那么，url_map中的路由和endpoint对应关系是从哪里来的？</p>
+<p>我们在使用Flask是不是要用装饰器给视图函数加上路由和方法对吧，像这样：</p>
+<pre data-lang="python" style="background-color:#2b303b;color:#c0c5ce;" class="language-python "><code class="language-python" data-lang="python"><span>@app.</span><span style="color:#bf616a;">route</span><span>(&#39;</span><span style="color:#a3be8c;">/</span><span>&#39;)
+</span><span style="color:#b48ead;">def </span><span style="color:#8fa1b3;">hello_world</span><span>():
+</span><span>    </span><span style="color:#b48ead;">return </span><span>&#39;</span><span style="color:#a3be8c;">Hello World!</span><span>&#39;
+</span></code></pre>
+<p>这个route装饰器长这样，可以看到它调用了add_url_rule方法。</p>
+<pre data-lang="python" style="background-color:#2b303b;color:#c0c5ce;" class="language-python "><code class="language-python" data-lang="python"><span style="color:#b48ead;">def </span><span style="color:#8fa1b3;">route</span><span>(</span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">rule</span><span>, **</span><span style="color:#bf616a;">options</span><span>):
+</span><span>    </span><span style="color:#b48ead;">def </span><span style="color:#8fa1b3;">decorator</span><span>(</span><span style="color:#bf616a;">f</span><span>):
+</span><span>            </span><span style="color:#bf616a;">self</span><span>.</span><span style="color:#bf616a;">add_url_rule</span><span>(rule, f.__name__, **options)
+</span><span>            </span><span style="color:#bf616a;">self</span><span>.view_functions[f.__name__] = f
+</span><span>            </span><span style="color:#b48ead;">return </span><span>f
+</span><span>        </span><span style="color:#b48ead;">return </span><span>decorator
+</span><span>    
+</span><span style="color:#b48ead;">def </span><span style="color:#8fa1b3;">add_url_rule</span><span>(</span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">rule</span><span>, </span><span style="color:#bf616a;">endpoint</span><span>, **</span><span style="color:#bf616a;">options</span><span>):
+</span><span>    options[&#39;</span><span style="color:#a3be8c;">endpoint</span><span>&#39;] = endpoint
+</span><span>    options.</span><span style="color:#bf616a;">setdefault</span><span>(&#39;</span><span style="color:#a3be8c;">methods</span><span>&#39;, (&#39;</span><span style="color:#a3be8c;">GET</span><span>&#39;,))
+</span><span>    </span><span style="color:#bf616a;">self</span><span>.url_map.</span><span style="color:#bf616a;">add</span><span>(</span><span style="color:#bf616a;">Rule</span><span>(rule, **options))
+</span></code></pre>
+<p>add_url_rule添加了路由和 endpoint 到 url_map 中，这样一个请求的路由过来后，<strong>url_adapter.match()</strong> 就能匹配到对应的 endpoint ，然后根据 endpoint 从 view_functions 里面查找视图函数。</p>
+<p>url_map 是werkzeug中的Map对象，然后添加的是Rule对象。它看起来像这样：</p>
+<pre data-lang="python" style="background-color:#2b303b;color:#c0c5ce;" class="language-python "><code class="language-python" data-lang="python"><span style="color:#bf616a;">self</span><span>.url_map = </span><span style="color:#bf616a;">Map</span><span>([
+</span><span>    </span><span style="color:#bf616a;">Rule</span><span>(&#39;</span><span style="color:#a3be8c;">/</span><span>&#39;, </span><span style="color:#bf616a;">endpoint</span><span>=&#39;</span><span style="color:#a3be8c;">home</span><span>&#39;),
+</span><span>    </span><span style="color:#bf616a;">Rule</span><span>(&#39;</span><span style="color:#a3be8c;">/book/&lt;id&gt;</span><span>&#39;, </span><span style="color:#bf616a;">endpoint</span><span>=&#39;</span><span style="color:#a3be8c;">book</span><span>&#39;)
+</span><span>])
+</span></code></pre>
+<p>除了利用装饰器，我们也可以这样使用：</p>
+<pre data-lang="python" style="background-color:#2b303b;color:#c0c5ce;" class="language-python "><code class="language-python" data-lang="python"><span style="color:#b48ead;">def </span><span style="color:#8fa1b3;">index</span><span>():
+</span><span>    </span><span style="color:#b48ead;">pass
+</span><span>app.</span><span style="color:#bf616a;">add_url_rule</span><span>(&#39;</span><span style="color:#a3be8c;">index</span><span>&#39;, &#39;</span><span style="color:#a3be8c;">/</span><span>&#39;)
+</span><span>app.view_functions[&#39;</span><span style="color:#a3be8c;">index</span><span>&#39;] = index
+</span></code></pre>
+<p>现在，一切都解释清楚了，定义好视图函数后，<strong>app.run</strong>运行即可。</p>
+<p>可以看到，Flask中路由匹配是利用字典实现的，还有一种利用前缀树来实现路由的，比如go语言中的gin框架，关于如何用前缀树实现路由可以看我的另一篇文章：</p>
+<blockquote>
+<p><a href="https://shiniao.fun/posts/%E5%89%8D%E7%BC%80%E6%A0%91%E7%AE%97%E6%B3%95%E5%AE%9E%E7%8E%B0%E8%B7%AF%E7%94%B1%E5%8C%B9%E9%85%8D%E5%8E%9F%E7%90%86%E8%A7%A3%E6%9E%90">前缀树算法实现路由匹配原理解析</a></p>
+</blockquote>
+</p>
+
+            
+            
+            <script src="https://giscus.app/client.js" data-repo="ischaojie/blog"
+                data-repo-id="MDEwOlJlcG9zaXRvcnkyODk4MDA1NTY="
+                data-category="[object]"
+                data-category-id="[object]"
+                data-mapping="[object]" data-strict="0" data-reactions-enabled="1"
+                data-emit-metadata="0" data-input-position="top" data-theme="preferred_color_scheme"
+                data-lang="en" data-loading="lazy" crossorigin="anonymous" async>
+                </script>
+            
+            
+        </div>
+    </div>
+</div>
+
+
+                    
+<footer class="footer footer-transparent d-print-none">
+    <div class="container-xl">
+        <div class="row text-center align-items-center flex-row-reverse">
+            <div class="col-lg-auto ms-lg-auto">
+                
+<ul class="list-inline list-inline-dots mb-0">
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/">
+            Home
+        </a>
+    </li>
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/articles/">
+            Articles
+        </a>
+    </li>
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/memos/">
+            Memos
+        </a>
+    </li>
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/tags/">
+            Tags
+        </a>
+    </li>
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/about/">
+            About
+        </a>
+    </li>
+    
+    
+    
+</ul>
+
+            </div>
+            <div class="col-12 col-lg-auto mt-3 mt-lg-0">
+                <ul class="list-inline list-inline-dots mb-0">
+                    <li class="list-inline-item">
+                        Copyright © 2023
+                        <a href="." class="link-secondary">Chaojie</a>.
+                        All rights reserved.
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</footer>
+
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://chaojie.fun/libs/tabler.min.js"></script>
+    <script src="https://chaojie.fun/libs/fslightbox.js"></script>
+    <script src="https://chaojie.fun/libs/infinite-scroll.min.js"></script>
+    <script src="https://chaojie.fun/libs/luxon.min.js"></script>
+    <script src="https://chaojie.fun/js/willow.js"></script>
+    
+
+
+</body>
+
+</html>

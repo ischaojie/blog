@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">
+    <title>Chaojie&#x27;s Home ✍️ - 共识</title>
+    <subtitle>The place where Chaojie writes</subtitle>
+    <link href="https://chaojie.fun/tags/gong-shi/atom.xml" rel="self" type="application/atom+xml"/>
+    <link href="https://chaojie.fun"/>
+    <generator uri="https://www.getzola.org/">Zola</generator>
+    <updated>2019-08-21T22:02:53+08:00</updated>
+    <id>https://chaojie.fun/tags/gong-shi/atom.xml</id>
+    <entry xml:lang="en">
+        <title>对Raft一致性算法的理解</title>
+        <published>2019-08-21T22:02:53+08:00</published>
+        <updated>2019-08-21T22:02:53+08:00</updated>
+        <author>
+          <name>Unknown</name>
+        </author>
+        <link rel="alternate" href="https://chaojie.fun/articles/dui-raft-yi-zhi-xing-suan-fa-de-li-jie/" type="text/html"/>
+        <id>https://chaojie.fun/articles/dui-raft-yi-zhi-xing-suan-fa-de-li-jie/</id>
+        <content type="html"></content>
+    </entry>
+</feed>

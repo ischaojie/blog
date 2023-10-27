@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>
+Chaojie&#x27;s Home ✍️ | 分布式缓存中一致性hash算法原理解析与实现
+</title>
+    <meta name="description" content="The place where Chaojie writes">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta property="og:title" content=" Chaojie&#x27;s Home ✍️  | 分布式缓存中一致性hash算法原理解析与实现">
+    <meta property="og:description" content="The place where Chaojie writes">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://chaojie.fun/articles/fen-bu-shi-huan-cun-zhong-yi-zhi-xing-hash-suan-fa-yuan-li-jie-xi-yu-shi-xian/">
+
+    
+    <link rel="alternate" type="application/atom+xml" title="RSS"
+        href="https://chaojie.fun/atom.xml">
+    
+    <link rel="icon" href="https://chaojie.fun/images/favicon.ico" sizes="any">
+    <link rel="stylesheet" href="https://chaojie.fun/libs/tabler.min.css">
+    <link rel="stylesheet" href="https://chaojie.fun/css/uno.css">
+    <link rel="stylesheet" href="https://chaojie.fun/assets/willow.css">
+
+    
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XDREGKCZH0"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+
+        gtag('config', 'G-XDREGKCZH0');
+    </script>
+    
+</head>
+
+<body>
+    <div class="theme-light text-base font-sans" id="theme">
+        <div class="container-xl subpixel-antialiased">
+            <div class="row justify-content-center">
+                <div class="col-lg-10 col-xl-9">
+                    
+<div class="col" style="margin: 24px 0;">
+    <div class="row align-items-end">
+        <div class="col-auto" style="margin: auto 0;">
+            <a href="https://chaojie.fun/">
+                <img src="https://chaojie.fun/images/logo.png" width="40" height="46" class="">
+            </a>
+        </div>
+        <div class="col">
+            <div class="row">
+                <div class="col">
+                    <h2 class="mb-0 tracking-wide">Chaojie&#x27;s Home ✍️</h2>
+                </div>
+            </div>
+            <div class="row">
+                <nav>
+                    
+<ul class="list-inline list-inline-dots mb-0">
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/">
+            Home
+        </a>
+    </li>
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/articles/">
+            Articles
+        </a>
+    </li>
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/memos/">
+            Memos
+        </a>
+    </li>
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/tags/">
+            Tags
+        </a>
+    </li>
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/about/">
+            About
+        </a>
+    </li>
+    
+    
+    
+</ul>
+
+                </nav>
+            </div>
+        </div>
+        <div class="col align-self-end">
+            <div class="d-flex justify-content-end space-x">
+                
+                
+                <a href="https://chaojie.fun/atom.xml" target="_blank">
+                    
+                    <img src="https://chaojie.fun/images/social/douban.svg" alt=douban width="18" height="18">
+                </a>
+                
+                <a href="https://chaojie.fun/atom.xml" target="_blank">
+                    
+                    <img src="https://chaojie.fun/images/social/github.svg" alt=github width="18" height="18">
+                </a>
+                
+                <a href="https://chaojie.fun/atom.xml" target="_blank">
+                    
+                    <img src="https://chaojie.fun/images/social/twitter.svg" alt=twitter width="18" height="18">
+                </a>
+                
+                
+                <a href="https://chaojie.fun/atom.xml" target="_blank">
+                    <img src="https://chaojie.fun/images/social/rss.svg" alt="RSS" width="18" height="18">
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+                    
+
+<div class="card card-lg">
+    <div class="card-body markdown text-justify">
+        <div class="">
+            
+            
+            <div class="d-flex justify-content-between" style="margin-bottom: 18px;">
+                <div>2019-11-22</div>
+                
+                <i class="fas fa-tags"></i>
+                <ul class="list-inline list-inline-dots mb-0">
+                    
+                    <li class="list-inline-item">
+                        <a class="tag"
+                            href="https://chaojie.fun/tags/fen-bu-shi/">#分布式</a>
+                    </li>
+                    
+                    <li class="list-inline-item">
+                        <a class="tag"
+                            href="https://chaojie.fun/tags/cache/">#cache</a>
+                    </li>
+                    
+                    <li class="list-inline-item">
+                        <a class="tag"
+                            href="https://chaojie.fun/tags/go/">#Go</a>
+                    </li>
+                    
+                    <li class="list-inline-item">
+                        <a class="tag"
+                            href="https://chaojie.fun/tags/suan-fa/">#算法</a>
+                    </li>
+                    
+
+                </ul>
+                
+            </div>
+            
+
+            <h1>分布式缓存中一致性hash算法原理解析与实现</h1>
+            <p><p>分布式缓存服务中，提供缓存服务的节点可能有很多个。在单机缓存服务中，数据被缓存的流程是这样的：</p>
+<p>第一次查询数据时首先从源数据查询（比如数据库），找到之后，同时放入缓存服务器中，下次查询同样的数据时会直接从缓存服务器上查找。</p>
+<p>但是缓存服务器一般不太可能是单机的，往往有多个节点。转换为分布式之后，会出现一些问题。</p>
+<h2 id="wen-ti-yi-shu-ju-rong-yu">问题一数据冗余</h2>
+<p>考虑一下，单机服务的时候，利用LRU算法实现缓存的存取，一个key对应一个数据value。分布式条件下，如果只是单纯的增加节点，这次查找key对应的数据在A节点上，下次查找的时候却在B服务器上。同一个key有多个缓存，完全没必要嘛，这样就是数据冗余了。</p>
+<p>怎么解决？</p>
+<p>利用哈希。首先对key值hash，然后利用节点数取余。</p>
+<pre style="background-color:#2b303b;color:#c0c5ce;"><code><span>h = hash(key) %len(node)
+</span></code></pre>
+<p>这样同一个key的数据只会被一个节点缓存。很awesome有没有。</p>
+<p>But，我不可能一直是这几个节点呀，万一有的节点挂了呢，或者我要添加节点呢？</p>
+<h2 id="wen-ti-er-rong-cuo-xing-he-kuo-zhan-xing">问题二容错性和扩展性</h2>
+<p>如果有节点挂了或者新增节点，都会导致<strong>len(node)</strong> 的变化，那么利用hash计算出来的值跟之前的就不一样。这样导致新增或者删除一个节点，之前的所有缓存都失效了！我的天哪！！！</p>
+<p>这种问题就是 <strong>缓存雪崩</strong> 。</p>
+<p>怎么办呢？利用一致性hash算法。</p>
+<blockquote>
+<p>一致性哈希算法（Consistent Hashing）最早在论文《<a href="http://www.akamai.com/dl/technical_publications/ConsistenHashingandRandomTreesDistributedCachingprotocolsforrelievingHotSpotsontheworldwideweb.pdf">Consistent Hashing and Random Trees: Distributed Caching Protocols for Relieving Hot Spots on the World Wide Web</a>》中被提出。</p>
+</blockquote>
+<p>它的原理是，把所有的hash值空间（就是上面公式计算出来的h）看成是一个环，取值范围从0到2^32-1。将每个服务器节点通过hash映射到环上，同时将数据key通过hash函数也映射到环上，按顺时针方向，数据key跟哪个节点近就属于哪个节点。</p>
+<p>举个例子，现在有三个缓存服务器节点2，4，6，假设这个hash算法就是原样输出，我们将节点和数据（1，3，7，9）经过hash之后到环上：</p>
+<p><img src="https://tva1.sinaimg.cn/large/0082zybply1gc53lsij1jj30b3079glv.jpg" alt="一致性hash" /></p>
+<p>按顺时针方向，数据1属于node2，数据3属于node4，数据7、9输入node6。</p>
+<p>貌似看起来不错，但是还有个问题。在节点较少的情况上，会发生 <strong>数据倾斜</strong> 的问题。比如上图所示，数据可能大量的堆积在node6和node2之间。</p>
+<p>解决办法是添加虚拟节点，利用虚拟节点负载均衡每个数据。虚拟节点的做法是，对一个真实节点计算多个hash，放到环上，所有这些虚拟节点的数据都属于真实节点。</p>
+<p><img src="https://tva1.sinaimg.cn/large/0082zybply1gc54o5rm70j30ax06xwf4.jpg" alt="一致性hash2" /></p>
+<p>这样所有的数据都均匀的分布在环上了。</p>
+<h2 id="suan-fa-shi-xian">算法实现</h2>
+<p>了解了原理，来动手实现一下一致性hash算法。整个算法模仿go语言的分布式缓存服务<a href="https://github.com/golang/groupcache">groupcache</a> 实现，groupcache可以说是<strong>memcached</strong> 的go语言实现。</p>
+<p>首先定义一致性hash环结构体：</p>
+<pre data-lang="go" style="background-color:#2b303b;color:#c0c5ce;" class="language-go "><code class="language-go" data-lang="go"><span style="color:#b48ead;">type </span><span>Hash </span><span style="color:#b48ead;">func</span><span>(</span><span style="color:#bf616a;">data </span><span>[]</span><span style="color:#b48ead;">byte</span><span>) </span><span style="color:#b48ead;">uint32
+</span><span>
+</span><span style="color:#65737e;">// ConHash 一致性hash
+</span><span style="color:#b48ead;">type </span><span>ConHash </span><span style="color:#b48ead;">struct </span><span>{
+</span><span>	</span><span style="color:#bf616a;">hash     </span><span style="color:#b48ead;">Hash           </span><span style="color:#65737e;">// hash算法
+</span><span>	</span><span style="color:#bf616a;">replicas </span><span style="color:#b48ead;">int            </span><span style="color:#65737e;">// 虚拟节点数
+</span><span>	</span><span style="color:#bf616a;">nodes    </span><span>[]</span><span style="color:#b48ead;">int          </span><span style="color:#65737e;">// hash环节点数
+</span><span>	</span><span style="color:#bf616a;">hashMap  </span><span style="color:#b48ead;">map</span><span>[</span><span style="color:#b48ead;">int</span><span>]</span><span style="color:#b48ead;">string </span><span style="color:#65737e;">// 虚拟节点-真实节点
+</span><span>}
+</span></code></pre>
+<p>可以看到，类型Hash就是个回调函数，用户可以自定义hash算法。</p>
+<p>然后需要往hash环上添加节点，根据指定的虚拟节点数用hash算法放到环上。</p>
+<pre data-lang="go" style="background-color:#2b303b;color:#c0c5ce;" class="language-go "><code class="language-go" data-lang="go"><span style="color:#65737e;">// Add 添加节点到hash环上
+</span><span style="color:#b48ead;">func </span><span>(</span><span style="color:#bf616a;">m </span><span>*</span><span style="color:#b48ead;">ConHash</span><span>) </span><span style="color:#8fa1b3;">Add</span><span>(</span><span style="color:#bf616a;">nodes </span><span>...</span><span style="color:#b48ead;">string</span><span>) {
+</span><span>	</span><span style="color:#b48ead;">for </span><span style="color:#bf616a;">_</span><span>, </span><span style="color:#bf616a;">node </span><span>:= </span><span style="color:#b48ead;">range </span><span style="color:#bf616a;">nodes </span><span>{
+</span><span>		</span><span style="color:#65737e;">// 将节点值根据指定的虚拟节点数利用hash算法放置到环中
+</span><span>		</span><span style="color:#b48ead;">for </span><span style="color:#bf616a;">i </span><span>:= </span><span style="color:#d08770;">0</span><span>; </span><span style="color:#bf616a;">i </span><span>&lt; </span><span style="color:#bf616a;">m</span><span>.</span><span style="color:#bf616a;">replicas</span><span>; </span><span style="color:#bf616a;">i</span><span>++ {
+</span><span>			</span><span style="color:#bf616a;">h </span><span>:= </span><span style="color:#bf616a;">int</span><span>(</span><span style="color:#bf616a;">m</span><span>.</span><span style="color:#bf616a;">hash</span><span>([]</span><span style="color:#b48ead;">byte</span><span>(</span><span style="color:#bf616a;">strconv</span><span>.</span><span style="color:#bf616a;">Itoa</span><span>(</span><span style="color:#bf616a;">i</span><span>) + </span><span style="color:#bf616a;">node</span><span>)))
+</span><span>			</span><span style="color:#bf616a;">m</span><span>.</span><span style="color:#bf616a;">nodes </span><span>= </span><span style="color:#96b5b4;">append</span><span>(</span><span style="color:#bf616a;">m</span><span>.</span><span style="color:#bf616a;">nodes</span><span>, </span><span style="color:#bf616a;">h</span><span>)
+</span><span>			</span><span style="color:#65737e;">// 映射虚拟节点到真实节点
+</span><span>			</span><span style="color:#bf616a;">m</span><span>.</span><span style="color:#bf616a;">hashMap</span><span>[</span><span style="color:#bf616a;">h</span><span>] = </span><span style="color:#bf616a;">node
+</span><span>		}
+</span><span>	}
+</span><span>	</span><span style="color:#bf616a;">sort</span><span>.</span><span style="color:#bf616a;">Ints</span><span>(</span><span style="color:#bf616a;">m</span><span>.</span><span style="color:#bf616a;">nodes</span><span>)
+</span><span>}
+</span></code></pre>
+<p>同样还需要根据key值从环上获取对应的节点，获取到节点之后从该节点查找数据。</p>
+<pre data-lang="go" style="background-color:#2b303b;color:#c0c5ce;" class="language-go "><code class="language-go" data-lang="go"><span style="color:#65737e;">// Get 从hash环上获取key对应的节点
+</span><span style="color:#b48ead;">func </span><span>(</span><span style="color:#bf616a;">m </span><span>*</span><span style="color:#b48ead;">ConHash</span><span>) </span><span style="color:#8fa1b3;">Get</span><span>(</span><span style="color:#bf616a;">key </span><span style="color:#b48ead;">string</span><span>) </span><span style="color:#b48ead;">string </span><span>{
+</span><span>	</span><span style="color:#b48ead;">if </span><span style="color:#96b5b4;">len</span><span>(</span><span style="color:#bf616a;">m</span><span>.</span><span style="color:#bf616a;">nodes</span><span>) == </span><span style="color:#d08770;">0 </span><span>{
+</span><span>		</span><span style="color:#b48ead;">return </span><span>&quot;&quot;
+</span><span>	}
+</span><span>	</span><span style="color:#65737e;">// 计算key的hash值
+</span><span>	</span><span style="color:#bf616a;">h </span><span>:= </span><span style="color:#bf616a;">int</span><span>(</span><span style="color:#bf616a;">m</span><span>.</span><span style="color:#bf616a;">hash</span><span>([]</span><span style="color:#b48ead;">byte</span><span>(</span><span style="color:#bf616a;">key</span><span>)))
+</span><span>	</span><span style="color:#65737e;">// 顺时针找到第一个匹配的虚拟节点
+</span><span>	</span><span style="color:#bf616a;">idx </span><span>:= </span><span style="color:#bf616a;">sort</span><span>.</span><span style="color:#bf616a;">Search</span><span>(</span><span style="color:#96b5b4;">len</span><span>(</span><span style="color:#bf616a;">m</span><span>.</span><span style="color:#bf616a;">nodes</span><span>), </span><span style="color:#b48ead;">func</span><span>(</span><span style="color:#bf616a;">i </span><span style="color:#b48ead;">int</span><span>) </span><span style="color:#b48ead;">bool </span><span>{
+</span><span>		</span><span style="color:#b48ead;">return </span><span style="color:#bf616a;">m</span><span>.</span><span style="color:#bf616a;">nodes</span><span>[</span><span style="color:#bf616a;">i</span><span>] &gt;= </span><span style="color:#bf616a;">h
+</span><span>	})
+</span><span>
+</span><span>	</span><span style="color:#65737e;">// 从hash环查找
+</span><span>	</span><span style="color:#65737e;">// 返回hash映射的真实节点
+</span><span>	</span><span style="color:#b48ead;">return </span><span style="color:#bf616a;">m</span><span>.</span><span style="color:#bf616a;">hashMap</span><span>[</span><span style="color:#bf616a;">m</span><span>.</span><span style="color:#bf616a;">nodes</span><span>[</span><span style="color:#bf616a;">idx</span><span>%</span><span style="color:#96b5b4;">len</span><span>(</span><span style="color:#bf616a;">m</span><span>.</span><span style="color:#bf616a;">nodes</span><span>)]]
+</span><span>
+</span><span>}
+</span></code></pre>
+<p>有的人说不对啊，为啥添加的都是服务器节点，数据不是也放在环上吗？</p>
+<p>其实是因为groupcache将数据划分出一个group的概念，数据在内部存储上利用hash+双向链表实现，缓存的数据被放在链表中。</p>
+<p>整个流程是这样的，查找key值对应的数据时，根据url链接中的group和key值确定节点，如何确定的？上面的代码已经解释了，计算key值的hash，看它属于哪个节点。</p>
+<p>然后从该节点的双向链表中查找。如果节点不存在这个key，从用户定义的数据源查找（比如数据库），找到之后将数据存入该group中。</p>
+<p>以上，希望有帮助。</p>
+</p>
+
+            
+            
+            <script src="https://giscus.app/client.js" data-repo="ischaojie/blog"
+                data-repo-id="MDEwOlJlcG9zaXRvcnkyODk4MDA1NTY="
+                data-category="[object]"
+                data-category-id="[object]"
+                data-mapping="[object]" data-strict="0" data-reactions-enabled="1"
+                data-emit-metadata="0" data-input-position="top" data-theme="preferred_color_scheme"
+                data-lang="en" data-loading="lazy" crossorigin="anonymous" async>
+                </script>
+            
+            
+        </div>
+    </div>
+</div>
+
+
+                    
+<footer class="footer footer-transparent d-print-none">
+    <div class="container-xl">
+        <div class="row text-center align-items-center flex-row-reverse">
+            <div class="col-lg-auto ms-lg-auto">
+                
+<ul class="list-inline list-inline-dots mb-0">
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/">
+            Home
+        </a>
+    </li>
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/articles/">
+            Articles
+        </a>
+    </li>
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/memos/">
+            Memos
+        </a>
+    </li>
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/tags/">
+            Tags
+        </a>
+    </li>
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/about/">
+            About
+        </a>
+    </li>
+    
+    
+    
+</ul>
+
+            </div>
+            <div class="col-12 col-lg-auto mt-3 mt-lg-0">
+                <ul class="list-inline list-inline-dots mb-0">
+                    <li class="list-inline-item">
+                        Copyright © 2023
+                        <a href="." class="link-secondary">Chaojie</a>.
+                        All rights reserved.
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</footer>
+
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://chaojie.fun/libs/tabler.min.js"></script>
+    <script src="https://chaojie.fun/libs/fslightbox.js"></script>
+    <script src="https://chaojie.fun/libs/infinite-scroll.min.js"></script>
+    <script src="https://chaojie.fun/libs/luxon.min.js"></script>
+    <script src="https://chaojie.fun/js/willow.js"></script>
+    
+
+
+</body>
+
+</html>

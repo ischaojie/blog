@@ -1,0 +1,431 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">
+    <title>Chaojie&#x27;s Home ✍️ - 分布式</title>
+    <subtitle>The place where Chaojie writes</subtitle>
+    <link href="https://chaojie.fun/tags/fen-bu-shi/atom.xml" rel="self" type="application/atom+xml"/>
+    <link href="https://chaojie.fun"/>
+    <generator uri="https://www.getzola.org/">Zola</generator>
+    <updated>2020-09-28T15:34:42+08:00</updated>
+    <id>https://chaojie.fun/tags/fen-bu-shi/atom.xml</id>
+    <entry xml:lang="en">
+        <title>分布式NewSQL数据库简介</title>
+        <published>2020-09-28T15:34:42+08:00</published>
+        <updated>2020-09-28T15:34:42+08:00</updated>
+        <author>
+          <name>Unknown</name>
+        </author>
+        <link rel="alternate" href="https://chaojie.fun/articles/fen-bu-shi-shu-ju-ku-jian-jie/" type="text/html"/>
+        <id>https://chaojie.fun/articles/fen-bu-shi-shu-ju-ku-jian-jie/</id>
+        <content type="html">&lt;p&gt;数据库的发展经历了从传统的关系型数据库、NoSQL（Not Only SQL）数据库到近几年新出现的分布式 NewSQL 数据库，整个趋势由单机逐渐向分布式方向发展。关系型数据库自1970年由 Edgar Codd 提出以来[1]，在相当长的一段时间内，成为市场占有量最大的数据库产品。除此之外，网络型数据库和分层型数据库也在一段时间内短暂出现过。&lt;&#x2F;p&gt;
+&lt;p&gt;然而关系型数据库有自身的不足之处，其数据关系模型表达与实际应用层之间存在不连贯性，且无法高效的扩展到多个节点，以及对于大数据量、高吞吐量的写入支持有限等。 NoSQL 的出现旨在解决这些不足，NoSQL 被解释为“不仅仅是 SQL ”，以 Google 的BigTable[2] 和 Amazon 的 DynamoDB[3] 为代表，其在模型上更加灵活，包括文档、键值、列族、图等多种数据模型。以开源 NoSQL 数据库 MongoDB 为例，其数据模型以文档作为基本结构，文档中可任意存放键值对，数据模型由存入数据的结构决定。&lt;&#x2F;p&gt;
+&lt;p&gt;在数据关系的表达上，NoSQL 对于一对多关系有更强的灵活性，对查询更友好，不需要跨表连接，但是对于多对多关系，两种数据库并没有多大不同。除此之外，NoSQL 数据库往往针对可扩展性、高可用性等专门设计，这使得其支持更复杂的多数据中心架构，性能也更强。然而传统的关系型数据库近些年在其数据模型和高可用性等方面也添加了相应支持，比如开源数据库 PostgreSQL 在其 9.3 版本之后，添加了对文档模型的支持。在高可用上，MySQL 也支持主从复制以及自 5.7 版本之后出现的 MySQL Group Replication 技术，进一步增强了在扩展性和高可用性上的支持。可以说，关系型数据库和 NoSQL 数据库相互借鉴各自的优点，协同发展，呈现出混合持久化的状态。&lt;&#x2F;p&gt;
+&lt;p&gt;分布式NewSQL数据库的出现基于可扩展性、高可用性、数据一致性等方面的考虑。其中可扩展性是指水平方向（垂直扩展指的是扩展单机，以共享内存或者共享磁盘的方式存在）的扩展，将单台机器的负载分散到多台机器上，提供更强的处理能力。高可用保障了在单台机器出现故障的情况下，系统仍能继续提供服务。数据一致性作为分布式事务的必要条件，保证了所有节点对某个事件达成一致。NewSQL 概念的产生来源于 Google 于 2012 年发表的Spanner[4] 数据库，该论文将传统关系模型以及 NoSQL 数据库的扩展性相结合，使得数据库同时支持分布式又具有传统 SQL 的能力。除了 Spanner 数据库，国外的CockroachDB 以及国内的 TDSQL、MyCAT、TiDB[5]、OceanBase、SequoiaDB 等都是新兴的分布式数据库产品。&lt;&#x2F;p&gt;
+&lt;p&gt;分布式数据库从实现上可以分为三类：&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;一类是以传统数据库组成集群，利用主从复制等实现分布式，比如 MySQL 集群方案&lt;&#x2F;li&gt;
+&lt;li&gt;一类是在现有数据库之上以中间件代理的形式，提供自动分库分表、故障切换、分布式事务等支持，以 MyCAT、TDSQL 等为代表。&lt;&#x2F;li&gt;
+&lt;li&gt;一类是原生的分布式架构，通过共识算法实现高可用性、扩展性、数据一致性等支持，以 TiDB、OceanBase 等为代表。&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;分布式 CAP 理论指出[6]，一个分布式系统不可能同时满足一致性、可用性和分区容错性这三个特点，其中分区容错性无法避免，势必要在一致性和可用性中做出权衡。&lt;&#x2F;p&gt;
+&lt;p&gt;可用性的保证可以通过&lt;strong&gt;复制&lt;&#x2F;strong&gt;技术实现，通过在多台机器上保存数据副本，提高系统可用性和读取吞吐量。MyCAT 以及 TDSQL 均支持主从复制的方式。传统主从复制方式的问题在于无法保证数据的强一致性，如果主库故障，可能会出现多个节点成为主库（脑裂问题），导致数据丢失或损坏。MySQL 在 5.7 版本推出了 MySQL Group Replication 功能，实现了基于 Paxos 共识算法的高可用性和数据强一致性保证，TiDB 基于 Raft 共识算法[7]保证了数据的强一致。&lt;&#x2F;p&gt;
+&lt;p&gt;分布式数据库的另一个特点是对&lt;strong&gt;事务&lt;&#x2F;strong&gt;的支持，分布式场景下保障事务的 ACID 原则常见的办法有 2PC 协议、TCC 协议以及 SAGA 协议，TiDB、OceanBase 等均使用两阶段提交协议（2PC）来实现跨多个节点的事务提交。&lt;&#x2F;p&gt;
+&lt;p&gt;动态扩展的实现可使用分区的方式，将原有单个节点的压力分散到多个节点，提升系统性能。分区面临的问题是如何将数据和查询负载均匀分布在各个节点，常见的解决办法有基于 Hash 的分区和基于 Range 的分区，TiDB 使用 Range 的方式分区，而 OceanBase 两种都支持。除了对以上特点的支持，分布式数据库还具有 HTAP、SQL 引擎、兼容性等特点。&lt;&#x2F;p&gt;
+&lt;p&gt;参考文献：&lt;&#x2F;p&gt;
+&lt;p&gt;[1] Edgar F. Codd: “A Relational Model of Data for Large Shared Data Banks,” Communications of the ACM, volume 13, number 6, pages 377–387, June 1970. &lt;&#x2F;p&gt;
+&lt;p&gt;[2] CHANG, Fay, DEAN, et al. Bigtable : A Distributed Storage System for Structured Data[J]. Acm Transactions on Computer Systems, 2008, 26(2):1-26.&lt;&#x2F;p&gt;
+&lt;p&gt;[3] Decandia G, Hastorun D, Jampani M, et al. Dynamo: Amazon&#x27;s Highly Available Key-value Store[J]. Acm Sigops Operating Systems Review, 2007, 41(6):205-220.&lt;&#x2F;p&gt;
+&lt;p&gt;[4] J. C. Corbett, J. Dean, M. Epstein, A. Fikes, et al. Spanner: Google’s Globally Distributed Database. ACMTrans. Comput. Syst., 31(3):8:1–8:22, 2013.&lt;&#x2F;p&gt;
+&lt;p&gt;[5] Dongxu Huang, Qi Liu, Qiu Cui, Zhuhe Fang, Xiaoyu Ma, Fei Xu, Li Shen, Liu Tang, Yuxing Zhou, Menglong Huang, Wan Wei, Cong Liu, Jian Zhang, Jianjun Li, Xuelian Wu, Lingyu Song, Ruoxi Sun, Shuaipeng Yu, Lei Zhao, Nicholas Cameron, Liquan Pei, Xin Tang. TiDB: A Raft-based HTAP Database. PVLDB, 13(12): 3072-3084, 2020.&lt;&#x2F;p&gt;
+&lt;p&gt;[6] Seth Gilbert and Nancy Lynch: “Perspectives on the CAP Theorem,” IEEE Computer Magazine, volume 45, number 2, pages 30–36, February 2012.&lt;&#x2F;p&gt;
+&lt;p&gt;[7] Heidi Howard, Malte Schwarzkopf, Anil Madhavapeddy, and Jon Crowcroft: “Raft Refloated: Do We Have Consensus?,” ACM SIGOPS Operating Systems Review, volume 49, number 1, pages 12–21, January 2015. doi:10.1145&#x2F;2723872.2723876&lt;&#x2F;p&gt;
+</content>
+    </entry>
+    <entry xml:lang="en">
+        <title>Lock Free是什么</title>
+        <published>2020-08-28T15:17:05+08:00</published>
+        <updated>2020-08-28T15:17:05+08:00</updated>
+        <author>
+          <name>Unknown</name>
+        </author>
+        <link rel="alternate" href="https://chaojie.fun/articles/lock-free-shi-shen-me/" type="text/html"/>
+        <id>https://chaojie.fun/articles/lock-free-shi-shen-me/</id>
+        <content type="html">&lt;p&gt;什么是Lock-Free？&lt;&#x2F;p&gt;
+&lt;p&gt;在并发访问某个资源的实现中，经常利用锁机制来保证对资源的正确访问。但是锁机制的问题在于会出先死锁、活锁或者线程调度优先级被抢占等问题，同时锁的增加和释放都会消耗时间，导致性能问题。&lt;&#x2F;p&gt;
+&lt;p&gt;Lock-Free指的是不通过锁机制来保证资源的并发访问。也就是说线程间不会相互阻塞了。&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;img src=&quot;https:&#x2F;&#x2F;shiniao.fun&#x2F;images&#x2F;lockfree.png&quot; alt=&quot;lock-free&quot; &#x2F;&gt;)&lt;&#x2F;p&gt;
+&lt;p&gt;实现Lock-Free常见的解决办法是利用CAS操作，CAS是啥？&lt;&#x2F;p&gt;
+&lt;p&gt;CAS（Compare and Swap）是一种原子操作，原子很好理解，不可分割（比如原子事务），原子操作意味着CPU在操作内存时（读写）要么一次完成，要么失败，不会出现只完成一部分的现象。现代CPU对原子的读写操作都有相应的支持，比如X86&#x2F;64架构就通过CAS的方式来实现，而ARM通过LL&#x2F;SC（Load-Link&#x2F;Store-Conditional）来实现。&lt;&#x2F;p&gt;
+&lt;p&gt;在Go语言中，可通过 atomic 包中的 CompareAndSwap** 方法来编程实现CAS：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;go&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-go &quot;&gt;&lt;code class=&quot;language-go&quot; data-lang=&quot;go&quot;&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;func &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fa1b3;&quot;&gt;CompareAndSwapPointer&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;addr &lt;&#x2F;span&gt;&lt;span&gt;*&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;unsafe&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;Pointer&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;old&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;new unsafe&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;Pointer&lt;&#x2F;span&gt;&lt;span&gt;) (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;swapped &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;bool&lt;&#x2F;span&gt;&lt;span&gt;)
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;使用CAS的过程中有一个问题，考虑如下状况：&lt;&#x2F;p&gt;
+&lt;p&gt;如果线程1读取共享内存地址得到A，这时候线程2抢占线程1，将A的值修改为B，然后又改回A，线程1再次读取得到A，虽然结果相同，但是A已经被修改过了，这个就是&lt;strong&gt;ABA问题&lt;&#x2F;strong&gt;。&lt;&#x2F;p&gt;
+&lt;p&gt;一种办法是通过类似版本号的方式来解决，每次更新的时候 counter+1，比如对于上面的问题，在线程2修改的时候，因为增加了版本号，导致修改前后的A值并不相同：&lt;&#x2F;p&gt;
+&lt;pre style=&quot;background-color:#2b303b;color:#c0c5ce;&quot;&gt;&lt;code&gt;&lt;span&gt;1A--2B--3A
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;在论文&lt;a href=&quot;https:&#x2F;&#x2F;www.cs.rochester.edu&#x2F;u&#x2F;scott&#x2F;papers&#x2F;1996_PODC_queues.pdf&quot;&gt;《 Simple, Fast, and Practical Non-Blocking and Blocking Concurrent Queue Algorithms》&lt;&#x2F;a&gt; 中，描述了一种利用CAS的Lock-Free 队列的实现，通过 &lt;strong&gt;counter 机制&lt;&#x2F;strong&gt;解决了CAS中的ABA问题，并且给出了详细的伪代码实现，可查看论文中的详细介绍。&lt;&#x2F;p&gt;
+&lt;pre style=&quot;background-color:#2b303b;color:#c0c5ce;&quot;&gt;&lt;code&gt;&lt;span&gt;structure pointer_t {ptr: pointer to node_t, count: unsigned integer}
+&lt;&#x2F;span&gt;&lt;span&gt; structure node_t {value: data type, next: pointer_t}
+&lt;&#x2F;span&gt;&lt;span&gt; structure queue_t {Head: pointer_t, Tail: pointer_t}
+&lt;&#x2F;span&gt;&lt;span&gt; 
+&lt;&#x2F;span&gt;&lt;span&gt; initialize(Q: pointer to queue_t)
+&lt;&#x2F;span&gt;&lt;span&gt;    node = new_node()		&#x2F;&#x2F; Allocate a free node
+&lt;&#x2F;span&gt;&lt;span&gt;    node-&amp;gt;next.ptr = NULL	&#x2F;&#x2F; Make it the only node in the linked list
+&lt;&#x2F;span&gt;&lt;span&gt;    Q-&amp;gt;Head.ptr = Q-&amp;gt;Tail.ptr = node	&#x2F;&#x2F; Both Head and Tail point to it
+&lt;&#x2F;span&gt;&lt;span&gt; 
+&lt;&#x2F;span&gt;&lt;span&gt; enqueue(Q: pointer to queue_t, value: data type)
+&lt;&#x2F;span&gt;&lt;span&gt;  E1:   node = new_node()	&#x2F;&#x2F; Allocate a new node from the free list
+&lt;&#x2F;span&gt;&lt;span&gt;  E2:   node-&amp;gt;value = value	&#x2F;&#x2F; Copy enqueued value into node
+&lt;&#x2F;span&gt;&lt;span&gt;  E3:   node-&amp;gt;next.ptr = NULL	&#x2F;&#x2F; Set next pointer of node to NULL
+&lt;&#x2F;span&gt;&lt;span&gt;  E4:   loop			&#x2F;&#x2F; Keep trying until Enqueue is done
+&lt;&#x2F;span&gt;&lt;span&gt;  E5:      tail = Q-&amp;gt;Tail	&#x2F;&#x2F; Read Tail.ptr and Tail.count together
+&lt;&#x2F;span&gt;&lt;span&gt;  E6:      next = tail.ptr-&amp;gt;next	&#x2F;&#x2F; Read next ptr and count fields together
+&lt;&#x2F;span&gt;&lt;span&gt;  E7:      if tail == Q-&amp;gt;Tail	&#x2F;&#x2F; Are tail and next consistent?
+&lt;&#x2F;span&gt;&lt;span&gt;              &#x2F;&#x2F; Was Tail pointing to the last node?
+&lt;&#x2F;span&gt;&lt;span&gt;  E8:         if next.ptr == NULL
+&lt;&#x2F;span&gt;&lt;span&gt;                 &#x2F;&#x2F; Try to link node at the end of the linked list
+&lt;&#x2F;span&gt;&lt;span&gt;  E9:            if CAS(&amp;amp;tail.ptr-&amp;gt;next, next, &amp;lt;node, next.count+1&amp;gt;)
+&lt;&#x2F;span&gt;&lt;span&gt; E10:               break	&#x2F;&#x2F; Enqueue is done.  Exit loop
+&lt;&#x2F;span&gt;&lt;span&gt; E11:            endif
+&lt;&#x2F;span&gt;&lt;span&gt; E12:         else		&#x2F;&#x2F; Tail was not pointing to the last node
+&lt;&#x2F;span&gt;&lt;span&gt;                 &#x2F;&#x2F; Try to swing Tail to the next node
+&lt;&#x2F;span&gt;&lt;span&gt; E13:            CAS(&amp;amp;Q-&amp;gt;Tail, tail, &amp;lt;next.ptr, tail.count+1&amp;gt;)
+&lt;&#x2F;span&gt;&lt;span&gt; E14:         endif
+&lt;&#x2F;span&gt;&lt;span&gt; E15:      endif
+&lt;&#x2F;span&gt;&lt;span&gt; E16:   endloop
+&lt;&#x2F;span&gt;&lt;span&gt;        &#x2F;&#x2F; Enqueue is done.  Try to swing Tail to the inserted node
+&lt;&#x2F;span&gt;&lt;span&gt; E17:   CAS(&amp;amp;Q-&amp;gt;Tail, tail, &amp;lt;node, tail.count+1&amp;gt;)
+&lt;&#x2F;span&gt;&lt;span&gt; 
+&lt;&#x2F;span&gt;&lt;span&gt; dequeue(Q: pointer to queue_t, pvalue: pointer to data type): boolean
+&lt;&#x2F;span&gt;&lt;span&gt;  D1:   loop			     &#x2F;&#x2F; Keep trying until Dequeue is done
+&lt;&#x2F;span&gt;&lt;span&gt;  D2:      head = Q-&amp;gt;Head	     &#x2F;&#x2F; Read Head
+&lt;&#x2F;span&gt;&lt;span&gt;  D3:      tail = Q-&amp;gt;Tail	     &#x2F;&#x2F; Read Tail
+&lt;&#x2F;span&gt;&lt;span&gt;  D4:      next = head.ptr-&amp;gt;next    &#x2F;&#x2F; Read Head.ptr-&amp;gt;next
+&lt;&#x2F;span&gt;&lt;span&gt;  D5:      if head == Q-&amp;gt;Head	     &#x2F;&#x2F; Are head, tail, and next consistent?
+&lt;&#x2F;span&gt;&lt;span&gt;  D6:         if head.ptr == tail.ptr &#x2F;&#x2F; Is queue empty or Tail falling behind?
+&lt;&#x2F;span&gt;&lt;span&gt;  D7:            if next.ptr == NULL  &#x2F;&#x2F; Is queue empty?
+&lt;&#x2F;span&gt;&lt;span&gt;  D8:               return FALSE      &#x2F;&#x2F; Queue is empty, couldn&amp;#39;t dequeue
+&lt;&#x2F;span&gt;&lt;span&gt;  D9:            endif
+&lt;&#x2F;span&gt;&lt;span&gt;                 &#x2F;&#x2F; Tail is falling behind.  Try to advance it
+&lt;&#x2F;span&gt;&lt;span&gt; D10:            CAS(&amp;amp;Q-&amp;gt;Tail, tail, &amp;lt;next.ptr, tail.count+1&amp;gt;)
+&lt;&#x2F;span&gt;&lt;span&gt; D11:         else		     &#x2F;&#x2F; No need to deal with Tail
+&lt;&#x2F;span&gt;&lt;span&gt;                 &#x2F;&#x2F; Read value before CAS
+&lt;&#x2F;span&gt;&lt;span&gt;                 &#x2F;&#x2F; Otherwise, another dequeue might free the next node
+&lt;&#x2F;span&gt;&lt;span&gt; D12:            *pvalue = next.ptr-&amp;gt;value
+&lt;&#x2F;span&gt;&lt;span&gt;                 &#x2F;&#x2F; Try to swing Head to the next node
+&lt;&#x2F;span&gt;&lt;span&gt; D13:            if CAS(&amp;amp;Q-&amp;gt;Head, head, &amp;lt;next.ptr, head.count+1&amp;gt;)
+&lt;&#x2F;span&gt;&lt;span&gt; D14:               break             &#x2F;&#x2F; Dequeue is done.  Exit loop
+&lt;&#x2F;span&gt;&lt;span&gt; D15:            endif
+&lt;&#x2F;span&gt;&lt;span&gt; D16:         endif
+&lt;&#x2F;span&gt;&lt;span&gt; D17:      endif
+&lt;&#x2F;span&gt;&lt;span&gt; D18:   endloop
+&lt;&#x2F;span&gt;&lt;span&gt; D19:   free(head.ptr)		     &#x2F;&#x2F; It is safe now to free the old node
+&lt;&#x2F;span&gt;&lt;span&gt; D20:   return TRUE                   &#x2F;&#x2F; Queue was not empty, dequeue succeeded
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;除此之外，该论文还给出了一种two-lock的并发队列实现，通过在Head和Tail分别添加锁，来保证入队和出队的完全并发操作。&lt;&#x2F;p&gt;
+&lt;p&gt;Lock-Free常用来实现底层的数据结构，比如队列、栈等，本文比较了使用单锁机制的队列实现和参考上述论文的Lock-Free队列实现，在 1&amp;lt;&amp;lt;12 个节点的出队入队中，两种算法实现的性能测试结果如下图所示：&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;img src=&quot;https:&#x2F;&#x2F;shiniao.fun&#x2F;images&#x2F;benchmark.png&quot; alt=&quot;性能测试&quot; &#x2F;&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;可以看到，随着处理器个数的增加，队列的Lock-Free算法一直稳定在200ns&#x2F;op，性能更佳，而使用锁的算法耗时要高出一倍。&lt;&#x2F;p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;代码实现参考：&lt;&#x2F;p&gt;
+&lt;p&gt;https:&#x2F;&#x2F;github.com&#x2F;rilkee&#x2F;distributed&#x2F;queue&#x2F;&lt;&#x2F;p&gt;
+&lt;&#x2F;blockquote&gt;
+&lt;p&gt;参考文献：&lt;&#x2F;p&gt;
+&lt;ol&gt;
+&lt;li&gt;http:&#x2F;&#x2F;preshing.com&#x2F;20120612&#x2F;an-introduction-to-lock-free-programming&#x2F;&lt;&#x2F;li&gt;
+&lt;li&gt;Michael, M. M., &amp;amp; Scott, M. L. (1996). Simple, fast, and practical non-blocking and blocking concurrent queue algorithms. Proceedings of the Annual ACM Symposium on Principles of Distributed Computing, 267–275. https:&#x2F;&#x2F;doi.org&#x2F;10.1145&#x2F;248052.248106&lt;&#x2F;li&gt;
+&lt;&#x2F;ol&gt;
+</content>
+    </entry>
+    <entry xml:lang="en">
+        <title>分布式XA事务处理逻辑</title>
+        <published>2020-08-21T22:00:04+08:00</published>
+        <updated>2020-08-21T22:00:04+08:00</updated>
+        <author>
+          <name>Unknown</name>
+        </author>
+        <link rel="alternate" href="https://chaojie.fun/articles/fen-bu-shi-xa-shi-wu-chu-li-luo-ji/" type="text/html"/>
+        <id>https://chaojie.fun/articles/fen-bu-shi-xa-shi-wu-chu-li-luo-ji/</id>
+        <content type="html">&lt;p&gt;事务在数据库中代表一系列操作要么全部都完成，要么全部都失败，ACID规定了事务操作的原子性、一致性、隔离性和持久性。然而数据库的环境不可能只在单机上，在分布式环境下，一个事务中某个操作可能发往A节点，而另一个操作发往B节点，这就导致无法保证ACID的原则。&lt;&#x2F;p&gt;
+&lt;p&gt;实现分布式事务常见的解决办法有以下几种：XA两阶段提交协议、TCC协议和SAGA协议。但是这些解决办法都不可能完全保证事务不出错。分布式系统中有一个CAP定理，说的是在分布式情况下，不可能同时满足一致性、可用性和容错性这三个条件，一般需要满足其中两个条件。&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;xaliang-jie-duan-ti-jiao-xie-yi&quot;&gt;XA两阶段提交协议&lt;&#x2F;h2&gt;
+&lt;p&gt;XA协议规定了分布式事务的标准，其中 &lt;strong&gt;AP&lt;&#x2F;strong&gt; 代表应用程序，&lt;strong&gt;TM&lt;&#x2F;strong&gt; 代表事务管理器，负责协调和管理事务，而&lt;strong&gt;RM&lt;&#x2F;strong&gt; 代表着资源管理器。&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;img src=&quot;C:%5CUsers%5Cadmin.MENGFANDE3-PC%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20200723085002817.png&quot; alt=&quot;image-20200723085002817&quot; &#x2F;&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;而事务的具体处理过程就是TM和RM之间的交互，分为两个阶段：&lt;&#x2F;p&gt;
+&lt;p&gt;第一阶段：事务管理器要求每个涉及到事务的数据库预提交(precommit)此操作，并反映是否可以提交。&lt;&#x2F;p&gt;
+&lt;p&gt;第二阶段：事务管理器要求每个数据库提交数据，或者回滚数据。&lt;&#x2F;p&gt;
+&lt;p&gt;以MySQL中的XA处理逻辑为例（MySQL5.7版本实现了对XA协议的支持），来看下这两个阶段的逻辑处理过程。&lt;&#x2F;p&gt;
+&lt;p&gt;对于一个事务：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;sql&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-sql &quot;&gt;&lt;code class=&quot;language-sql&quot; data-lang=&quot;sql&quot;&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;begin&lt;&#x2F;span&gt;&lt;span&gt;;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;insert into&lt;&#x2F;span&gt;&lt;span&gt; student &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;values&lt;&#x2F;span&gt;&lt;span&gt; (&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;xiaoming&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;18&lt;&#x2F;span&gt;&lt;span&gt;);
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;update&lt;&#x2F;span&gt;&lt;span&gt; test &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;set&lt;&#x2F;span&gt;&lt;span&gt; age = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;18 &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;where&lt;&#x2F;span&gt;&lt;span&gt; name = &amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;xiaoming&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;commit&lt;&#x2F;span&gt;&lt;span&gt;;
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;h3 id=&quot;di-yi-jie-duan&quot;&gt;&lt;strong&gt;第一阶段&lt;&#x2F;strong&gt;&lt;&#x2F;h3&gt;
+&lt;p&gt;事务管理器会生成一个全局的事务ID，比如使用uuid生成一个唯一的ID，为了方便用 &lt;strong&gt;xid1&lt;&#x2F;strong&gt; 代替。&lt;&#x2F;p&gt;
+&lt;p&gt;首先，遇到 &lt;strong&gt;begin&lt;&#x2F;strong&gt;，不处理。&lt;&#x2F;p&gt;
+&lt;p&gt;然后是 &lt;strong&gt;insert&lt;&#x2F;strong&gt; 操作，事务管理器根据表中主键的值计算（hash）出应该分布在哪个节点上，比如insert语句被计算出应该发到节点A上，事务管理器就像A节点发送命令开始XA事务，同时将insert语句发送过去。&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;sql&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-sql &quot;&gt;&lt;code class=&quot;language-sql&quot; data-lang=&quot;sql&quot;&gt;&lt;span&gt;xa start &amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;xid1&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;;  &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;# 开启事务
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;insert into&lt;&#x2F;span&gt;&lt;span&gt; student &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;values&lt;&#x2F;span&gt;&lt;span&gt; (&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;xiaoming&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;18&lt;&#x2F;span&gt;&lt;span&gt;);
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;接下来 &lt;strong&gt;update&lt;&#x2F;strong&gt; 操作，同样的，事务管理器根据主键计算所属节点，开启XA，发送update语句。&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;sql&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-sql &quot;&gt;&lt;code class=&quot;language-sql&quot; data-lang=&quot;sql&quot;&gt;&lt;span&gt;xa start &amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;xid1&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;; 
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;update&lt;&#x2F;span&gt;&lt;span&gt; test &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;set&lt;&#x2F;span&gt;&lt;span&gt; age = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;18 &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;where&lt;&#x2F;span&gt;&lt;span&gt; name = &amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;xiaoming&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;;
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;&lt;strong&gt;commit&lt;&#x2F;strong&gt; 的时候，事务管理器分别向节点A和B发送一个预提交操作：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;sql&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-sql &quot;&gt;&lt;code class=&quot;language-sql&quot; data-lang=&quot;sql&quot;&gt;&lt;span&gt;xa &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;end &lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;xid1&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;;
+&lt;&#x2F;span&gt;&lt;span&gt;xa prepare &amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;xid1&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;;
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;h3 id=&quot;di-er-jie-duan&quot;&gt;第二阶段&lt;&#x2F;h3&gt;
+&lt;p&gt;如果节点A和B都返回就绪ready，此时进入 &lt;strong&gt;第二阶段&lt;&#x2F;strong&gt;：&lt;&#x2F;p&gt;
+&lt;p&gt;事务管理器分别向节点AB发送commit操作：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;sql&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-sql &quot;&gt;&lt;code class=&quot;language-sql&quot; data-lang=&quot;sql&quot;&gt;&lt;span&gt;xa &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;commit &lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;xid1&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;;
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;相反的，如果有任何一个节点是unready，事务管理器就会通知A、B节点的操作回滚：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;sql&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-sql &quot;&gt;&lt;code class=&quot;language-sql&quot; data-lang=&quot;sql&quot;&gt;&lt;span&gt;xa &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;rollback&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;xid1&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;;
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;有一个问题，如果在进入第二阶段commit的时候，某个数据节点出现故障，会导致节点状态不一致。解决办法是把XA事务处理的过程也存入日志数据，比如MySQL将其写入了binlog，这样在出现问题时还可以恢复。&lt;&#x2F;p&gt;
+&lt;p&gt;整个XA的过程：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;sql&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-sql &quot;&gt;&lt;code class=&quot;language-sql&quot; data-lang=&quot;sql&quot;&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;# 阶段一
+&lt;&#x2F;span&gt;&lt;span&gt;xa start &amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;xid1&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;;  
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;insert into&lt;&#x2F;span&gt;&lt;span&gt; test &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;values&lt;&#x2F;span&gt;&lt;span&gt; (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;1&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;1&lt;&#x2F;span&gt;&lt;span&gt;);
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;xa start &amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;xid1&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;; 
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;update&lt;&#x2F;span&gt;&lt;span&gt; test &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;set&lt;&#x2F;span&gt;&lt;span&gt; b = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;1 &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;where&lt;&#x2F;span&gt;&lt;span&gt; a = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;10&lt;&#x2F;span&gt;&lt;span&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;xa &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;end &lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;xid1&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;;
+&lt;&#x2F;span&gt;&lt;span&gt;xa prepare &amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;xid1&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;;
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;# 阶段二
+&lt;&#x2F;span&gt;&lt;span&gt;xa &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;commit &lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;xid1&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;; 
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;# or
+&lt;&#x2F;span&gt;&lt;span&gt;xa &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;rollback &lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;xid1&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;# 失败回滚
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;h2 id=&quot;everdbfen-bu-shi-shi-wu-de-zhi-chi&quot;&gt;EverDB分布式事务的支持&lt;&#x2F;h2&gt;
+&lt;h3 id=&quot;mycatzhong-de-shi-xian&quot;&gt;MyCat中的实现&lt;&#x2F;h3&gt;
+&lt;p&gt;EDB-Grid组件中，借鉴了MyCat（也是一个数据库中间件）的XA处理逻辑，MyCat根据XA协议实现了对分布式事务的支持，具体来说：&lt;&#x2F;p&gt;
+&lt;p&gt;通过数据库编程接口（比如JDBC，也就是XA协议中的AP）开启XA事务，然后执行SQL语句，预提交，最后commit。&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;java&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-java &quot;&gt;&lt;code class=&quot;language-java&quot; data-lang=&quot;java&quot;&gt;&lt;span&gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; 开始XA事务
+&lt;&#x2F;span&gt;&lt;span&gt; conn.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;prepareStatement&lt;&#x2F;span&gt;&lt;span&gt;(&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;set xa=on&lt;&#x2F;span&gt;&lt;span&gt;&amp;quot;).&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;execute&lt;&#x2F;span&gt;&lt;span&gt;();
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; 插入语句
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; 分别预提交
+&lt;&#x2F;span&gt;&lt;span&gt;conn.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;prepareStatement&lt;&#x2F;span&gt;&lt;span&gt;(sql1).&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;execute&lt;&#x2F;span&gt;&lt;span&gt;();
+&lt;&#x2F;span&gt;&lt;span&gt;conn.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;prepareStatement&lt;&#x2F;span&gt;&lt;span&gt;(sql2).&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;execute&lt;&#x2F;span&gt;&lt;span&gt;();
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; commit
+&lt;&#x2F;span&gt;&lt;span&gt; conn.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;commit&lt;&#x2F;span&gt;&lt;span&gt;();
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;过程跟MySQL类似，在实现上，利用uuid生成了一个全局的事务ID：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;java&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-java &quot;&gt;&lt;code class=&quot;language-java&quot; data-lang=&quot;java&quot;&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;public&lt;&#x2F;span&gt;&lt;span&gt; void &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;setXATXEnabled&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;boolean&lt;&#x2F;span&gt;&lt;span&gt; xaTXEnabled) {
+&lt;&#x2F;span&gt;&lt;span&gt;   &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;if &lt;&#x2F;span&gt;&lt;span&gt;(xaTXEnabled) {
+&lt;&#x2F;span&gt;&lt;span&gt;       &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;if &lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;this&lt;&#x2F;span&gt;&lt;span&gt;.xaTXID == &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;null&lt;&#x2F;span&gt;&lt;span&gt;) {
+&lt;&#x2F;span&gt;&lt;span&gt;           xaTXID = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;genXATXID&lt;&#x2F;span&gt;&lt;span&gt;(); &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; 获得 XA 事务编号
+&lt;&#x2F;span&gt;&lt;span&gt;       }
+&lt;&#x2F;span&gt;&lt;span&gt;   } &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;else &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;       &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;this&lt;&#x2F;span&gt;&lt;span&gt;.xaTXID = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;null&lt;&#x2F;span&gt;&lt;span&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;   }
+&lt;&#x2F;span&gt;&lt;span&gt;}
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F;......
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;public static &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ebcb8b;&quot;&gt;String &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;getUUID&lt;&#x2F;span&gt;&lt;span&gt;() {
+&lt;&#x2F;span&gt;&lt;span&gt;   &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ebcb8b;&quot;&gt;String&lt;&#x2F;span&gt;&lt;span&gt; s = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ebcb8b;&quot;&gt;UUID&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;randomUUID&lt;&#x2F;span&gt;&lt;span&gt;().&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;toString&lt;&#x2F;span&gt;&lt;span&gt;();
+&lt;&#x2F;span&gt;&lt;span&gt;   &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;return&lt;&#x2F;span&gt;&lt;span&gt; s.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;substring&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;0&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;8&lt;&#x2F;span&gt;&lt;span&gt;) + s.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;substring&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;9&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;13&lt;&#x2F;span&gt;&lt;span&gt;) + s.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;substring&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;14&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;18&lt;&#x2F;span&gt;&lt;span&gt;) + s.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;substring&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;19&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;23&lt;&#x2F;span&gt;&lt;span&gt;) + s.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;substring&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;24&lt;&#x2F;span&gt;&lt;span&gt;);
+&lt;&#x2F;span&gt;&lt;span&gt;}
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;然后在事务管理器向节点分发语句时，会先写入XA START：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;java&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-java &quot;&gt;&lt;code class=&quot;language-java&quot; data-lang=&quot;java&quot;&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;if &lt;&#x2F;span&gt;&lt;span&gt;(expectAutocommit == &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;false &lt;&#x2F;span&gt;&lt;span&gt;&amp;amp;&amp;amp; xaTxID != &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;null &lt;&#x2F;span&gt;&lt;span&gt;&amp;amp;&amp;amp; xaStatus == &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ebcb8b;&quot;&gt;TxState&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;TX_INITIALIZE_STATE&lt;&#x2F;span&gt;&lt;span&gt;) { 
+&lt;&#x2F;span&gt;&lt;span&gt;       xaCmd = &amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;XA START &lt;&#x2F;span&gt;&lt;span&gt;&amp;quot; + xaTxID + &amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;;&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;;
+&lt;&#x2F;span&gt;&lt;span&gt;       &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;this&lt;&#x2F;span&gt;&lt;span&gt;.xaStatus = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ebcb8b;&quot;&gt;TxState&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;TX_STARTED_STATE&lt;&#x2F;span&gt;&lt;span&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;   }
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F;......
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; and our query sql to multi command at last
+&lt;&#x2F;span&gt;&lt;span&gt;sb.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;append&lt;&#x2F;span&gt;&lt;span&gt;(rrn.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;getStatement&lt;&#x2F;span&gt;&lt;span&gt;() + &amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;;&lt;&#x2F;span&gt;&lt;span&gt;&amp;quot;);
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; syn and execute others
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;this&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;sendQueryCmd&lt;&#x2F;span&gt;&lt;span&gt;(sb.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;toString&lt;&#x2F;span&gt;&lt;span&gt;());
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;MyCat在执行事务操作是，会同时将其写入日志中，保证可恢复。&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;java&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-java &quot;&gt;&lt;code class=&quot;language-java&quot; data-lang=&quot;java&quot;&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;if &lt;&#x2F;span&gt;&lt;span&gt;(mysqlCon.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;getXaStatus&lt;&#x2F;span&gt;&lt;span&gt;() == &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ebcb8b;&quot;&gt;TxState&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;TX_STARTED_STATE&lt;&#x2F;span&gt;&lt;span&gt;) { &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; XA 事务
+&lt;&#x2F;span&gt;&lt;span&gt;               &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F;recovery Log
+&lt;&#x2F;span&gt;&lt;span&gt;               participantLogEntry[started] = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;new &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ebcb8b;&quot;&gt;ParticipantLogEntry&lt;&#x2F;span&gt;&lt;span&gt;(xaTxId, conn.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;getHost&lt;&#x2F;span&gt;&lt;span&gt;(), &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;0&lt;&#x2F;span&gt;&lt;span&gt;, conn.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;getSchema&lt;&#x2F;span&gt;&lt;span&gt;(), ((&lt;&#x2F;span&gt;&lt;span style=&quot;color:#ebcb8b;&quot;&gt;MySQLConnection&lt;&#x2F;span&gt;&lt;span&gt;) conn).&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;getXaStatus&lt;&#x2F;span&gt;&lt;span&gt;());
+&lt;&#x2F;span&gt;&lt;span&gt;               &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ebcb8b;&quot;&gt;String&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;[]&lt;&#x2F;span&gt;&lt;span&gt; cmds = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;new &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ebcb8b;&quot;&gt;String&lt;&#x2F;span&gt;&lt;span&gt;[]{&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;XA END &lt;&#x2F;span&gt;&lt;span&gt;&amp;quot; + xaTxId, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; XA END 命令
+&lt;&#x2F;span&gt;&lt;span&gt;                       &amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;XA PREPARE &lt;&#x2F;span&gt;&lt;span&gt;&amp;quot; + xaTxId}; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; XA PREPARE 命令
+&lt;&#x2F;span&gt;&lt;span&gt;               mysqlCon.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;execBatchCmd&lt;&#x2F;span&gt;&lt;span&gt;(cmds);
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;同样的，commit时也会同步写入日志。&lt;&#x2F;p&gt;
+&lt;p&gt;rollback：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;java&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-java &quot;&gt;&lt;code class=&quot;language-java&quot; data-lang=&quot;java&quot;&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;if &lt;&#x2F;span&gt;&lt;span&gt;(needRollback) {
+&lt;&#x2F;span&gt;&lt;span&gt;           &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;for &lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;int&lt;&#x2F;span&gt;&lt;span&gt; j = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;0&lt;&#x2F;span&gt;&lt;span&gt;; j &amp;lt; coordinatorLogEntry.participants.length; j++) {
+&lt;&#x2F;span&gt;&lt;span&gt;               &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ebcb8b;&quot;&gt;ParticipantLogEntry&lt;&#x2F;span&gt;&lt;span&gt; participantLogEntry = coordinatorLogEntry.participants[j];
+&lt;&#x2F;span&gt;&lt;span&gt;               &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F;XA rollback
+&lt;&#x2F;span&gt;&lt;span&gt;               &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ebcb8b;&quot;&gt;String&lt;&#x2F;span&gt;&lt;span&gt; xacmd = &amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;XA ROLLBACK &lt;&#x2F;span&gt;&lt;span&gt;&amp;quot; + coordinatorLogEntry.id + &amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;;&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;;
+&lt;&#x2F;span&gt;&lt;span&gt;               &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ebcb8b;&quot;&gt;OneRawSQLQueryResultHandler&lt;&#x2F;span&gt;&lt;span&gt; resultHandler = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;new &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ebcb8b;&quot;&gt;OneRawSQLQueryResultHandler&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;new &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ebcb8b;&quot;&gt;String&lt;&#x2F;span&gt;&lt;span&gt;[&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;0&lt;&#x2F;span&gt;&lt;span&gt;], &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;new &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ebcb8b;&quot;&gt;XARollbackCallback&lt;&#x2F;span&gt;&lt;span&gt;());
+&lt;&#x2F;span&gt;&lt;span&gt;               outloop:
+&lt;&#x2F;span&gt;&lt;span&gt;               &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; ...
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;h3 id=&quot;everdbzhong-de-shi-xian&quot;&gt;EverDB中的实现&lt;&#x2F;h3&gt;
+&lt;p&gt;再来看下EverDB的处理过程：&lt;&#x2F;p&gt;
+&lt;p&gt;首先是生成xid，从0开始递增。&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;c++&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-c++ &quot;&gt;&lt;code class=&quot;language-c++&quot; data-lang=&quot;c++&quot;&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;unsigned long &lt;&#x2F;span&gt;&lt;span&gt;XA_manager::&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fa1b3;&quot;&gt;generate_xid&lt;&#x2F;span&gt;&lt;span&gt;()
+&lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;  &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;unsigned long&lt;&#x2F;span&gt;&lt;span&gt; ret = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;0&lt;&#x2F;span&gt;&lt;span&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;  xid_mutex.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;acquire&lt;&#x2F;span&gt;&lt;span&gt;();
+&lt;&#x2F;span&gt;&lt;span&gt;  &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;try &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F;TODO: find a place to do init_max_xid
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;if &lt;&#x2F;span&gt;&lt;span&gt;(!init_xid)
+&lt;&#x2F;span&gt;&lt;span&gt;      &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;init_max_xid&lt;&#x2F;span&gt;&lt;span&gt;();
+&lt;&#x2F;span&gt;&lt;span&gt;    ret = xid_next++;
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;if &lt;&#x2F;span&gt;&lt;span&gt;(!ret) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; 0 is kept as the initial value
+&lt;&#x2F;span&gt;&lt;span&gt;      ++ret;
+&lt;&#x2F;span&gt;&lt;span&gt;      &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F;...
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;开始XA事务：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;c++&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-c++ &quot;&gt;&lt;code class=&quot;language-c++&quot; data-lang=&quot;c++&quot;&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;void &lt;&#x2F;span&gt;&lt;span&gt;MySQLXA_helper::&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fa1b3;&quot;&gt;init_conn_to_start_xa&lt;&#x2F;span&gt;&lt;span&gt;(Session *&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;session&lt;&#x2F;span&gt;&lt;span&gt;,
+&lt;&#x2F;span&gt;&lt;span&gt;                                           DataSpace *&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;space&lt;&#x2F;span&gt;&lt;span&gt;,
+&lt;&#x2F;span&gt;&lt;span&gt;                                           Connection *&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;conn&lt;&#x2F;span&gt;&lt;span&gt;)
+&lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;  &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;unsigned long&lt;&#x2F;span&gt;&lt;span&gt; xid = session-&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;get_xa_id&lt;&#x2F;span&gt;&lt;span&gt;();
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;  &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; clear the pending transaction
+&lt;&#x2F;span&gt;&lt;span&gt;  conn-&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;execute_one_modify_sql&lt;&#x2F;span&gt;&lt;span&gt;(&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;COMMIT;&lt;&#x2F;span&gt;&lt;span&gt;&amp;quot;);
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;  &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; ......
+&lt;&#x2F;span&gt;&lt;span&gt;  
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;record_xa_redo_log&lt;&#x2F;span&gt;&lt;span&gt;(session, space, sql.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;c_str&lt;&#x2F;span&gt;&lt;span&gt;());  &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; log
+&lt;&#x2F;span&gt;&lt;span&gt;   
+&lt;&#x2F;span&gt;&lt;span&gt;  }
+&lt;&#x2F;span&gt;&lt;span&gt;    
+&lt;&#x2F;span&gt;&lt;span&gt;  &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; ...
+&lt;&#x2F;span&gt;&lt;span&gt;    
+&lt;&#x2F;span&gt;&lt;span&gt;  &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; start xa transaction
+&lt;&#x2F;span&gt;&lt;span&gt;  sql += &amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;XA START &amp;#39;&lt;&#x2F;span&gt;&lt;span&gt;&amp;quot;;
+&lt;&#x2F;span&gt;&lt;span&gt;  sql += tmp;
+&lt;&#x2F;span&gt;&lt;span&gt;  sql += &amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;&amp;#39;;&lt;&#x2F;span&gt;&lt;span&gt;&amp;quot;;
+&lt;&#x2F;span&gt;&lt;span&gt;  conn-&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;execute_one_modify_sql&lt;&#x2F;span&gt;&lt;span&gt;(sql.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;c_str&lt;&#x2F;span&gt;&lt;span&gt;());
+&lt;&#x2F;span&gt;&lt;span&gt;  conn-&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;set_start_xa_conn&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;true&lt;&#x2F;span&gt;&lt;span&gt;);
+&lt;&#x2F;span&gt;&lt;span style=&quot;background-color:#bf616a;color:#2b303b;&quot;&gt;}&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;第二阶段：XA COMMIT 或者ROLLBACK：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;c++&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-c++ &quot;&gt;&lt;code class=&quot;language-c++&quot; data-lang=&quot;c++&quot;&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;void &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fa1b3;&quot;&gt;xa_commit_or_rollback_xid&lt;&#x2F;span&gt;&lt;span&gt;(Connection *&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;conn&lt;&#x2F;span&gt;&lt;span&gt;, string &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;xid&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;int &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;flag&lt;&#x2F;span&gt;&lt;span&gt;)
+&lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;  string &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;sql&lt;&#x2F;span&gt;&lt;span&gt;(&amp;quot;&amp;quot;);
+&lt;&#x2F;span&gt;&lt;span&gt;  &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;if &lt;&#x2F;span&gt;&lt;span&gt;(flag == TC_TRANSACTION_COMMIT)
+&lt;&#x2F;span&gt;&lt;span&gt;    sql += &amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;XA COMMIT &amp;#39;&lt;&#x2F;span&gt;&lt;span&gt;&amp;quot;; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; xa commit
+&lt;&#x2F;span&gt;&lt;span&gt;  &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;else if &lt;&#x2F;span&gt;&lt;span&gt;(flag != TC_TRANSACTION_COMMIT)
+&lt;&#x2F;span&gt;&lt;span&gt;    sql += &amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;XA ROLLBACK &amp;#39;&lt;&#x2F;span&gt;&lt;span&gt;&amp;quot;; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; xa rollback
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;  sql += xid.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;c_str&lt;&#x2F;span&gt;&lt;span&gt;();
+&lt;&#x2F;span&gt;&lt;span&gt;  sql += &amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;&amp;#39;;&lt;&#x2F;span&gt;&lt;span&gt;&amp;quot;;
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;  &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;check_xa_sql_is_not_running&lt;&#x2F;span&gt;&lt;span&gt;(conn, sql);
+&lt;&#x2F;span&gt;&lt;span&gt;  TimeValue timeout = TimeValue(backend_sql_net_timeout);
+&lt;&#x2F;span&gt;&lt;span&gt;  &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F;......
+&lt;&#x2F;span&gt;&lt;span&gt;  }
+&lt;&#x2F;span&gt;&lt;span style=&quot;background-color:#bf616a;color:#2b303b;&quot;&gt;}&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;同时事务处理的过程会写入redolog中，比如上面的开始XA事务中 &lt;strong&gt;record_xa_redo_log&lt;&#x2F;strong&gt; 。&lt;&#x2F;p&gt;
+</content>
+    </entry>
+    <entry xml:lang="en">
+        <title>分布式缓存中一致性hash算法原理解析与实现</title>
+        <published>2019-11-22T15:34:42+08:00</published>
+        <updated>2019-11-22T15:34:42+08:00</updated>
+        <author>
+          <name>Unknown</name>
+        </author>
+        <link rel="alternate" href="https://chaojie.fun/articles/fen-bu-shi-huan-cun-zhong-yi-zhi-xing-hash-suan-fa-yuan-li-jie-xi-yu-shi-xian/" type="text/html"/>
+        <id>https://chaojie.fun/articles/fen-bu-shi-huan-cun-zhong-yi-zhi-xing-hash-suan-fa-yuan-li-jie-xi-yu-shi-xian/</id>
+        <content type="html">&lt;p&gt;分布式缓存服务中，提供缓存服务的节点可能有很多个。在单机缓存服务中，数据被缓存的流程是这样的：&lt;&#x2F;p&gt;
+&lt;p&gt;第一次查询数据时首先从源数据查询（比如数据库），找到之后，同时放入缓存服务器中，下次查询同样的数据时会直接从缓存服务器上查找。&lt;&#x2F;p&gt;
+&lt;p&gt;但是缓存服务器一般不太可能是单机的，往往有多个节点。转换为分布式之后，会出现一些问题。&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;wen-ti-yi-shu-ju-rong-yu&quot;&gt;问题一数据冗余&lt;&#x2F;h2&gt;
+&lt;p&gt;考虑一下，单机服务的时候，利用LRU算法实现缓存的存取，一个key对应一个数据value。分布式条件下，如果只是单纯的增加节点，这次查找key对应的数据在A节点上，下次查找的时候却在B服务器上。同一个key有多个缓存，完全没必要嘛，这样就是数据冗余了。&lt;&#x2F;p&gt;
+&lt;p&gt;怎么解决？&lt;&#x2F;p&gt;
+&lt;p&gt;利用哈希。首先对key值hash，然后利用节点数取余。&lt;&#x2F;p&gt;
+&lt;pre style=&quot;background-color:#2b303b;color:#c0c5ce;&quot;&gt;&lt;code&gt;&lt;span&gt;h = hash(key) %len(node)
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;这样同一个key的数据只会被一个节点缓存。很awesome有没有。&lt;&#x2F;p&gt;
+&lt;p&gt;But，我不可能一直是这几个节点呀，万一有的节点挂了呢，或者我要添加节点呢？&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;wen-ti-er-rong-cuo-xing-he-kuo-zhan-xing&quot;&gt;问题二容错性和扩展性&lt;&#x2F;h2&gt;
+&lt;p&gt;如果有节点挂了或者新增节点，都会导致&lt;strong&gt;len(node)&lt;&#x2F;strong&gt; 的变化，那么利用hash计算出来的值跟之前的就不一样。这样导致新增或者删除一个节点，之前的所有缓存都失效了！我的天哪！！！&lt;&#x2F;p&gt;
+&lt;p&gt;这种问题就是 &lt;strong&gt;缓存雪崩&lt;&#x2F;strong&gt; 。&lt;&#x2F;p&gt;
+&lt;p&gt;怎么办呢？利用一致性hash算法。&lt;&#x2F;p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;一致性哈希算法（Consistent Hashing）最早在论文《&lt;a href=&quot;http:&#x2F;&#x2F;www.akamai.com&#x2F;dl&#x2F;technical_publications&#x2F;ConsistenHashingandRandomTreesDistributedCachingprotocolsforrelievingHotSpotsontheworldwideweb.pdf&quot;&gt;Consistent Hashing and Random Trees: Distributed Caching Protocols for Relieving Hot Spots on the World Wide Web&lt;&#x2F;a&gt;》中被提出。&lt;&#x2F;p&gt;
+&lt;&#x2F;blockquote&gt;
+&lt;p&gt;它的原理是，把所有的hash值空间（就是上面公式计算出来的h）看成是一个环，取值范围从0到2^32-1。将每个服务器节点通过hash映射到环上，同时将数据key通过hash函数也映射到环上，按顺时针方向，数据key跟哪个节点近就属于哪个节点。&lt;&#x2F;p&gt;
+&lt;p&gt;举个例子，现在有三个缓存服务器节点2，4，6，假设这个hash算法就是原样输出，我们将节点和数据（1，3，7，9）经过hash之后到环上：&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;img src=&quot;https:&#x2F;&#x2F;tva1.sinaimg.cn&#x2F;large&#x2F;0082zybply1gc53lsij1jj30b3079glv.jpg&quot; alt=&quot;一致性hash&quot; &#x2F;&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;按顺时针方向，数据1属于node2，数据3属于node4，数据7、9输入node6。&lt;&#x2F;p&gt;
+&lt;p&gt;貌似看起来不错，但是还有个问题。在节点较少的情况上，会发生 &lt;strong&gt;数据倾斜&lt;&#x2F;strong&gt; 的问题。比如上图所示，数据可能大量的堆积在node6和node2之间。&lt;&#x2F;p&gt;
+&lt;p&gt;解决办法是添加虚拟节点，利用虚拟节点负载均衡每个数据。虚拟节点的做法是，对一个真实节点计算多个hash，放到环上，所有这些虚拟节点的数据都属于真实节点。&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;img src=&quot;https:&#x2F;&#x2F;tva1.sinaimg.cn&#x2F;large&#x2F;0082zybply1gc54o5rm70j30ax06xwf4.jpg&quot; alt=&quot;一致性hash2&quot; &#x2F;&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;这样所有的数据都均匀的分布在环上了。&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;suan-fa-shi-xian&quot;&gt;算法实现&lt;&#x2F;h2&gt;
+&lt;p&gt;了解了原理，来动手实现一下一致性hash算法。整个算法模仿go语言的分布式缓存服务&lt;a href=&quot;https:&#x2F;&#x2F;github.com&#x2F;golang&#x2F;groupcache&quot;&gt;groupcache&lt;&#x2F;a&gt; 实现，groupcache可以说是&lt;strong&gt;memcached&lt;&#x2F;strong&gt; 的go语言实现。&lt;&#x2F;p&gt;
+&lt;p&gt;首先定义一致性hash环结构体：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;go&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-go &quot;&gt;&lt;code class=&quot;language-go&quot; data-lang=&quot;go&quot;&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;type &lt;&#x2F;span&gt;&lt;span&gt;Hash &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;func&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;data &lt;&#x2F;span&gt;&lt;span&gt;[]&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;byte&lt;&#x2F;span&gt;&lt;span&gt;) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;uint32
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; ConHash 一致性hash
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;type &lt;&#x2F;span&gt;&lt;span&gt;ConHash &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;struct &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;hash     &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;Hash           &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; hash算法
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;replicas &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;int            &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; 虚拟节点数
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;nodes    &lt;&#x2F;span&gt;&lt;span&gt;[]&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;int          &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; hash环节点数
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;hashMap  &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;map&lt;&#x2F;span&gt;&lt;span&gt;[&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;int&lt;&#x2F;span&gt;&lt;span&gt;]&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;string &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; 虚拟节点-真实节点
+&lt;&#x2F;span&gt;&lt;span&gt;}
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;可以看到，类型Hash就是个回调函数，用户可以自定义hash算法。&lt;&#x2F;p&gt;
+&lt;p&gt;然后需要往hash环上添加节点，根据指定的虚拟节点数用hash算法放到环上。&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;go&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-go &quot;&gt;&lt;code class=&quot;language-go&quot; data-lang=&quot;go&quot;&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; Add 添加节点到hash环上
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;func &lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;m &lt;&#x2F;span&gt;&lt;span&gt;*&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;ConHash&lt;&#x2F;span&gt;&lt;span&gt;) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fa1b3;&quot;&gt;Add&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;nodes &lt;&#x2F;span&gt;&lt;span&gt;...&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;string&lt;&#x2F;span&gt;&lt;span&gt;) {
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;for &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;_&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;node &lt;&#x2F;span&gt;&lt;span&gt;:= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;range &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;nodes &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;		&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; 将节点值根据指定的虚拟节点数利用hash算法放置到环中
+&lt;&#x2F;span&gt;&lt;span&gt;		&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;for &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;i &lt;&#x2F;span&gt;&lt;span&gt;:= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;0&lt;&#x2F;span&gt;&lt;span&gt;; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;i &lt;&#x2F;span&gt;&lt;span&gt;&amp;lt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;m&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;replicas&lt;&#x2F;span&gt;&lt;span&gt;; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;i&lt;&#x2F;span&gt;&lt;span&gt;++ {
+&lt;&#x2F;span&gt;&lt;span&gt;			&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;h &lt;&#x2F;span&gt;&lt;span&gt;:= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;int&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;m&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;hash&lt;&#x2F;span&gt;&lt;span&gt;([]&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;byte&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;strconv&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;Itoa&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;i&lt;&#x2F;span&gt;&lt;span&gt;) + &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;node&lt;&#x2F;span&gt;&lt;span&gt;)))
+&lt;&#x2F;span&gt;&lt;span&gt;			&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;m&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;nodes &lt;&#x2F;span&gt;&lt;span&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#96b5b4;&quot;&gt;append&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;m&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;nodes&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;h&lt;&#x2F;span&gt;&lt;span&gt;)
+&lt;&#x2F;span&gt;&lt;span&gt;			&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; 映射虚拟节点到真实节点
+&lt;&#x2F;span&gt;&lt;span&gt;			&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;m&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;hashMap&lt;&#x2F;span&gt;&lt;span&gt;[&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;h&lt;&#x2F;span&gt;&lt;span&gt;] = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;node
+&lt;&#x2F;span&gt;&lt;span&gt;		}
+&lt;&#x2F;span&gt;&lt;span&gt;	}
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;sort&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;Ints&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;m&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;nodes&lt;&#x2F;span&gt;&lt;span&gt;)
+&lt;&#x2F;span&gt;&lt;span&gt;}
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;同样还需要根据key值从环上获取对应的节点，获取到节点之后从该节点查找数据。&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;go&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-go &quot;&gt;&lt;code class=&quot;language-go&quot; data-lang=&quot;go&quot;&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; Get 从hash环上获取key对应的节点
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;func &lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;m &lt;&#x2F;span&gt;&lt;span&gt;*&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;ConHash&lt;&#x2F;span&gt;&lt;span&gt;) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fa1b3;&quot;&gt;Get&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;key &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;string&lt;&#x2F;span&gt;&lt;span&gt;) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;string &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;if &lt;&#x2F;span&gt;&lt;span style=&quot;color:#96b5b4;&quot;&gt;len&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;m&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;nodes&lt;&#x2F;span&gt;&lt;span&gt;) == &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;0 &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;		&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;return &lt;&#x2F;span&gt;&lt;span&gt;&amp;quot;&amp;quot;
+&lt;&#x2F;span&gt;&lt;span&gt;	}
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; 计算key的hash值
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;h &lt;&#x2F;span&gt;&lt;span&gt;:= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;int&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;m&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;hash&lt;&#x2F;span&gt;&lt;span&gt;([]&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;byte&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;key&lt;&#x2F;span&gt;&lt;span&gt;)))
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; 顺时针找到第一个匹配的虚拟节点
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;idx &lt;&#x2F;span&gt;&lt;span&gt;:= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;sort&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;Search&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#96b5b4;&quot;&gt;len&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;m&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;nodes&lt;&#x2F;span&gt;&lt;span&gt;), &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;func&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;i &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;int&lt;&#x2F;span&gt;&lt;span&gt;) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;bool &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;		&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;return &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;m&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;nodes&lt;&#x2F;span&gt;&lt;span&gt;[&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;i&lt;&#x2F;span&gt;&lt;span&gt;] &amp;gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;h
+&lt;&#x2F;span&gt;&lt;span&gt;	})
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; 从hash环查找
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; 返回hash映射的真实节点
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;return &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;m&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;hashMap&lt;&#x2F;span&gt;&lt;span&gt;[&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;m&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;nodes&lt;&#x2F;span&gt;&lt;span&gt;[&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;idx&lt;&#x2F;span&gt;&lt;span&gt;%&lt;&#x2F;span&gt;&lt;span style=&quot;color:#96b5b4;&quot;&gt;len&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;m&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;nodes&lt;&#x2F;span&gt;&lt;span&gt;)]]
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;}
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;有的人说不对啊，为啥添加的都是服务器节点，数据不是也放在环上吗？&lt;&#x2F;p&gt;
+&lt;p&gt;其实是因为groupcache将数据划分出一个group的概念，数据在内部存储上利用hash+双向链表实现，缓存的数据被放在链表中。&lt;&#x2F;p&gt;
+&lt;p&gt;整个流程是这样的，查找key值对应的数据时，根据url链接中的group和key值确定节点，如何确定的？上面的代码已经解释了，计算key值的hash，看它属于哪个节点。&lt;&#x2F;p&gt;
+&lt;p&gt;然后从该节点的双向链表中查找。如果节点不存在这个key，从用户定义的数据源查找（比如数据库），找到之后将数据存入该group中。&lt;&#x2F;p&gt;
+&lt;p&gt;以上，希望有帮助。&lt;&#x2F;p&gt;
+</content>
+    </entry>
+    <entry xml:lang="en">
+        <title>对Raft一致性算法的理解</title>
+        <published>2019-08-21T22:02:53+08:00</published>
+        <updated>2019-08-21T22:02:53+08:00</updated>
+        <author>
+          <name>Unknown</name>
+        </author>
+        <link rel="alternate" href="https://chaojie.fun/articles/dui-raft-yi-zhi-xing-suan-fa-de-li-jie/" type="text/html"/>
+        <id>https://chaojie.fun/articles/dui-raft-yi-zhi-xing-suan-fa-de-li-jie/</id>
+        <content type="html"></content>
+    </entry>
+</feed>

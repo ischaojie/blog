@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>
+Chaojie&#x27;s Home ✍️ | [源码分析] Flask配置管理与描述符析
+</title>
+    <meta name="description" content="The place where Chaojie writes">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta property="og:title" content=" Chaojie&#x27;s Home ✍️  | [源码分析] Flask配置管理与描述符析">
+    <meta property="og:description" content="The place where Chaojie writes">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://chaojie.fun/articles/yuan-ma-fen-xi-flask-pei-zhi-guan-li-yu-miao-shu-fu/">
+
+    
+    <link rel="alternate" type="application/atom+xml" title="RSS"
+        href="https://chaojie.fun/atom.xml">
+    
+    <link rel="icon" href="https://chaojie.fun/images/favicon.ico" sizes="any">
+    <link rel="stylesheet" href="https://chaojie.fun/libs/tabler.min.css">
+    <link rel="stylesheet" href="https://chaojie.fun/css/uno.css">
+    <link rel="stylesheet" href="https://chaojie.fun/assets/willow.css">
+
+    
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XDREGKCZH0"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+
+        gtag('config', 'G-XDREGKCZH0');
+    </script>
+    
+</head>
+
+<body>
+    <div class="theme-light text-base font-sans" id="theme">
+        <div class="container-xl subpixel-antialiased">
+            <div class="row justify-content-center">
+                <div class="col-lg-10 col-xl-9">
+                    
+<div class="col" style="margin: 24px 0;">
+    <div class="row align-items-end">
+        <div class="col-auto" style="margin: auto 0;">
+            <a href="https://chaojie.fun/">
+                <img src="https://chaojie.fun/images/logo.png" width="40" height="46" class="">
+            </a>
+        </div>
+        <div class="col">
+            <div class="row">
+                <div class="col">
+                    <h2 class="mb-0 tracking-wide">Chaojie&#x27;s Home ✍️</h2>
+                </div>
+            </div>
+            <div class="row">
+                <nav>
+                    
+<ul class="list-inline list-inline-dots mb-0">
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/">
+            Home
+        </a>
+    </li>
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/articles/">
+            Articles
+        </a>
+    </li>
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/memos/">
+            Memos
+        </a>
+    </li>
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/tags/">
+            Tags
+        </a>
+    </li>
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/about/">
+            About
+        </a>
+    </li>
+    
+    
+    
+</ul>
+
+                </nav>
+            </div>
+        </div>
+        <div class="col align-self-end">
+            <div class="d-flex justify-content-end space-x">
+                
+                
+                <a href="https://chaojie.fun/atom.xml" target="_blank">
+                    
+                    <img src="https://chaojie.fun/images/social/douban.svg" alt=douban width="18" height="18">
+                </a>
+                
+                <a href="https://chaojie.fun/atom.xml" target="_blank">
+                    
+                    <img src="https://chaojie.fun/images/social/github.svg" alt=github width="18" height="18">
+                </a>
+                
+                <a href="https://chaojie.fun/atom.xml" target="_blank">
+                    
+                    <img src="https://chaojie.fun/images/social/twitter.svg" alt=twitter width="18" height="18">
+                </a>
+                
+                
+                <a href="https://chaojie.fun/atom.xml" target="_blank">
+                    <img src="https://chaojie.fun/images/social/rss.svg" alt="RSS" width="18" height="18">
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+                    
+
+<div class="card card-lg">
+    <div class="card-body markdown text-justify">
+        <div class="">
+            
+            
+            <div class="d-flex justify-content-between" style="margin-bottom: 18px;">
+                <div>2019-07-03</div>
+                
+                <i class="fas fa-tags"></i>
+                <ul class="list-inline list-inline-dots mb-0">
+                    
+                    <li class="list-inline-item">
+                        <a class="tag"
+                            href="https://chaojie.fun/tags/python/">#Python</a>
+                    </li>
+                    
+                    <li class="list-inline-item">
+                        <a class="tag"
+                            href="https://chaojie.fun/tags/flask/">#Flask</a>
+                    </li>
+                    
+
+                </ul>
+                
+            </div>
+            
+
+            <h1>[源码分析] Flask配置管理与描述符析</h1>
+            <p><p>在Flask中可以通过 <strong>app.config['NAME'] = what</strong> 的形式指定一些配置，比如设置 <strong>debug = True</strong> ：</p>
+<pre data-lang="python" style="background-color:#2b303b;color:#c0c5ce;" class="language-python "><code class="language-python" data-lang="python"><span>app.debug = </span><span style="color:#d08770;">True
+</span><span style="color:#65737e;"># 或者
+</span><span>app.config[&#39;</span><span style="color:#a3be8c;">DEBUG</span><span>&#39;] = </span><span style="color:#d08770;">True
+</span></code></pre>
+<p>有些配置比如设置ENV和TESTING还可以直接利用Flask对象来设置，像这样：</p>
+<pre data-lang="python" style="background-color:#2b303b;color:#c0c5ce;" class="language-python "><code class="language-python" data-lang="python"><span>app.testing = </span><span style="color:#d08770;">True
+</span></code></pre>
+<p>除了在程序中指定配置，也可以将配置写在单独的文件中，比如：</p>
+<pre data-lang="python" style="background-color:#2b303b;color:#c0c5ce;" class="language-python "><code class="language-python" data-lang="python"><span>app = </span><span style="color:#bf616a;">Flask</span><span>(__name__)
+</span><span>app.config.</span><span style="color:#bf616a;">from_object</span><span>(&#39;</span><span style="color:#a3be8c;">yourapplication.default_settings</span><span>&#39;)
+</span><span>app.config.</span><span style="color:#bf616a;">from_envvar</span><span>(&#39;</span><span style="color:#a3be8c;">YOURAPPLICATION_SETTINGS</span><span>&#39;)
+</span></code></pre>
+<p>应用首先从 <strong>yourapplication.default_settings</strong> 模块载入配置，然后根据 <code>YOURAPPLICATION_SETTINGS</code> 环境变量所指向的文件的内容重载配置的值。</p>
+<p>除了从配置文件加载，也可以定义类类指定配置，具体用法去看看官方文档就知道了。</p>
+<p>知道了在Flask中如何使用配置，我们来看看它是如何实现的。</p>
+<p>首先 <strong>config</strong> 肯定是个变量，在Flask这个类中被定义为：</p>
+<pre data-lang="python" style="background-color:#2b303b;color:#c0c5ce;" class="language-python "><code class="language-python" data-lang="python"><span style="color:#bf616a;">self</span><span>.config = </span><span style="color:#bf616a;">self</span><span>.</span><span style="color:#bf616a;">make_config</span><span>(instance_relative_config)
+</span></code></pre>
+<p>然后 <strong>make_config</strong> 的代码是这样的：</p>
+<pre data-lang="python" style="background-color:#2b303b;color:#c0c5ce;" class="language-python "><code class="language-python" data-lang="python"><span style="color:#b48ead;">def </span><span style="color:#8fa1b3;">make_config</span><span>(</span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">instance_relative</span><span>=</span><span style="color:#d08770;">False</span><span>):
+</span><span>
+</span><span>    root_path = </span><span style="color:#bf616a;">self</span><span>.root_path
+</span><span>    </span><span style="color:#b48ead;">if </span><span>instance_relative:
+</span><span>        root_path = </span><span style="color:#bf616a;">self</span><span>.instance_path
+</span><span>    </span><span style="color:#65737e;"># 默认配置
+</span><span>    defaults = </span><span style="color:#bf616a;">dict</span><span>(</span><span style="color:#bf616a;">self</span><span>.default_config)
+</span><span>    defaults[&#39;</span><span style="color:#a3be8c;">ENV</span><span>&#39;] = </span><span style="color:#bf616a;">get_env</span><span>()
+</span><span>    defaults[&#39;</span><span style="color:#a3be8c;">DEBUG</span><span>&#39;] = </span><span style="color:#bf616a;">get_debug_flag</span><span>()
+</span><span>    </span><span style="color:#b48ead;">return </span><span style="color:#bf616a;">self</span><span>.</span><span style="color:#bf616a;">config_class</span><span>(root_path, defaults)
+</span></code></pre>
+<p>make_config方法获取flask中默认的配置，以及ENV和DEBUG这两个配置，之后返回了 <strong>self.config_class</strong> 对象，它在类中是这样定义的：</p>
+<pre data-lang="python" style="background-color:#2b303b;color:#c0c5ce;" class="language-python "><code class="language-python" data-lang="python"><span>config_class = Config
+</span><span>
+</span><span style="color:#b48ead;">class </span><span style="color:#ebcb8b;">Config</span><span style="color:#eff1f5;">(</span><span style="color:#a3be8c;">dict</span><span style="color:#eff1f5;">):
+</span><span>    </span><span style="color:#b48ead;">def </span><span style="color:#96b5b4;">__init__</span><span>(</span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">root_path</span><span>, </span><span style="color:#bf616a;">defaults</span><span>=</span><span style="color:#d08770;">None</span><span>):
+</span><span>        </span><span style="color:#65737e;"># dict.__init__让Config实例拥有字典行为config[&#39;ENV&#39;]
+</span><span>        dict.</span><span style="color:#96b5b4;">__init__</span><span>(</span><span style="color:#bf616a;">self</span><span>, defaults or {})
+</span><span>        </span><span style="color:#bf616a;">self</span><span>.root_path = root_path
+</span></code></pre>
+<p><strong>config_class</strong> 本质上是Config类，注意看Config类的初始化方法，</p>
+<pre data-lang="python" style="background-color:#2b303b;color:#c0c5ce;" class="language-python "><code class="language-python" data-lang="python"><span>dict.</span><span style="color:#96b5b4;">__init__</span><span>(</span><span style="color:#bf616a;">self</span><span>, defaults or {})
+</span></code></pre>
+<p>这一行代码使得Config类可以像字典一样使用，比如 <code>app.config['TESTING']=True</code>。 当然你也可以使用 <code>__getitem__</code> 和 <code>__setitem__</code> 内置方法使得类具有字典的行为。</p>
+<p>那么像 <strong>app.testing = True</strong> 这样的配置是如何实现的？</p>
+<p>在Flask类中可以看到，这些类变量都是 <strong>ConfigAttribute</strong> 对象。</p>
+<pre data-lang="python" style="background-color:#2b303b;color:#c0c5ce;" class="language-python "><code class="language-python" data-lang="python"><span>testing = </span><span style="color:#bf616a;">ConfigAttribute</span><span>(&#39;</span><span style="color:#a3be8c;">TESTING</span><span>&#39;)
+</span><span>secret_key = </span><span style="color:#bf616a;">ConfigAttribute</span><span>(&#39;</span><span style="color:#a3be8c;">SECRET_KEY</span><span>&#39;)
+</span></code></pre>
+<p><strong>ConfigAttribute</strong>类如下：</p>
+<pre data-lang="python" style="background-color:#2b303b;color:#c0c5ce;" class="language-python "><code class="language-python" data-lang="python"><span style="color:#b48ead;">class </span><span style="color:#ebcb8b;">ConfigAttribute</span><span style="color:#eff1f5;">(</span><span style="color:#a3be8c;">object</span><span style="color:#eff1f5;">):
+</span><span>    </span><span style="color:#b48ead;">def </span><span style="color:#96b5b4;">__init__</span><span>(</span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">name</span><span>, </span><span style="color:#bf616a;">get_converter</span><span>=</span><span style="color:#d08770;">None</span><span>):
+</span><span>        </span><span style="color:#bf616a;">self</span><span>.__name__ = name
+</span><span>        </span><span style="color:#bf616a;">self</span><span>.get_converter = get_converter
+</span><span>    
+</span><span>    </span><span style="color:#65737e;"># obj是被托管类实例
+</span><span>    </span><span style="color:#b48ead;">def </span><span style="color:#96b5b4;">__get__</span><span>(</span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">obj</span><span>, </span><span style="color:#bf616a;">type</span><span>=</span><span style="color:#d08770;">None</span><span>):
+</span><span>        </span><span style="color:#65737e;"># 如果被托管实例不存在，返回描述符自身
+</span><span>        </span><span style="color:#b48ead;">if </span><span>obj is </span><span style="color:#d08770;">None</span><span>:
+</span><span>            </span><span style="color:#b48ead;">return </span><span style="color:#bf616a;">self
+</span><span>        </span><span style="color:#65737e;"># 返回Flask实例的config[name]
+</span><span>        rv = obj.config[</span><span style="color:#bf616a;">self</span><span>.__name__]
+</span><span>        </span><span style="color:#b48ead;">if </span><span style="color:#bf616a;">self</span><span>.get_converter is not </span><span style="color:#d08770;">None</span><span>:
+</span><span>            rv = </span><span style="color:#bf616a;">self</span><span>.</span><span style="color:#bf616a;">get_converter</span><span>(rv)
+</span><span>        </span><span style="color:#b48ead;">return </span><span>rv
+</span><span>
+</span><span>    </span><span style="color:#b48ead;">def </span><span style="color:#96b5b4;">__set__</span><span>(</span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">obj</span><span>, </span><span style="color:#bf616a;">value</span><span>):
+</span><span>        obj.config[</span><span style="color:#bf616a;">self</span><span>.__name__] = value
+</span></code></pre>
+<p><strong>ConfigAttribute</strong> 是一个描述符类，描述符是什么？</p>
+<blockquote>
+<p>描述符是对多个属性运用相同存取逻辑的一种方式。——《流畅的python》</p>
+</blockquote>
+<p>描述符实现了特定的内置方法，<code>__get__</code> ， <code>__set__</code> 和 <code>__delete__</code> ，常见的比如Django中ORM中的实现就是用的描述符：</p>
+<pre data-lang="python" style="background-color:#2b303b;color:#c0c5ce;" class="language-python "><code class="language-python" data-lang="python"><span style="color:#b48ead;">class </span><span style="color:#ebcb8b;">Person</span><span style="color:#eff1f5;">(</span><span style="color:#a3be8c;">models.Model</span><span style="color:#eff1f5;">):
+</span><span>    </span><span style="color:#65737e;"># models.CharField就是一个描述符
+</span><span>    first_name = models.</span><span style="color:#bf616a;">CharField</span><span>(</span><span style="color:#bf616a;">max_length</span><span>=</span><span style="color:#d08770;">30</span><span>)
+</span><span>    last_name = models.</span><span style="color:#bf616a;">CharField</span><span>(</span><span style="color:#bf616a;">max_length</span><span>=</span><span style="color:#d08770;">30</span><span>)
+</span></code></pre>
+<p>还有python内置的 <strong>@property</strong> <strong>@classmethod</strong> <strong>staticmethod</strong> 装饰器就是用描述符实现的。</p>
+<p>说了这么多，来看看描述符到底怎么用。</p>
+<p>首先来看<strong>ConfigAttribute</strong>类中的 <code>__get__</code> 方法：</p>
+<pre data-lang="python" style="background-color:#2b303b;color:#c0c5ce;" class="language-python "><code class="language-python" data-lang="python"><span style="color:#65737e;"># obj是被托管类实例
+</span><span style="color:#b48ead;">def </span><span style="color:#96b5b4;">__get__</span><span>(</span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">obj</span><span>, </span><span style="color:#bf616a;">type</span><span>=</span><span style="color:#d08770;">None</span><span>):
+</span><span>    </span><span style="color:#65737e;"># 如果被托管实例不存在，返回描述符自身
+</span><span>    </span><span style="color:#b48ead;">if </span><span>obj is </span><span style="color:#d08770;">None</span><span>:
+</span><span>        </span><span style="color:#b48ead;">return </span><span style="color:#bf616a;">self
+</span><span>    </span><span style="color:#65737e;"># 返回Flask实例的config[name]
+</span><span>    rv = obj.config[</span><span style="color:#bf616a;">self</span><span>.__name__]
+</span><span>    </span><span style="color:#b48ead;">if </span><span style="color:#bf616a;">self</span><span>.get_converter is not </span><span style="color:#d08770;">None</span><span>:
+</span><span>        rv = </span><span style="color:#bf616a;">self</span><span>.</span><span style="color:#bf616a;">get_converter</span><span>(rv)
+</span><span>    </span><span style="color:#b48ead;">return </span><span>rv
+</span></code></pre>
+<p><code>__get__</code> 方法的参数obj是被托管类的实例，在这里就是Flask类，方法中首先判断被托管类是否存在，不存在就返回描述符本身。之后返回Flask类实例中的 <strong>config[name]</strong>， 看到没有env类变量实际上就是 <strong>config[name]</strong> 中指定的值。</p>
+<p>来看 <code>__set__</code> 方法：</p>
+<pre data-lang="python" style="background-color:#2b303b;color:#c0c5ce;" class="language-python "><code class="language-python" data-lang="python"><span style="color:#b48ead;">def </span><span style="color:#96b5b4;">__set__</span><span>(</span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">obj</span><span>, </span><span style="color:#bf616a;">value</span><span>):
+</span><span>    obj.config[</span><span style="color:#bf616a;">self</span><span>.__name__] = value
+</span></code></pre>
+<p><code>__set__</code>方法中的obj同样是被托管类的实例，然后value被存储在被托管类的config变量中。所以，我们才可以用 <strong>app.testing = True</strong> 来指定配置。</p>
+<p>说到底，描述符有什么用？我们来看，在Flask类中我们要指定类变量 <strong>testing, env, secret_key, session_cookie_name</strong> 等等，都需要从config变量中接收（保证配置的一致性）。我们为这些变量都写一个存取方法是不是很麻烦，使用描述符就可以简化流程，对外封装了具体的存取细节，并且减少代码量。</p>
+<p>当然我们也可以使用一个函数，通过构建特性工厂的方式来实现，比如：</p>
+<pre data-lang="python" style="background-color:#2b303b;color:#c0c5ce;" class="language-python "><code class="language-python" data-lang="python"><span style="color:#b48ead;">def </span><span style="color:#8fa1b3;">config_attribute</span><span>(</span><span style="color:#bf616a;">name</span><span>):
+</span><span>    </span><span style="color:#b48ead;">def </span><span style="color:#8fa1b3;">getter</span><span>(</span><span style="color:#bf616a;">instance</span><span>):
+</span><span>        </span><span style="color:#b48ead;">return </span><span>instance.config[name]
+</span><span>
+</span><span>    </span><span style="color:#b48ead;">def </span><span style="color:#8fa1b3;">setter</span><span>(</span><span style="color:#bf616a;">instance</span><span>, </span><span style="color:#bf616a;">value</span><span>):
+</span><span>        instance.config[name] = value
+</span><span>
+</span><span>    </span><span style="color:#65737e;"># property实际上就是@property装饰器
+</span><span>    </span><span style="color:#b48ead;">return </span><span style="color:#96b5b4;">property</span><span>(getter, setter)
+</span><span>
+</span><span style="color:#65737e;"># 在Flask中调用方式一样
+</span><span>testing = </span><span style="color:#bf616a;">config_attribute</span><span>(&#39;</span><span style="color:#a3be8c;">TESTING</span><span>&#39;)
+</span></code></pre>
+<p>关于描述符的更多细节可以查看 <strong>《流畅的python》</strong> 这本书中第20章的内容，有详细的介绍。</p>
+</p>
+
+            
+            
+            <script src="https://giscus.app/client.js" data-repo="ischaojie/blog"
+                data-repo-id="MDEwOlJlcG9zaXRvcnkyODk4MDA1NTY="
+                data-category="[object]"
+                data-category-id="[object]"
+                data-mapping="[object]" data-strict="0" data-reactions-enabled="1"
+                data-emit-metadata="0" data-input-position="top" data-theme="preferred_color_scheme"
+                data-lang="en" data-loading="lazy" crossorigin="anonymous" async>
+                </script>
+            
+            
+        </div>
+    </div>
+</div>
+
+
+                    
+<footer class="footer footer-transparent d-print-none">
+    <div class="container-xl">
+        <div class="row text-center align-items-center flex-row-reverse">
+            <div class="col-lg-auto ms-lg-auto">
+                
+<ul class="list-inline list-inline-dots mb-0">
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/">
+            Home
+        </a>
+    </li>
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/articles/">
+            Articles
+        </a>
+    </li>
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/memos/">
+            Memos
+        </a>
+    </li>
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/tags/">
+            Tags
+        </a>
+    </li>
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/about/">
+            About
+        </a>
+    </li>
+    
+    
+    
+</ul>
+
+            </div>
+            <div class="col-12 col-lg-auto mt-3 mt-lg-0">
+                <ul class="list-inline list-inline-dots mb-0">
+                    <li class="list-inline-item">
+                        Copyright © 2023
+                        <a href="." class="link-secondary">Chaojie</a>.
+                        All rights reserved.
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</footer>
+
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://chaojie.fun/libs/tabler.min.js"></script>
+    <script src="https://chaojie.fun/libs/fslightbox.js"></script>
+    <script src="https://chaojie.fun/libs/infinite-scroll.min.js"></script>
+    <script src="https://chaojie.fun/libs/luxon.min.js"></script>
+    <script src="https://chaojie.fun/js/willow.js"></script>
+    
+
+
+</body>
+
+</html>

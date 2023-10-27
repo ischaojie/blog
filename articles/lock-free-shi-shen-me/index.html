@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>
+Chaojie&#x27;s Home ✍️ | Lock Free是什么
+</title>
+    <meta name="description" content="The place where Chaojie writes">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta property="og:title" content=" Chaojie&#x27;s Home ✍️  | Lock Free是什么">
+    <meta property="og:description" content="The place where Chaojie writes">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://chaojie.fun/articles/lock-free-shi-shen-me/">
+
+    
+    <link rel="alternate" type="application/atom+xml" title="RSS"
+        href="https://chaojie.fun/atom.xml">
+    
+    <link rel="icon" href="https://chaojie.fun/images/favicon.ico" sizes="any">
+    <link rel="stylesheet" href="https://chaojie.fun/libs/tabler.min.css">
+    <link rel="stylesheet" href="https://chaojie.fun/css/uno.css">
+    <link rel="stylesheet" href="https://chaojie.fun/assets/willow.css">
+
+    
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XDREGKCZH0"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+
+        gtag('config', 'G-XDREGKCZH0');
+    </script>
+    
+</head>
+
+<body>
+    <div class="theme-light text-base font-sans" id="theme">
+        <div class="container-xl subpixel-antialiased">
+            <div class="row justify-content-center">
+                <div class="col-lg-10 col-xl-9">
+                    
+<div class="col" style="margin: 24px 0;">
+    <div class="row align-items-end">
+        <div class="col-auto" style="margin: auto 0;">
+            <a href="https://chaojie.fun/">
+                <img src="https://chaojie.fun/images/logo.png" width="40" height="46" class="">
+            </a>
+        </div>
+        <div class="col">
+            <div class="row">
+                <div class="col">
+                    <h2 class="mb-0 tracking-wide">Chaojie&#x27;s Home ✍️</h2>
+                </div>
+            </div>
+            <div class="row">
+                <nav>
+                    
+<ul class="list-inline list-inline-dots mb-0">
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/">
+            Home
+        </a>
+    </li>
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/articles/">
+            Articles
+        </a>
+    </li>
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/memos/">
+            Memos
+        </a>
+    </li>
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/tags/">
+            Tags
+        </a>
+    </li>
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/about/">
+            About
+        </a>
+    </li>
+    
+    
+    
+</ul>
+
+                </nav>
+            </div>
+        </div>
+        <div class="col align-self-end">
+            <div class="d-flex justify-content-end space-x">
+                
+                
+                <a href="https://chaojie.fun/atom.xml" target="_blank">
+                    
+                    <img src="https://chaojie.fun/images/social/douban.svg" alt=douban width="18" height="18">
+                </a>
+                
+                <a href="https://chaojie.fun/atom.xml" target="_blank">
+                    
+                    <img src="https://chaojie.fun/images/social/github.svg" alt=github width="18" height="18">
+                </a>
+                
+                <a href="https://chaojie.fun/atom.xml" target="_blank">
+                    
+                    <img src="https://chaojie.fun/images/social/twitter.svg" alt=twitter width="18" height="18">
+                </a>
+                
+                
+                <a href="https://chaojie.fun/atom.xml" target="_blank">
+                    <img src="https://chaojie.fun/images/social/rss.svg" alt="RSS" width="18" height="18">
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+                    
+
+<div class="card card-lg">
+    <div class="card-body markdown text-justify">
+        <div class="">
+            
+            
+            <div class="d-flex justify-content-between" style="margin-bottom: 18px;">
+                <div>2020-08-28</div>
+                
+                <i class="fas fa-tags"></i>
+                <ul class="list-inline list-inline-dots mb-0">
+                    
+                    <li class="list-inline-item">
+                        <a class="tag"
+                            href="https://chaojie.fun/tags/fen-bu-shi/">#分布式</a>
+                    </li>
+                    
+                    <li class="list-inline-item">
+                        <a class="tag"
+                            href="https://chaojie.fun/tags/suan-fa/">#算法</a>
+                    </li>
+                    
+
+                </ul>
+                
+            </div>
+            
+
+            <h1>Lock Free是什么</h1>
+            <p><p>什么是Lock-Free？</p>
+<p>在并发访问某个资源的实现中，经常利用锁机制来保证对资源的正确访问。但是锁机制的问题在于会出先死锁、活锁或者线程调度优先级被抢占等问题，同时锁的增加和释放都会消耗时间，导致性能问题。</p>
+<p>Lock-Free指的是不通过锁机制来保证资源的并发访问。也就是说线程间不会相互阻塞了。</p>
+<p><img src="https://shiniao.fun/images/lockfree.png" alt="lock-free" />)</p>
+<p>实现Lock-Free常见的解决办法是利用CAS操作，CAS是啥？</p>
+<p>CAS（Compare and Swap）是一种原子操作，原子很好理解，不可分割（比如原子事务），原子操作意味着CPU在操作内存时（读写）要么一次完成，要么失败，不会出现只完成一部分的现象。现代CPU对原子的读写操作都有相应的支持，比如X86/64架构就通过CAS的方式来实现，而ARM通过LL/SC（Load-Link/Store-Conditional）来实现。</p>
+<p>在Go语言中，可通过 atomic 包中的 CompareAndSwap** 方法来编程实现CAS：</p>
+<pre data-lang="go" style="background-color:#2b303b;color:#c0c5ce;" class="language-go "><code class="language-go" data-lang="go"><span style="color:#b48ead;">func </span><span style="color:#8fa1b3;">CompareAndSwapPointer</span><span>(</span><span style="color:#bf616a;">addr </span><span>*</span><span style="color:#bf616a;">unsafe</span><span>.</span><span style="color:#b48ead;">Pointer</span><span>, </span><span style="color:#bf616a;">old</span><span>, </span><span style="color:#bf616a;">new unsafe</span><span>.</span><span style="color:#b48ead;">Pointer</span><span>) (</span><span style="color:#bf616a;">swapped </span><span style="color:#b48ead;">bool</span><span>)
+</span></code></pre>
+<p>使用CAS的过程中有一个问题，考虑如下状况：</p>
+<p>如果线程1读取共享内存地址得到A，这时候线程2抢占线程1，将A的值修改为B，然后又改回A，线程1再次读取得到A，虽然结果相同，但是A已经被修改过了，这个就是<strong>ABA问题</strong>。</p>
+<p>一种办法是通过类似版本号的方式来解决，每次更新的时候 counter+1，比如对于上面的问题，在线程2修改的时候，因为增加了版本号，导致修改前后的A值并不相同：</p>
+<pre style="background-color:#2b303b;color:#c0c5ce;"><code><span>1A--2B--3A
+</span></code></pre>
+<p>在论文<a href="https://www.cs.rochester.edu/u/scott/papers/1996_PODC_queues.pdf">《 Simple, Fast, and Practical Non-Blocking and Blocking Concurrent Queue Algorithms》</a> 中，描述了一种利用CAS的Lock-Free 队列的实现，通过 <strong>counter 机制</strong>解决了CAS中的ABA问题，并且给出了详细的伪代码实现，可查看论文中的详细介绍。</p>
+<pre style="background-color:#2b303b;color:#c0c5ce;"><code><span>structure pointer_t {ptr: pointer to node_t, count: unsigned integer}
+</span><span> structure node_t {value: data type, next: pointer_t}
+</span><span> structure queue_t {Head: pointer_t, Tail: pointer_t}
+</span><span> 
+</span><span> initialize(Q: pointer to queue_t)
+</span><span>    node = new_node()		// Allocate a free node
+</span><span>    node-&gt;next.ptr = NULL	// Make it the only node in the linked list
+</span><span>    Q-&gt;Head.ptr = Q-&gt;Tail.ptr = node	// Both Head and Tail point to it
+</span><span> 
+</span><span> enqueue(Q: pointer to queue_t, value: data type)
+</span><span>  E1:   node = new_node()	// Allocate a new node from the free list
+</span><span>  E2:   node-&gt;value = value	// Copy enqueued value into node
+</span><span>  E3:   node-&gt;next.ptr = NULL	// Set next pointer of node to NULL
+</span><span>  E4:   loop			// Keep trying until Enqueue is done
+</span><span>  E5:      tail = Q-&gt;Tail	// Read Tail.ptr and Tail.count together
+</span><span>  E6:      next = tail.ptr-&gt;next	// Read next ptr and count fields together
+</span><span>  E7:      if tail == Q-&gt;Tail	// Are tail and next consistent?
+</span><span>              // Was Tail pointing to the last node?
+</span><span>  E8:         if next.ptr == NULL
+</span><span>                 // Try to link node at the end of the linked list
+</span><span>  E9:            if CAS(&amp;tail.ptr-&gt;next, next, &lt;node, next.count+1&gt;)
+</span><span> E10:               break	// Enqueue is done.  Exit loop
+</span><span> E11:            endif
+</span><span> E12:         else		// Tail was not pointing to the last node
+</span><span>                 // Try to swing Tail to the next node
+</span><span> E13:            CAS(&amp;Q-&gt;Tail, tail, &lt;next.ptr, tail.count+1&gt;)
+</span><span> E14:         endif
+</span><span> E15:      endif
+</span><span> E16:   endloop
+</span><span>        // Enqueue is done.  Try to swing Tail to the inserted node
+</span><span> E17:   CAS(&amp;Q-&gt;Tail, tail, &lt;node, tail.count+1&gt;)
+</span><span> 
+</span><span> dequeue(Q: pointer to queue_t, pvalue: pointer to data type): boolean
+</span><span>  D1:   loop			     // Keep trying until Dequeue is done
+</span><span>  D2:      head = Q-&gt;Head	     // Read Head
+</span><span>  D3:      tail = Q-&gt;Tail	     // Read Tail
+</span><span>  D4:      next = head.ptr-&gt;next    // Read Head.ptr-&gt;next
+</span><span>  D5:      if head == Q-&gt;Head	     // Are head, tail, and next consistent?
+</span><span>  D6:         if head.ptr == tail.ptr // Is queue empty or Tail falling behind?
+</span><span>  D7:            if next.ptr == NULL  // Is queue empty?
+</span><span>  D8:               return FALSE      // Queue is empty, couldn&#39;t dequeue
+</span><span>  D9:            endif
+</span><span>                 // Tail is falling behind.  Try to advance it
+</span><span> D10:            CAS(&amp;Q-&gt;Tail, tail, &lt;next.ptr, tail.count+1&gt;)
+</span><span> D11:         else		     // No need to deal with Tail
+</span><span>                 // Read value before CAS
+</span><span>                 // Otherwise, another dequeue might free the next node
+</span><span> D12:            *pvalue = next.ptr-&gt;value
+</span><span>                 // Try to swing Head to the next node
+</span><span> D13:            if CAS(&amp;Q-&gt;Head, head, &lt;next.ptr, head.count+1&gt;)
+</span><span> D14:               break             // Dequeue is done.  Exit loop
+</span><span> D15:            endif
+</span><span> D16:         endif
+</span><span> D17:      endif
+</span><span> D18:   endloop
+</span><span> D19:   free(head.ptr)		     // It is safe now to free the old node
+</span><span> D20:   return TRUE                   // Queue was not empty, dequeue succeeded
+</span></code></pre>
+<p>除此之外，该论文还给出了一种two-lock的并发队列实现，通过在Head和Tail分别添加锁，来保证入队和出队的完全并发操作。</p>
+<p>Lock-Free常用来实现底层的数据结构，比如队列、栈等，本文比较了使用单锁机制的队列实现和参考上述论文的Lock-Free队列实现，在 1&lt;&lt;12 个节点的出队入队中，两种算法实现的性能测试结果如下图所示：</p>
+<p><img src="https://shiniao.fun/images/benchmark.png" alt="性能测试" /></p>
+<p>可以看到，随着处理器个数的增加，队列的Lock-Free算法一直稳定在200ns/op，性能更佳，而使用锁的算法耗时要高出一倍。</p>
+<blockquote>
+<p>代码实现参考：</p>
+<p>https://github.com/rilkee/distributed/queue/</p>
+</blockquote>
+<p>参考文献：</p>
+<ol>
+<li>http://preshing.com/20120612/an-introduction-to-lock-free-programming/</li>
+<li>Michael, M. M., &amp; Scott, M. L. (1996). Simple, fast, and practical non-blocking and blocking concurrent queue algorithms. Proceedings of the Annual ACM Symposium on Principles of Distributed Computing, 267–275. https://doi.org/10.1145/248052.248106</li>
+</ol>
+</p>
+
+            
+            
+            <script src="https://giscus.app/client.js" data-repo="ischaojie/blog"
+                data-repo-id="MDEwOlJlcG9zaXRvcnkyODk4MDA1NTY="
+                data-category="[object]"
+                data-category-id="[object]"
+                data-mapping="[object]" data-strict="0" data-reactions-enabled="1"
+                data-emit-metadata="0" data-input-position="top" data-theme="preferred_color_scheme"
+                data-lang="en" data-loading="lazy" crossorigin="anonymous" async>
+                </script>
+            
+            
+        </div>
+    </div>
+</div>
+
+
+                    
+<footer class="footer footer-transparent d-print-none">
+    <div class="container-xl">
+        <div class="row text-center align-items-center flex-row-reverse">
+            <div class="col-lg-auto ms-lg-auto">
+                
+<ul class="list-inline list-inline-dots mb-0">
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/">
+            Home
+        </a>
+    </li>
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/articles/">
+            Articles
+        </a>
+    </li>
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/memos/">
+            Memos
+        </a>
+    </li>
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/tags/">
+            Tags
+        </a>
+    </li>
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/about/">
+            About
+        </a>
+    </li>
+    
+    
+    
+</ul>
+
+            </div>
+            <div class="col-12 col-lg-auto mt-3 mt-lg-0">
+                <ul class="list-inline list-inline-dots mb-0">
+                    <li class="list-inline-item">
+                        Copyright © 2023
+                        <a href="." class="link-secondary">Chaojie</a>.
+                        All rights reserved.
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</footer>
+
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://chaojie.fun/libs/tabler.min.js"></script>
+    <script src="https://chaojie.fun/libs/fslightbox.js"></script>
+    <script src="https://chaojie.fun/libs/infinite-scroll.min.js"></script>
+    <script src="https://chaojie.fun/libs/luxon.min.js"></script>
+    <script src="https://chaojie.fun/js/willow.js"></script>
+    
+
+
+</body>
+
+</html>

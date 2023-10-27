@@ -1,0 +1,314 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">
+    <title>Chaojie&#x27;s Home ✍️ - 数据库</title>
+    <subtitle>The place where Chaojie writes</subtitle>
+    <link href="https://chaojie.fun/tags/shu-ju-ku/atom.xml" rel="self" type="application/atom+xml"/>
+    <link href="https://chaojie.fun"/>
+    <generator uri="https://www.getzola.org/">Zola</generator>
+    <updated>2020-11-09T15:17:05+08:00</updated>
+    <id>https://chaojie.fun/tags/shu-ju-ku/atom.xml</id>
+    <entry xml:lang="en">
+        <title>数据库索引略知一二</title>
+        <published>2020-11-09T15:17:05+08:00</published>
+        <updated>2020-11-09T15:17:05+08:00</updated>
+        <author>
+          <name>Unknown</name>
+        </author>
+        <link rel="alternate" href="https://chaojie.fun/articles/shu-ju-ku-suo-yin-lve-zhi-yi-er/" type="text/html"/>
+        <id>https://chaojie.fun/articles/shu-ju-ku-suo-yin-lve-zhi-yi-er/</id>
+        <content type="html">&lt;p&gt;说到索引，很多人肯定会立马想到 MySQL 中使用了 B+ 树这种索引结构，毕竟是面试常考题型。我在准备面试的过程中，也只是浅显的了解到 MySQL 在创建主键时会自动创建一个主键索引，除此之外，还有联合索引、唯一索引等索引结构。创建主键索引的时候会通过 B+ 树来存储数据。所以，MySQL 为什么要使用B+ 树作为索引？还有没有其他索引结构？索引到底是干什么的？带着这些疑问，我查阅了相关的资料，同时以项目背景为出发点，希望对索引做一次重新认识。&lt;&#x2F;p&gt;
+&lt;p&gt;要实现一个最最简单的数据库，利用 Bash 函数就可以做到：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;bash&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-bash &quot;&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;#!&#x2F;bin&#x2F;bash
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fa1b3;&quot;&gt;db_set &lt;&#x2F;span&gt;&lt;span&gt;() {
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#96b5b4;&quot;&gt;echo &lt;&#x2F;span&gt;&lt;span&gt;&amp;quot;$&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;1&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;,&lt;&#x2F;span&gt;&lt;span&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;2&lt;&#x2F;span&gt;&lt;span&gt;&amp;quot; &amp;gt;&amp;gt; database
+&lt;&#x2F;span&gt;&lt;span&gt;} 
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fa1b3;&quot;&gt;db_get &lt;&#x2F;span&gt;&lt;span&gt;() {
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;grep &lt;&#x2F;span&gt;&lt;span&gt;&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;^&lt;&#x2F;span&gt;&lt;span&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;1&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;,&lt;&#x2F;span&gt;&lt;span&gt;&amp;quot; database | &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;sed -e &lt;&#x2F;span&gt;&lt;span&gt;&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;s&#x2F;^&lt;&#x2F;span&gt;&lt;span&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;1&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;,&#x2F;&#x2F;&lt;&#x2F;span&gt;&lt;span&gt;&amp;quot; | &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;tail -n&lt;&#x2F;span&gt;&lt;span&gt; 1
+&lt;&#x2F;span&gt;&lt;span&gt;}
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;这两个函数就是一个最简单的键值数据库，存数据时，不断在 database 文件末尾添加一行键值对即可，查数据时，通过 grep 会找到数据及之前所有的修改记录。这个数据库文件就像一个日志，不断的在末尾追加数据，由于传统磁盘对顺序写表现出的优异性能，数据库的写入性能会很高。但是有一个问题，如果一直往该文件中添加数据，久而久之，这个文件会变得异常大，文件中会出现很多重复的数据，同时，查找数据也是个问题，每次都要从头到尾找一次，别人都下班了，你还在等着查询结果。&lt;&#x2F;p&gt;
+&lt;p&gt;既然文件很大，把它拆分成一个个小文件不就行了，同时定期对这些小文件进行压缩，剔除掉重复的和不要的数据，节省存储空间。但是查数据的问题怎么解决，现在的方式，每次找数据都要对整个表扫描一次，黄花菜都凉了。解决办法就是使用索引。&lt;&#x2F;p&gt;
+&lt;h3 id=&quot;suo-yin-shi-shi-yao&quot;&gt;索引是什么&lt;&#x2F;h3&gt;
+&lt;blockquote&gt;
+&lt;p&gt;索引的本质就像一部字典前面的检索页，查字典时，通过拼音开头的字母可以快速查找到某个字的位置，索引也一样，通过给数据库中的数据添加类似路标的记号，这样从索引中就可以直接检索到该数据的位置。&lt;&#x2F;p&gt;
+&lt;&#x2F;blockquote&gt;
+&lt;p&gt;让我们用最简单的 &lt;strong&gt;哈希索引&lt;&#x2F;strong&gt; 试试，哈希索引就是 &lt;strong&gt;在内存中将每个键都映射到数据文件中的字节偏移量&lt;&#x2F;strong&gt;，这个偏移量就是键对应值的位置。查找时，只要通过哈希映射找到偏移量，然后寻找该位置读取即可。&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;img src=&quot;https:&#x2F;&#x2F;shiniao.fun&#x2F;images&#x2F;image-20201110105059407.png&quot; alt=&quot;hash索引&quot; &#x2F;&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;听起来是个不错的办法，但是大部分数据库都不会使用哈希索引，因为实际的数据库系统需要考虑的东西很多，比如发生崩溃后怎么处理，数据如何保证不丢失。除此之外，哈希索引需要整个放进内存中，如果我的键很多，散列冲突的可能性也会变大，同时，对于数据的范围查询支持也不够。&lt;&#x2F;p&gt;
+&lt;p&gt;有没有更好的办法？&lt;&#x2F;p&gt;
+&lt;h3 id=&quot;lsm-tree-suo-yin&quot;&gt;LSM-Tree 索引&lt;&#x2F;h3&gt;
+&lt;p&gt;聪明的大脑已经帮我们想出了解决办法。Google传奇工程师 Jeff Dean等人开发了一个可持久化的键值数据库 LevelDB。LevelDB 使用了一种称之为 SSTable（Sorted String Table）的表结构，顾名思义，SSTable 中数据会按照键的顺序排列，同时 LevelDB 在内存中维护着一个称之为 &lt;strong&gt;LSM-Tree&lt;&#x2F;strong&gt; （Log Structured Merge Tree）的索引结构，LSM-Tree 通过某种平衡树（比如基数树）结构保证键的有序，在超出树的容量后，就将其作为 SSTable 写入磁盘中，同时新的数据会被写入一个新的 LSM-Tree 中。&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;img src=&quot;https:&#x2F;&#x2F;shiniao.fun&#x2F;images&#x2F;20201109154404.png&quot; alt=&quot;&quot; &#x2F;&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;正如文章之前说的，LevelDB 会定期的在后台执行合并操作，将多个 SSTable 压缩为一个，以去除重复的或删除不用的数据。那么如何查找数据呢？既然键是有序的，查找就好办多了，比如使用二分查找，时间复杂度可以降到 O(log2n) 。LevelDB 会先在内存中查找关键字，然后在最近的 SSTable 中查找，然后在之前的表中查找。当然，在实际的实现中，LevelDB 对细节做了很多的优化，比如使用多层压缩来提升性能，这些都是后话了。&lt;&#x2F;p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;除了 LevelDB，Facebook 基于 LevelDB 开发了性能更好的 RocksDB，国内大名鼎鼎的分布式数据库 TiDB 底层存储就使用的 RocksDB。&lt;&#x2F;p&gt;
+&lt;&#x2F;blockquote&gt;
+&lt;h3 id=&quot;b-tree-suo-yin&quot;&gt;B+Tree 索引&lt;&#x2F;h3&gt;
+&lt;p&gt;能不能使用B+树来做索引？&lt;&#x2F;p&gt;
+&lt;p&gt;当然可以，开源数据库 BoltDB 就使用 B+ 树来实现索引，而 etcd 的底层就使用的BoltDB。除此之外，常见的关系型数据库（比如MySQL、PostgresSQL等）也常常使用 B+ 树来实现索引。相较于键值数据库，MySQL 等关系型数据库在数据存储上更为复杂，比如 Compact、Dynamic 行格式等，此处不做深究。所以，B+ 树索引有什么优点，为什么要用它来做索引。&lt;&#x2F;p&gt;
+&lt;p&gt;基于 LSM-Tree 索引的数据库由于顺序写入的特点，有着很高的写入吞吐量，因为所有的前台写入都发生在内存中，并且所有后台写入都保持着顺序访问的模式。但是对于查询来说，往往需要在多个 SSTable 中依次查找，导致读取的吞吐量下降。而 B+ 树就不同了，在B+树中只有叶子节点存储着数据，并且叶子节点之间通过链表顺序连接，在查找时，通过根节点确定数据的范围，然后顺着叶子节点的链表查找即可。在找到数据行对应的页之后，数据库会把整个页读入到内存中，并在内存中查找具体的数据行。&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;img src=&quot;https:&#x2F;&#x2F;shiniao.fun&#x2F;images&#x2F;image-20201110095541689.png&quot; alt=&quot;B+Tree&quot; &#x2F;&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;这就是为什么 MySQL 等数据库不使用 B 树来实现索引的原因，B 树中每个节点都会存储数据，在查找时，总是需要从根节点向下遍历子树查找满足条件的数据行，这个特点带来了大量的随机 I&#x2F;O。&lt;&#x2F;p&gt;
+&lt;p&gt;从 B+ 树的特点中，我们也能看到，其对于读取数据有着很好的性能，同时对于条件范围查询也能很好的支持，但是由于存储数据时会发生重复的随机磁盘写入，写入性能较差。为此，我也通过实验比较了几种使用不同索引结构的数据库，实验设备为公司电脑，环境为Centos7 虚拟机（4core+4GB+40GB磁盘）。&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;img src=&quot;https:&#x2F;&#x2F;shiniao.fun&#x2F;images&#x2F;chart.png&quot; alt=&quot;chart&quot; &#x2F;&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;可以看到，基于 B+ 树索引的 boltdb 和 bboltdb 的读取吞吐量很高，但是写入吞吐量却很低，而 rocksdb 和 leveldb 等基于 LSM 的数据库在写入吞吐量上表现优异，读取稍逊。&lt;&#x2F;p&gt;
+&lt;h3 id=&quot;zong-jie&quot;&gt;总结&lt;&#x2F;h3&gt;
+&lt;p&gt;数据库使用索引可以加快查询的速度，LSM树索引的写入性能优异，而B+树索引的读取性能更高，每条路上都有自己独特的风景，我们需要场景来选择合适的索引结构。除此之外，还存在着为搜索引擎设计的全文索引、模糊索引等。而引入索引的过程也造成了写的缓慢，这也是需要权衡的事。&lt;&#x2F;p&gt;
+&lt;p&gt;（由于我的水平有限，文中难免出现错误，还望指正。）&lt;&#x2F;p&gt;
+&lt;h3 id=&quot;can-kao-wen-xian&quot;&gt;参考文献&lt;&#x2F;h3&gt;
+&lt;ol&gt;
+&lt;li&gt;https:&#x2F;&#x2F;draveness.me&#x2F;whys-the-design-mysql-b-plus-tree&#x2F;&lt;&#x2F;li&gt;
+&lt;li&gt;《design data intensive application》——Martin Kleppmann&lt;&#x2F;li&gt;
+&lt;li&gt;https:&#x2F;&#x2F;github.com&#x2F;boltdb&#x2F;bolt&lt;&#x2F;li&gt;
+&lt;li&gt;https:&#x2F;&#x2F;github.com&#x2F;google&#x2F;leveldb&lt;&#x2F;li&gt;
+&lt;li&gt;https:&#x2F;&#x2F;shiniao.fun&#x2F;posts&#x2F;%E5%9F%BA%E4%BA%8Elsm%E7%9A%84%E6%95%B0%E6%8D%AE%E5%BA%93%E9%94%AE%E5%80%BC%E5%AD%98%E5%82%A8&#x2F;&lt;&#x2F;li&gt;
+&lt;li&gt;https:&#x2F;&#x2F;yetanotherdevblog.com&#x2F;lsm&#x2F;&lt;&#x2F;li&gt;
+&lt;&#x2F;ol&gt;
+</content>
+    </entry>
+    <entry xml:lang="en">
+        <title>基于LSM索引的数据库键值存储</title>
+        <published>2020-10-28T11:19:00+08:00</published>
+        <updated>2020-10-28T11:19:00+08:00</updated>
+        <author>
+          <name>Unknown</name>
+        </author>
+        <link rel="alternate" href="https://chaojie.fun/articles/ji-yu-lsm-de-shu-ju-ku-jian-zhi-cun-chu/" type="text/html"/>
+        <id>https://chaojie.fun/articles/ji-yu-lsm-de-shu-ju-ku-jian-zhi-cun-chu/</id>
+        <content type="html">&lt;blockquote&gt;
+&lt;p&gt;ERROR&lt;&#x2F;p&gt;
+&lt;p&gt;文章有误，待更新。。。&lt;&#x2F;p&gt;
+&lt;&#x2F;blockquote&gt;
+&lt;p&gt;数据库中使用索引可以加快查询的速度，索引的意思是说，给某些数据添加类似路标的记号，这样从索引中就可以直接检索到该数据的位置。以MySQL为例，添加主键时默认会为该属性加上主键索引，除此之外，MySQL中还有联合索引、唯一索引等。以MySQL等为代表的关系型数据中索引常常用B+树来实现，在B+树中，叶子节点包含了所有的关键字的信息，并且按照主键大小排列，非叶子节点中存放着指向叶子节点中的指针（页号和页对应列的最小记录）。除了用B+树实现索引外，常见的还有Hash索引、全文索引以及LSM树索引。最简单的是Hash索引，标注键在数据库的位置，直接通过hash映射找到键的位置即可。而LSM树常常用在键值数据库的索引实现上。&lt;&#x2F;p&gt;
+&lt;h3 id=&quot;lsmshu&quot;&gt;LSM树&lt;&#x2F;h3&gt;
+&lt;p&gt;LSM（Log-Structured Merge Tree）树索引伴随着&lt;strong&gt;键值数据库&lt;&#x2F;strong&gt;而出现，以RocksDB、LevelDB为代表，比如国内著名的分布式数据库TiDB的底层存储实现就是用的RocksDB。存键值对最简单的方式是直接以追加写的方式写入一个文件即可，但是不能一直写呀，否则这个文件会变得很大，同时可能存在很多重复的值（比如对访问量的计数），所以要把文件分成多个段，这样一个文件写满之后进行压缩，剔除重复的、不要的数据，然后在新的文件中写入。因为磁盘的特性，顺序写入的性能很高，但是查找数据是个问题，每次都要全表扫描，如果磁盘中的数据是有序的就好了，查找就会很快（二分查找）。&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;img src=&quot;https:&#x2F;&#x2F;shiniao.fun&#x2F;images&#x2F;20201028165410.png&quot; alt=&quot;&quot; &#x2F;&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;这种数据存储的方式其实叫做&lt;strong&gt;SSTable&lt;&#x2F;strong&gt;（排序字符串表），在每个SSTable文件中，数据按照键的顺序排序，当一个SSTable满了之后，通过合并压缩的方式，删除旧值以及重复的值。另外，数据肯定不会直接写入磁盘中的SSTable，首先会写入内存中，也叫做内存表，当内存表超出大小后才作为SSTable文件写入磁盘，然后在后台定期压缩。&lt;&#x2F;p&gt;
+&lt;p&gt;那么如何保证写入内存表的键值对是有序的？可以使用红黑树、B+树来实现，也有使用&lt;strong&gt;基数树&lt;&#x2F;strong&gt;来实现的（比如下面介绍的bitcask就使用基数树来对键值对排序）。这种先在内存中构建一颗有序树，当大小超出后写入磁盘的方式就是&lt;strong&gt;LSM树&lt;&#x2F;strong&gt;。&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;img src=&quot;https:&#x2F;&#x2F;shiniao.fun&#x2F;images&#x2F;20201028141704.png&quot; alt=&quot;&quot; &#x2F;&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;在读取数据的时候，首先在内存表中查找键所在的文件位置，然后在最近的SSTable中查找，没有的话继续找之前的。同时磁盘中的SSTable会定期合并压缩，成为新的SSTable，这样可以节省空间，提高性能。&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;img src=&quot;https:&#x2F;&#x2F;shiniao.fun&#x2F;images&#x2F;20201028150112.png&quot; alt=&quot;&quot; &#x2F;&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;LSM树的主要优点是所有前台写入都发生在内存中，并且所有后台写入都保持顺序访问模式。有着很高的写入吞吐量。&lt;&#x2F;p&gt;
+&lt;p&gt;上文说的LevelDB来源于Google的SSTable论文，而RocksDB是对levelDB的一些改进，为了更加深入的了解LSM以及SSTable，本文以类似的键值数据库&lt;a href=&quot;https:&#x2F;&#x2F;github.com&#x2F;prologic&#x2F;bitcask&quot;&gt;bitcask&lt;&#x2F;a&gt;为例，看看它们具体是怎么实现的。&lt;&#x2F;p&gt;
+&lt;h3 id=&quot;bitcask&quot;&gt;bitcask&lt;&#x2F;h3&gt;
+&lt;p&gt;bitcask在保证键的顺序上使用了一种&lt;strong&gt;自适应基数树&lt;&#x2F;strong&gt;（ART）的算法结构，论文在这：&lt;&#x2F;p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;https:&#x2F;&#x2F;db.in.tum.de&#x2F;~leis&#x2F;papers&#x2F;ART.pdf&lt;&#x2F;p&gt;
+&lt;&#x2F;blockquote&gt;
+&lt;p&gt;ART是对基数树的一种改进算法，基数树就是前缀（Trie）树，只不过更节省空间。在前缀树中，每个节点是一个单词，而基数树中，如果一个节点是父节点的唯一子节点的话，那么该子节点将会与父节点进行合并。以插入hello、hat、have三个单词为例：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;shell&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-shell &quot;&gt;&lt;code class=&quot;language-shell&quot; data-lang=&quot;shell&quot;&gt;&lt;span&gt;# trie
+&lt;&#x2F;span&gt;&lt;span&gt;		e - l - l - o
+&lt;&#x2F;span&gt;&lt;span&gt;	  &#x2F;
+&lt;&#x2F;span&gt;&lt;span&gt;* - h - a - t
+&lt;&#x2F;span&gt;&lt;span&gt;	      \
+&lt;&#x2F;span&gt;&lt;span&gt;	       v - e
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;# radix
+&lt;&#x2F;span&gt;&lt;span&gt;			*
+&lt;&#x2F;span&gt;&lt;span&gt;           &#x2F;
+&lt;&#x2F;span&gt;&lt;span&gt;        (ello)
+&lt;&#x2F;span&gt;&lt;span&gt;         &#x2F;
+&lt;&#x2F;span&gt;&lt;span&gt;* - h - * -(a) - * - (t) - *
+&lt;&#x2F;span&gt;&lt;span&gt;                 \
+&lt;&#x2F;span&gt;&lt;span&gt;                 (ve)
+&lt;&#x2F;span&gt;&lt;span&gt;                   \
+&lt;&#x2F;span&gt;&lt;span&gt;                    *
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;前缀算法需要十个节点，而基数树算法只需要五个节点就能表示。&lt;&#x2F;p&gt;
+&lt;p&gt;在bitcask中，SSTable表示如下：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;go&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-go &quot;&gt;&lt;code class=&quot;language-go&quot; data-lang=&quot;go&quot;&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;type &lt;&#x2F;span&gt;&lt;span&gt;datafile &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;struct &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;sync&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;RWMutex
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;id           &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;int
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;r            &lt;&#x2F;span&gt;&lt;span&gt;*&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;os&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;File
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;ra           &lt;&#x2F;span&gt;&lt;span&gt;*&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;mmap&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;ReaderAt
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;w            &lt;&#x2F;span&gt;&lt;span&gt;*&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;os&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;File
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;offset       &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;int64
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; decode and encode 二进制
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;dec          &lt;&#x2F;span&gt;&lt;span&gt;*&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;codec&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;Decoder
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;enc          &lt;&#x2F;span&gt;&lt;span&gt;*&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;codec&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;Encoder
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;maxKeySize   &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;uint32
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;maxValueSize &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;uint64
+&lt;&#x2F;span&gt;&lt;span&gt;}
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;在查找数据的时候，首先会从基于ART实现的索引中找到键所在的位置，然后在当前SSTable和之前的分别查找。&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;go&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-go &quot;&gt;&lt;code class=&quot;language-go&quot; data-lang=&quot;go&quot;&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; Get retrieves the value of the given key. If the key is not found or an&#x2F;I&#x2F;O
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; error occurs a null byte slice is returned along with the error.
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;func &lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;b &lt;&#x2F;span&gt;&lt;span&gt;*&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;Bitcask&lt;&#x2F;span&gt;&lt;span&gt;) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fa1b3;&quot;&gt;Get&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;key &lt;&#x2F;span&gt;&lt;span&gt;[]&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;byte&lt;&#x2F;span&gt;&lt;span&gt;) ([]&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;byte&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;error&lt;&#x2F;span&gt;&lt;span&gt;) {
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;var &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;df data&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;Datafile
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;b&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;mu&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;RLock&lt;&#x2F;span&gt;&lt;span&gt;()
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; 优化，可以通过bloom 算法判断键存不存在，存在的话继续search
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; 不存在的话直接error
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; 从 ART 索引找到键的位置
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; key: [fileid, offset, size]
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;value&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;found &lt;&#x2F;span&gt;&lt;span&gt;:= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;b&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;trie&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;Search&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;key&lt;&#x2F;span&gt;&lt;span&gt;)
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;if &lt;&#x2F;span&gt;&lt;span&gt;!&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;found &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;		&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;b&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;mu&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;RUnlock&lt;&#x2F;span&gt;&lt;span&gt;()
+&lt;&#x2F;span&gt;&lt;span&gt;		&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;return &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;nil&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;ErrKeyNotFound
+&lt;&#x2F;span&gt;&lt;span&gt;	}
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;item &lt;&#x2F;span&gt;&lt;span&gt;:= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;value&lt;&#x2F;span&gt;&lt;span&gt;.(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;internal&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;Item&lt;&#x2F;span&gt;&lt;span&gt;)
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; 如果这个键在当前 SSTable中
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;if &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;item&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;FileID &lt;&#x2F;span&gt;&lt;span&gt;== &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;b&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;curr&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;FileID&lt;&#x2F;span&gt;&lt;span&gt;() {
+&lt;&#x2F;span&gt;&lt;span&gt;		&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; 查当前
+&lt;&#x2F;span&gt;&lt;span&gt;		&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;df &lt;&#x2F;span&gt;&lt;span&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;b&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;curr
+&lt;&#x2F;span&gt;&lt;span&gt;	} &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;else &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;		&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; 查之前SSTable（磁盘中）
+&lt;&#x2F;span&gt;&lt;span&gt;		&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;df &lt;&#x2F;span&gt;&lt;span&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;b&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;datafiles&lt;&#x2F;span&gt;&lt;span&gt;[&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;item&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;FileID&lt;&#x2F;span&gt;&lt;span&gt;]
+&lt;&#x2F;span&gt;&lt;span&gt;	}
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; 读取
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;e&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;err &lt;&#x2F;span&gt;&lt;span&gt;:= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;df&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;ReadAt&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;item&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;Offset&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;item&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;Size&lt;&#x2F;span&gt;&lt;span&gt;)
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;b&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;mu&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;RUnlock&lt;&#x2F;span&gt;&lt;span&gt;()
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;if &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;err &lt;&#x2F;span&gt;&lt;span&gt;!= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;nil &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;		&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;return &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;nil&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;err
+&lt;&#x2F;span&gt;&lt;span&gt;	}
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; 校验
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;checksum &lt;&#x2F;span&gt;&lt;span&gt;:= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;crc32&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;ChecksumIEEE&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;e&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;Value&lt;&#x2F;span&gt;&lt;span&gt;)
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;if &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;checksum &lt;&#x2F;span&gt;&lt;span&gt;!= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;e&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;Checksum &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;		&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;return &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;nil&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;ErrChecksumFailed
+&lt;&#x2F;span&gt;&lt;span&gt;	}
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;return &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;e&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;Value&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;nil
+&lt;&#x2F;span&gt;&lt;span&gt;}
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;写入键值对的时候，&lt;&#x2F;p&gt;
+&lt;ol&gt;
+&lt;li&gt;如果SSTable超出大小了，关闭当前SSTable，并再次打开，不过这次只能读了，不能写入（归档）&lt;&#x2F;li&gt;
+&lt;li&gt;新建一个SSTable，分配读写权限&lt;&#x2F;li&gt;
+&lt;li&gt;如果没有超出大小，写入即可（encode）&lt;&#x2F;li&gt;
+&lt;&#x2F;ol&gt;
+&lt;pre data-lang=&quot;go&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-go &quot;&gt;&lt;code class=&quot;language-go&quot; data-lang=&quot;go&quot;&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; Put stores the key and value in the database.
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;func &lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;b &lt;&#x2F;span&gt;&lt;span&gt;*&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;Bitcask&lt;&#x2F;span&gt;&lt;span&gt;) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fa1b3;&quot;&gt;Put&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;key&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;value &lt;&#x2F;span&gt;&lt;span&gt;[]&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;byte&lt;&#x2F;span&gt;&lt;span&gt;) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;error &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;	......
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;b&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;mu&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;Lock&lt;&#x2F;span&gt;&lt;span&gt;()
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; 写入
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;offset&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;n&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;err &lt;&#x2F;span&gt;&lt;span&gt;:= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;b&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;put&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;key&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;value&lt;&#x2F;span&gt;&lt;span&gt;)
+&lt;&#x2F;span&gt;&lt;span&gt;	......
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;item &lt;&#x2F;span&gt;&lt;span&gt;:= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;internal&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;Item&lt;&#x2F;span&gt;&lt;span&gt;{&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;FileID&lt;&#x2F;span&gt;&lt;span&gt;: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;b&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;curr&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;FileID&lt;&#x2F;span&gt;&lt;span&gt;(), &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;Offset&lt;&#x2F;span&gt;&lt;span&gt;: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;offset&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;Size&lt;&#x2F;span&gt;&lt;span&gt;: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;n&lt;&#x2F;span&gt;&lt;span&gt;}
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; 加入ART索引
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;b&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;trie&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;Insert&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;key&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;item&lt;&#x2F;span&gt;&lt;span&gt;)
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;b&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;mu&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;Unlock&lt;&#x2F;span&gt;&lt;span&gt;()
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;return &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;nil
+&lt;&#x2F;span&gt;&lt;span&gt;}
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; put inserts a new (key, value). Both key and value are valid inputs.
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;func &lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;b &lt;&#x2F;span&gt;&lt;span&gt;*&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;Bitcask&lt;&#x2F;span&gt;&lt;span&gt;) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fa1b3;&quot;&gt;put&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;key&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;value &lt;&#x2F;span&gt;&lt;span&gt;[]&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;byte&lt;&#x2F;span&gt;&lt;span&gt;) (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;int64&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;int64&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;error&lt;&#x2F;span&gt;&lt;span&gt;) {
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;size &lt;&#x2F;span&gt;&lt;span&gt;:= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;b&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;curr&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;Size&lt;&#x2F;span&gt;&lt;span&gt;()
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; 一个SSTable（默认1MB）装不下了
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;if &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;size &lt;&#x2F;span&gt;&lt;span&gt;&amp;gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;int64&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;b&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;config&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;MaxDatafileSize&lt;&#x2F;span&gt;&lt;span&gt;) {
+&lt;&#x2F;span&gt;&lt;span&gt;		&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; 关闭当前SSTable
+&lt;&#x2F;span&gt;&lt;span&gt;		&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;err &lt;&#x2F;span&gt;&lt;span&gt;:= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;b&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;curr&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;Close&lt;&#x2F;span&gt;&lt;span&gt;()
+&lt;&#x2F;span&gt;&lt;span&gt;		&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;if &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;err &lt;&#x2F;span&gt;&lt;span&gt;!= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;nil &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;			&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;return &lt;&#x2F;span&gt;&lt;span&gt;-&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;1&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;0&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;err
+&lt;&#x2F;span&gt;&lt;span&gt;		}
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;		&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;id &lt;&#x2F;span&gt;&lt;span&gt;:= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;b&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;curr&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;FileID&lt;&#x2F;span&gt;&lt;span&gt;()
+&lt;&#x2F;span&gt;&lt;span&gt;		&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; 将当前SSTable归档，设为只读
+&lt;&#x2F;span&gt;&lt;span&gt;		&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;df&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;err &lt;&#x2F;span&gt;&lt;span&gt;:= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;data&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;NewDatafile&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;b&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;path&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;id&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;true&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;b&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;config&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;MaxKeySize&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;b&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;config&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;MaxValueSize&lt;&#x2F;span&gt;&lt;span&gt;)
+&lt;&#x2F;span&gt;&lt;span&gt;		&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;if &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;err &lt;&#x2F;span&gt;&lt;span&gt;!= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;nil &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;			&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;return &lt;&#x2F;span&gt;&lt;span&gt;-&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;1&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;0&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;err
+&lt;&#x2F;span&gt;&lt;span&gt;		}
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;		&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;b&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;datafiles&lt;&#x2F;span&gt;&lt;span&gt;[&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;id&lt;&#x2F;span&gt;&lt;span&gt;] = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;df
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;		&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;id &lt;&#x2F;span&gt;&lt;span&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;b&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;curr&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;FileID&lt;&#x2F;span&gt;&lt;span&gt;() + &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;1
+&lt;&#x2F;span&gt;&lt;span&gt;		&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; 新建SSTable文件（id+1），并分配读写权限
+&lt;&#x2F;span&gt;&lt;span&gt;		&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;curr&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;err &lt;&#x2F;span&gt;&lt;span&gt;:= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;data&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;NewDatafile&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;b&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;path&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;id&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;false&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;b&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;config&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;MaxKeySize&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;b&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;config&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;MaxValueSize&lt;&#x2F;span&gt;&lt;span&gt;)
+&lt;&#x2F;span&gt;&lt;span&gt;		&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;if &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;err &lt;&#x2F;span&gt;&lt;span&gt;!= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;nil &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;			&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;return &lt;&#x2F;span&gt;&lt;span&gt;-&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;1&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;0&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;err
+&lt;&#x2F;span&gt;&lt;span&gt;		}
+&lt;&#x2F;span&gt;&lt;span&gt;		&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;b&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;curr &lt;&#x2F;span&gt;&lt;span&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;curr
+&lt;&#x2F;span&gt;&lt;span&gt;	}
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; 写入 key-value
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;e &lt;&#x2F;span&gt;&lt;span&gt;:= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;internal&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;NewEntry&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;key&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;value&lt;&#x2F;span&gt;&lt;span&gt;)
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;return &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;b&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;curr&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;Write&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;e&lt;&#x2F;span&gt;&lt;span&gt;)
+&lt;&#x2F;span&gt;&lt;span&gt;}
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;而合并和压缩SSTable会在后台周期性的执行：&lt;&#x2F;p&gt;
+&lt;ol&gt;
+&lt;li&gt;创建临时表&lt;&#x2F;li&gt;
+&lt;li&gt;查找键是否在 ART 索引叶子节点上，将存在的放入临时表中（合并压缩，老的会被新的代替）&lt;&#x2F;li&gt;
+&lt;li&gt;移除所有SSTable&lt;&#x2F;li&gt;
+&lt;li&gt;重命名临时表为新的SSTable&lt;&#x2F;li&gt;
+&lt;li&gt;重新打开数据库&lt;&#x2F;li&gt;
+&lt;&#x2F;ol&gt;
+&lt;pre data-lang=&quot;go&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-go &quot;&gt;&lt;code class=&quot;language-go&quot; data-lang=&quot;go&quot;&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; Rewrite all key&#x2F;value pairs into merged database
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; Doing this automatically strips deleted keys and
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; old key&#x2F;value pairs
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;err &lt;&#x2F;span&gt;&lt;span&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;b&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;Fold&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;func&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;key &lt;&#x2F;span&gt;&lt;span&gt;[]&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;byte&lt;&#x2F;span&gt;&lt;span&gt;) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;error &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;		&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; b.Get的key都是经过ART处理过的
+&lt;&#x2F;span&gt;&lt;span&gt;		&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;value&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;err &lt;&#x2F;span&gt;&lt;span&gt;:= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;b&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;Get&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;key&lt;&#x2F;span&gt;&lt;span&gt;)
+&lt;&#x2F;span&gt;&lt;span&gt;		&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;if &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;err &lt;&#x2F;span&gt;&lt;span&gt;!= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;nil &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;			&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;return &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;err
+&lt;&#x2F;span&gt;&lt;span&gt;		}
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;		&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;if &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;err &lt;&#x2F;span&gt;&lt;span&gt;:= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;mdb&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;Put&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;key&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;value&lt;&#x2F;span&gt;&lt;span&gt;); &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;err &lt;&#x2F;span&gt;&lt;span&gt;!= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;nil &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;			&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;return &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;err
+&lt;&#x2F;span&gt;&lt;span&gt;		}
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;		&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;return &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;nil
+&lt;&#x2F;span&gt;&lt;span&gt;	})
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; Fold iterates over all keys in the database calling the function `f` for
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; each key. If the function returns an error, no further keys are processed
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; and the error returned.
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;func &lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;b &lt;&#x2F;span&gt;&lt;span&gt;*&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;Bitcask&lt;&#x2F;span&gt;&lt;span&gt;) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fa1b3;&quot;&gt;Fold&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;f &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;func&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;key &lt;&#x2F;span&gt;&lt;span&gt;[]&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;byte&lt;&#x2F;span&gt;&lt;span&gt;) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;error&lt;&#x2F;span&gt;&lt;span&gt;) (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;err &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;error&lt;&#x2F;span&gt;&lt;span&gt;) {
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;b&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;mu&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;RLock&lt;&#x2F;span&gt;&lt;span&gt;()
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;defer &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;b&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;mu&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;RUnlock&lt;&#x2F;span&gt;&lt;span&gt;()
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; key在ART的叶子节点，返回true，否则返回false，不处理
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;b&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;trie&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;ForEach&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;func&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;node art&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;Node&lt;&#x2F;span&gt;&lt;span&gt;) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;bool &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;		&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;if &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;err &lt;&#x2F;span&gt;&lt;span&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;f&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;node&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;Key&lt;&#x2F;span&gt;&lt;span&gt;()); &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;err &lt;&#x2F;span&gt;&lt;span&gt;!= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;nil &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;			&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;return &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;false
+&lt;&#x2F;span&gt;&lt;span&gt;		}
+&lt;&#x2F;span&gt;&lt;span&gt;		&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;return &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;true
+&lt;&#x2F;span&gt;&lt;span&gt;	})
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;return
+&lt;&#x2F;span&gt;&lt;span&gt;}
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;参考文献：&lt;&#x2F;p&gt;
+&lt;p&gt;[1]  &amp;quot;The Adaptive Radix Tree:ARTful Indexing for Main-Memory Databases&amp;quot;, Viktor Leis, Alfons Kemper, Thomas Neumann.&lt;&#x2F;p&gt;
+&lt;p&gt;[2] 《设计数据密集型应用》&lt;&#x2F;p&gt;
+&lt;p&gt;[3] https:&#x2F;&#x2F;github.com&#x2F;prologic&#x2F;bitcask&lt;&#x2F;p&gt;
+&lt;p&gt;[4] https:&#x2F;&#x2F;stackoverflow.com&#x2F;questions&#x2F;14708134&#x2F;what-is-the-difference-between-trie-and-radix-trie-data-structures&lt;&#x2F;p&gt;
+</content>
+    </entry>
+    <entry xml:lang="en">
+        <title>分布式NewSQL数据库简介</title>
+        <published>2020-09-28T15:34:42+08:00</published>
+        <updated>2020-09-28T15:34:42+08:00</updated>
+        <author>
+          <name>Unknown</name>
+        </author>
+        <link rel="alternate" href="https://chaojie.fun/articles/fen-bu-shi-shu-ju-ku-jian-jie/" type="text/html"/>
+        <id>https://chaojie.fun/articles/fen-bu-shi-shu-ju-ku-jian-jie/</id>
+        <content type="html">&lt;p&gt;数据库的发展经历了从传统的关系型数据库、NoSQL（Not Only SQL）数据库到近几年新出现的分布式 NewSQL 数据库，整个趋势由单机逐渐向分布式方向发展。关系型数据库自1970年由 Edgar Codd 提出以来[1]，在相当长的一段时间内，成为市场占有量最大的数据库产品。除此之外，网络型数据库和分层型数据库也在一段时间内短暂出现过。&lt;&#x2F;p&gt;
+&lt;p&gt;然而关系型数据库有自身的不足之处，其数据关系模型表达与实际应用层之间存在不连贯性，且无法高效的扩展到多个节点，以及对于大数据量、高吞吐量的写入支持有限等。 NoSQL 的出现旨在解决这些不足，NoSQL 被解释为“不仅仅是 SQL ”，以 Google 的BigTable[2] 和 Amazon 的 DynamoDB[3] 为代表，其在模型上更加灵活，包括文档、键值、列族、图等多种数据模型。以开源 NoSQL 数据库 MongoDB 为例，其数据模型以文档作为基本结构，文档中可任意存放键值对，数据模型由存入数据的结构决定。&lt;&#x2F;p&gt;
+&lt;p&gt;在数据关系的表达上，NoSQL 对于一对多关系有更强的灵活性，对查询更友好，不需要跨表连接，但是对于多对多关系，两种数据库并没有多大不同。除此之外，NoSQL 数据库往往针对可扩展性、高可用性等专门设计，这使得其支持更复杂的多数据中心架构，性能也更强。然而传统的关系型数据库近些年在其数据模型和高可用性等方面也添加了相应支持，比如开源数据库 PostgreSQL 在其 9.3 版本之后，添加了对文档模型的支持。在高可用上，MySQL 也支持主从复制以及自 5.7 版本之后出现的 MySQL Group Replication 技术，进一步增强了在扩展性和高可用性上的支持。可以说，关系型数据库和 NoSQL 数据库相互借鉴各自的优点，协同发展，呈现出混合持久化的状态。&lt;&#x2F;p&gt;
+&lt;p&gt;分布式NewSQL数据库的出现基于可扩展性、高可用性、数据一致性等方面的考虑。其中可扩展性是指水平方向（垂直扩展指的是扩展单机，以共享内存或者共享磁盘的方式存在）的扩展，将单台机器的负载分散到多台机器上，提供更强的处理能力。高可用保障了在单台机器出现故障的情况下，系统仍能继续提供服务。数据一致性作为分布式事务的必要条件，保证了所有节点对某个事件达成一致。NewSQL 概念的产生来源于 Google 于 2012 年发表的Spanner[4] 数据库，该论文将传统关系模型以及 NoSQL 数据库的扩展性相结合，使得数据库同时支持分布式又具有传统 SQL 的能力。除了 Spanner 数据库，国外的CockroachDB 以及国内的 TDSQL、MyCAT、TiDB[5]、OceanBase、SequoiaDB 等都是新兴的分布式数据库产品。&lt;&#x2F;p&gt;
+&lt;p&gt;分布式数据库从实现上可以分为三类：&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;一类是以传统数据库组成集群，利用主从复制等实现分布式，比如 MySQL 集群方案&lt;&#x2F;li&gt;
+&lt;li&gt;一类是在现有数据库之上以中间件代理的形式，提供自动分库分表、故障切换、分布式事务等支持，以 MyCAT、TDSQL 等为代表。&lt;&#x2F;li&gt;
+&lt;li&gt;一类是原生的分布式架构，通过共识算法实现高可用性、扩展性、数据一致性等支持，以 TiDB、OceanBase 等为代表。&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;分布式 CAP 理论指出[6]，一个分布式系统不可能同时满足一致性、可用性和分区容错性这三个特点，其中分区容错性无法避免，势必要在一致性和可用性中做出权衡。&lt;&#x2F;p&gt;
+&lt;p&gt;可用性的保证可以通过&lt;strong&gt;复制&lt;&#x2F;strong&gt;技术实现，通过在多台机器上保存数据副本，提高系统可用性和读取吞吐量。MyCAT 以及 TDSQL 均支持主从复制的方式。传统主从复制方式的问题在于无法保证数据的强一致性，如果主库故障，可能会出现多个节点成为主库（脑裂问题），导致数据丢失或损坏。MySQL 在 5.7 版本推出了 MySQL Group Replication 功能，实现了基于 Paxos 共识算法的高可用性和数据强一致性保证，TiDB 基于 Raft 共识算法[7]保证了数据的强一致。&lt;&#x2F;p&gt;
+&lt;p&gt;分布式数据库的另一个特点是对&lt;strong&gt;事务&lt;&#x2F;strong&gt;的支持，分布式场景下保障事务的 ACID 原则常见的办法有 2PC 协议、TCC 协议以及 SAGA 协议，TiDB、OceanBase 等均使用两阶段提交协议（2PC）来实现跨多个节点的事务提交。&lt;&#x2F;p&gt;
+&lt;p&gt;动态扩展的实现可使用分区的方式，将原有单个节点的压力分散到多个节点，提升系统性能。分区面临的问题是如何将数据和查询负载均匀分布在各个节点，常见的解决办法有基于 Hash 的分区和基于 Range 的分区，TiDB 使用 Range 的方式分区，而 OceanBase 两种都支持。除了对以上特点的支持，分布式数据库还具有 HTAP、SQL 引擎、兼容性等特点。&lt;&#x2F;p&gt;
+&lt;p&gt;参考文献：&lt;&#x2F;p&gt;
+&lt;p&gt;[1] Edgar F. Codd: “A Relational Model of Data for Large Shared Data Banks,” Communications of the ACM, volume 13, number 6, pages 377–387, June 1970. &lt;&#x2F;p&gt;
+&lt;p&gt;[2] CHANG, Fay, DEAN, et al. Bigtable : A Distributed Storage System for Structured Data[J]. Acm Transactions on Computer Systems, 2008, 26(2):1-26.&lt;&#x2F;p&gt;
+&lt;p&gt;[3] Decandia G, Hastorun D, Jampani M, et al. Dynamo: Amazon&#x27;s Highly Available Key-value Store[J]. Acm Sigops Operating Systems Review, 2007, 41(6):205-220.&lt;&#x2F;p&gt;
+&lt;p&gt;[4] J. C. Corbett, J. Dean, M. Epstein, A. Fikes, et al. Spanner: Google’s Globally Distributed Database. ACMTrans. Comput. Syst., 31(3):8:1–8:22, 2013.&lt;&#x2F;p&gt;
+&lt;p&gt;[5] Dongxu Huang, Qi Liu, Qiu Cui, Zhuhe Fang, Xiaoyu Ma, Fei Xu, Li Shen, Liu Tang, Yuxing Zhou, Menglong Huang, Wan Wei, Cong Liu, Jian Zhang, Jianjun Li, Xuelian Wu, Lingyu Song, Ruoxi Sun, Shuaipeng Yu, Lei Zhao, Nicholas Cameron, Liquan Pei, Xin Tang. TiDB: A Raft-based HTAP Database. PVLDB, 13(12): 3072-3084, 2020.&lt;&#x2F;p&gt;
+&lt;p&gt;[6] Seth Gilbert and Nancy Lynch: “Perspectives on the CAP Theorem,” IEEE Computer Magazine, volume 45, number 2, pages 30–36, February 2012.&lt;&#x2F;p&gt;
+&lt;p&gt;[7] Heidi Howard, Malte Schwarzkopf, Anil Madhavapeddy, and Jon Crowcroft: “Raft Refloated: Do We Have Consensus?,” ACM SIGOPS Operating Systems Review, volume 49, number 1, pages 12–21, January 2015. doi:10.1145&#x2F;2723872.2723876&lt;&#x2F;p&gt;
+</content>
+    </entry>
+</feed>

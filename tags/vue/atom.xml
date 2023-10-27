@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">
+    <title>Chaojie&#x27;s Home ✍️ - Vue</title>
+    <subtitle>The place where Chaojie writes</subtitle>
+    <link href="https://chaojie.fun/tags/vue/atom.xml" rel="self" type="application/atom+xml"/>
+    <link href="https://chaojie.fun"/>
+    <generator uri="https://www.getzola.org/">Zola</generator>
+    <updated>2019-04-08T15:17:05+08:00</updated>
+    <id>https://chaojie.fun/tags/vue/atom.xml</id>
+    <entry xml:lang="en">
+        <title>Vue登录及权限相关问题</title>
+        <published>2019-04-08T15:17:05+08:00</published>
+        <updated>2019-04-08T15:17:05+08:00</updated>
+        <author>
+          <name>Unknown</name>
+        </author>
+        <link rel="alternate" href="https://chaojie.fun/articles/vue-deng-lu-ji-quan-xian-xiang-guan-wen-ti/" type="text/html"/>
+        <id>https://chaojie.fun/articles/vue-deng-lu-ji-quan-xian-xiang-guan-wen-ti/</id>
+        <content type="html">&lt;p&gt;最近在做一个小应用，需要用到vue实现登录，以及给不同路由设置权限。在网上看了很多文章，讲的是乱七八糟。感叹国内技术类文章实在是差劲，抄来抄去。这篇文章就说说我最后是如何实现的。&lt;&#x2F;p&gt;
+&lt;p&gt;前后端分离项目中，后端提供api接口给前端，使用jwt发放权限。&lt;&#x2F;p&gt;
+&lt;p&gt;首先前端提供用户名和密码请求登录接口，后端验证之后返回给前端一个token，之后前端在请求需要权限的接口时携带这个token就可以了。&lt;&#x2F;p&gt;
+&lt;h3 id=&quot;liang-ge-wen-ti&quot;&gt;两个问题&lt;&#x2F;h3&gt;
+&lt;p&gt;现在面临两个问题，&lt;&#x2F;p&gt;
+&lt;p&gt;首先vue中不同的路由有不同的权限，比如我要访问后台 &lt;strong&gt;&#x2F;admin&lt;&#x2F;strong&gt;, 就需要先登录才行，而有的页面不需要登录。&lt;&#x2F;p&gt;
+&lt;p&gt;第二个问题是，vue组件中使用axios请求后台服务时，不同的接口有不同的权限。&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;img src=&quot;https:&#x2F;&#x2F;shiniao.fun&#x2F;images&#x2F;vue_auth.png&quot; alt=&quot;Vue权限认证&quot; &#x2F;&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;先来解决第二个问题。vue不同组件都要用到axios，我们在全局为axios添加request和response的拦截器。&lt;&#x2F;p&gt;
+&lt;p&gt;也就是，在发起请求之前，先检测header是否携带token信息。在接收响应之前，先查看后端返回状态码，如果说需要token验证就跳转到登录界面。&lt;&#x2F;p&gt;
+&lt;p&gt;在main.js添加如下，或者新增一个http.js文件：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;javascript&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-javascript &quot;&gt;&lt;code class=&quot;language-javascript&quot; data-lang=&quot;javascript&quot;&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; * http request 拦截器
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;axios&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;interceptors&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;request&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fa1b3;&quot;&gt;use&lt;&#x2F;span&gt;&lt;span&gt;(
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;config &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; * 判断是否存在token，如果存在的话，则每个http header都加上token
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; * token会在登录之后存储在本地
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;if &lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;localStorage&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;token&lt;&#x2F;span&gt;&lt;span&gt;) {
+&lt;&#x2F;span&gt;&lt;span&gt;            &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;config&lt;&#x2F;span&gt;&lt;span&gt;.headers[&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;Authorization&lt;&#x2F;span&gt;&lt;span&gt;&amp;quot;]  = `&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;Bearer ${&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;localStorage&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;token&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;}&lt;&#x2F;span&gt;&lt;span&gt;`;
+&lt;&#x2F;span&gt;&lt;span&gt;        }
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;return &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;config&lt;&#x2F;span&gt;&lt;span&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;    },
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;err &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;return &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ebcb8b;&quot;&gt;Promise&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#96b5b4;&quot;&gt;reject&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;err&lt;&#x2F;span&gt;&lt;span&gt;);
+&lt;&#x2F;span&gt;&lt;span&gt;    });
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; * http response 拦截器
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;axios&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;interceptors&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;response&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fa1b3;&quot;&gt;use&lt;&#x2F;span&gt;&lt;span&gt;(
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;response &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;let &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;data &lt;&#x2F;span&gt;&lt;span&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;response&lt;&#x2F;span&gt;&lt;span&gt;.data;
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; * 正常返回数据
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;if &lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;data&lt;&#x2F;span&gt;&lt;span&gt;.code === &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;0&lt;&#x2F;span&gt;&lt;span&gt;) {
+&lt;&#x2F;span&gt;&lt;span&gt;            &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; * 返回data
+&lt;&#x2F;span&gt;&lt;span&gt;            &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;return &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;data
+&lt;&#x2F;span&gt;&lt;span&gt;        }
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; * 如果code是20103 表示token未认证(后端定义的错误码)
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; * 跳转到login
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;if &lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;data&lt;&#x2F;span&gt;&lt;span&gt;.code === &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;20103&lt;&#x2F;span&gt;&lt;span&gt;) {
+&lt;&#x2F;span&gt;&lt;span&gt;            &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;router&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#96b5b4;&quot;&gt;replace&lt;&#x2F;span&gt;&lt;span&gt;(&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;&#x2F;login&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;)
+&lt;&#x2F;span&gt;&lt;span&gt;        }
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;return  &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ebcb8b;&quot;&gt;Promise&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#96b5b4;&quot;&gt;reject&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;data&lt;&#x2F;span&gt;&lt;span&gt;);
+&lt;&#x2F;span&gt;&lt;span&gt;    },
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;error &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;return &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ebcb8b;&quot;&gt;Promise&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#96b5b4;&quot;&gt;reject&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;error&lt;&#x2F;span&gt;&lt;span&gt;);
+&lt;&#x2F;span&gt;&lt;span&gt;    });
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#ebcb8b;&quot;&gt;Vue&lt;&#x2F;span&gt;&lt;span&gt;.prototype.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;$http &lt;&#x2F;span&gt;&lt;span&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;axios&lt;&#x2F;span&gt;&lt;span&gt;;
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;现在发起的任何请求之前都会检查是否携带token，如果没有就跳到login界面。&lt;&#x2F;p&gt;
+&lt;p&gt;在login中，携带用户名和密码获取token之后，存放到本地。&lt;&#x2F;p&gt;
+&lt;p&gt;login.vue:&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;javascript&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-javascript &quot;&gt;&lt;code class=&quot;language-javascript&quot; data-lang=&quot;javascript&quot;&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;axios&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fa1b3;&quot;&gt;post&lt;&#x2F;span&gt;&lt;span&gt;(&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;&#x2F;api&#x2F;login&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;, {
+&lt;&#x2F;span&gt;&lt;span&gt;                    email: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;this&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;email&lt;&#x2F;span&gt;&lt;span&gt;,
+&lt;&#x2F;span&gt;&lt;span&gt;                    password: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;this&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;password
+&lt;&#x2F;span&gt;&lt;span&gt;                }) .&lt;&#x2F;span&gt;&lt;span style=&quot;color:#96b5b4;&quot;&gt;then&lt;&#x2F;span&gt;&lt;span&gt;((&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;res&lt;&#x2F;span&gt;&lt;span&gt;) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;                        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; * 存储token
+&lt;&#x2F;span&gt;&lt;span&gt;                        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;localStorage&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#96b5b4;&quot;&gt;setItem&lt;&#x2F;span&gt;&lt;span&gt;(&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;token&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;res&lt;&#x2F;span&gt;&lt;span&gt;.data.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;token&lt;&#x2F;span&gt;&lt;span&gt;);
+&lt;&#x2F;span&gt;&lt;span&gt;                        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ebcb8b;&quot;&gt;console&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#96b5b4;&quot;&gt;info&lt;&#x2F;span&gt;&lt;span&gt;(&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;login successful&lt;&#x2F;span&gt;&lt;span&gt;&amp;quot;);
+&lt;&#x2F;span&gt;&lt;span&gt;                        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; * 跳转回登录前页面
+&lt;&#x2F;span&gt;&lt;span&gt;                        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;this&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;$router&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#96b5b4;&quot;&gt;push&lt;&#x2F;span&gt;&lt;span&gt;({path: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;this&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;$route&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;query&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;redirect &lt;&#x2F;span&gt;&lt;span&gt;|| &amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;&#x2F;admin&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;,})
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;                    }).&lt;&#x2F;span&gt;&lt;span style=&quot;color:#96b5b4;&quot;&gt;catch&lt;&#x2F;span&gt;&lt;span&gt;((&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;error&lt;&#x2F;span&gt;&lt;span&gt;) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;                    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ebcb8b;&quot;&gt;console&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#96b5b4;&quot;&gt;error&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;error&lt;&#x2F;span&gt;&lt;span&gt;)
+&lt;&#x2F;span&gt;&lt;span&gt;                });
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;现在，访问后端接口的权限问题解决了。但是在vue中我不同的页面有不同的访问权限该如何处理？vue-router官方文档给出了例子：&lt;&#x2F;p&gt;
+&lt;p&gt;在需要权限的路由添加meta信息，表明该路由需要登录才能访问，然后在所有路由跳转之前添加处理函数，如果没有auth，跳转到登录：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;javascript&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-javascript &quot;&gt;&lt;code class=&quot;language-javascript&quot; data-lang=&quot;javascript&quot;&gt;&lt;span&gt;path: &amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;&#x2F;admin&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;,
+&lt;&#x2F;span&gt;&lt;span&gt;name: &amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;admin&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;,
+&lt;&#x2F;span&gt;&lt;span&gt;component: () &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span&gt;import(&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;..&#x2F;views&#x2F;admin&#x2F;Admin.vue&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;),
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; * 需要登录才能访问
+&lt;&#x2F;span&gt;&lt;span&gt;meta: {requiresAuth: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;true&lt;&#x2F;span&gt;&lt;span&gt;},
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;pre data-lang=&quot;javascript&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-javascript &quot;&gt;&lt;code class=&quot;language-javascript&quot; data-lang=&quot;javascript&quot;&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; * 全局钩子
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;router&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fa1b3;&quot;&gt;beforeEach&lt;&#x2F;span&gt;&lt;span&gt;((&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;to&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;from&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;next&lt;&#x2F;span&gt;&lt;span&gt;) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;if &lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;to&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;matched&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fa1b3;&quot;&gt;some&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;record &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;record&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;meta&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;requiresAuth&lt;&#x2F;span&gt;&lt;span&gt;)) {
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; * 对于需要auth的路径
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; * 没有token信息，redirect to login
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;if &lt;&#x2F;span&gt;&lt;span&gt;(!&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;localStorage&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;token&lt;&#x2F;span&gt;&lt;span&gt;) {
+&lt;&#x2F;span&gt;&lt;span&gt;            &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fa1b3;&quot;&gt;next&lt;&#x2F;span&gt;&lt;span&gt;({
+&lt;&#x2F;span&gt;&lt;span&gt;                path: &amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;&#x2F;login&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;,
+&lt;&#x2F;span&gt;&lt;span&gt;                query: {redirect: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;to&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;fullPath&lt;&#x2F;span&gt;&lt;span&gt;}
+&lt;&#x2F;span&gt;&lt;span&gt;            })
+&lt;&#x2F;span&gt;&lt;span&gt;        } &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;else &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;            &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fa1b3;&quot;&gt;next&lt;&#x2F;span&gt;&lt;span&gt;()
+&lt;&#x2F;span&gt;&lt;span&gt;        }
+&lt;&#x2F;span&gt;&lt;span&gt;    } &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;else &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fa1b3;&quot;&gt;next&lt;&#x2F;span&gt;&lt;span&gt;() &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; 确保一定要调用 next()
+&lt;&#x2F;span&gt;&lt;span&gt;    }
+&lt;&#x2F;span&gt;&lt;span&gt;})
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;登出的话，清除token信息即可。&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;javascript&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-javascript &quot;&gt;&lt;code class=&quot;language-javascript&quot; data-lang=&quot;javascript&quot;&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;localStorage&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#96b5b4;&quot;&gt;removeItem&lt;&#x2F;span&gt;&lt;span&gt;(&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;token&lt;&#x2F;span&gt;&lt;span&gt;&amp;quot;)
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;以上，希望有帮助。&lt;&#x2F;p&gt;
+</content>
+    </entry>
+</feed>

@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">
+    <title>Chaojie&#x27;s Home ✍️ - Hatch</title>
+    <subtitle>The place where Chaojie writes</subtitle>
+    <link href="https://chaojie.fun/tags/hatch/atom.xml" rel="self" type="application/atom+xml"/>
+    <link href="https://chaojie.fun"/>
+    <generator uri="https://www.getzola.org/">Zola</generator>
+    <updated>2023-01-28T22:10:02+08:00</updated>
+    <id>https://chaojie.fun/tags/hatch/atom.xml</id>
+    <entry xml:lang="en">
+        <title>How to Run Hatch Within Github Workflow</title>
+        <published>2023-01-28T22:10:02+08:00</published>
+        <updated>2023-01-28T22:10:02+08:00</updated>
+        <author>
+          <name>Unknown</name>
+        </author>
+        <link rel="alternate" href="https://chaojie.fun/articles/how-to-run-hatch-within-github-action/" type="text/html"/>
+        <id>https://chaojie.fun/articles/how-to-run-hatch-within-github-action/</id>
+        <content type="html">&lt;p&gt;Hatch support support define matrix within a environment (&lt;a href=&quot;https:&#x2F;&#x2F;hatch.pypa.io&#x2F;latest&#x2F;config&#x2F;environment&#x2F;advanced&#x2F;#matrix&quot;&gt;matrix docs&lt;&#x2F;a&gt;), this is so useful when you want to run test against different python version. For example:&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;toml&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-toml &quot;&gt;&lt;code class=&quot;language-toml&quot; data-lang=&quot;toml&quot;&gt;&lt;span&gt;[tool.hatch.envs.test]
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;dependencies &lt;&#x2F;span&gt;&lt;span&gt;= [
+&lt;&#x2F;span&gt;&lt;span&gt;  &amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;pytest&lt;&#x2F;span&gt;&lt;span&gt;&amp;quot;,
+&lt;&#x2F;span&gt;&lt;span&gt;]
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;[[tool.hatch.envs.test.matrix]]
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;python &lt;&#x2F;span&gt;&lt;span&gt;= [&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;3.7&lt;&#x2F;span&gt;&lt;span&gt;&amp;quot;, &amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;3.8&lt;&#x2F;span&gt;&lt;span&gt;&amp;quot;, &amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;3.9&lt;&#x2F;span&gt;&lt;span&gt;&amp;quot;, &amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;3.10&lt;&#x2F;span&gt;&lt;span&gt;&amp;quot;, &amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;3.11&lt;&#x2F;span&gt;&lt;span&gt;&amp;quot;]
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;[tool.hatch.envs.test.scripts]
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;test &lt;&#x2F;span&gt;&lt;span&gt;= &amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;pytest tests&#x2F;&lt;&#x2F;span&gt;&lt;span&gt;&amp;quot;
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;But how to run hatch within github workflow? This post will show you how to do it.&lt;&#x2F;p&gt;
+&lt;p&gt;In github workflow you can also define matrix to run job against different python version,
+maybe you want set CI like this:&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;yaml&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-yaml &quot;&gt;&lt;code class=&quot;language-yaml&quot; data-lang=&quot;yaml&quot;&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;name&lt;&#x2F;span&gt;&lt;span&gt;: &amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;CI&lt;&#x2F;span&gt;&lt;span&gt;&amp;quot;
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;on&lt;&#x2F;span&gt;&lt;span&gt;:
+&lt;&#x2F;span&gt;&lt;span&gt;  &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;push&lt;&#x2F;span&gt;&lt;span&gt;:
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;branches&lt;&#x2F;span&gt;&lt;span&gt;: [&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;main&lt;&#x2F;span&gt;&lt;span&gt;]
+&lt;&#x2F;span&gt;&lt;span&gt;  &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;pull_request&lt;&#x2F;span&gt;&lt;span&gt;:
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;branches&lt;&#x2F;span&gt;&lt;span&gt;: [&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;main&lt;&#x2F;span&gt;&lt;span&gt;]
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;jobs&lt;&#x2F;span&gt;&lt;span&gt;:
+&lt;&#x2F;span&gt;&lt;span&gt;  &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;run&lt;&#x2F;span&gt;&lt;span&gt;:
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;name&lt;&#x2F;span&gt;&lt;span&gt;: &amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;tests &amp;amp; coverage&lt;&#x2F;span&gt;&lt;span&gt;&amp;quot;
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;runs-on&lt;&#x2F;span&gt;&lt;span&gt;: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;ubuntu-latest
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;strategy&lt;&#x2F;span&gt;&lt;span&gt;:
+&lt;&#x2F;span&gt;&lt;span&gt;      &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;matrix&lt;&#x2F;span&gt;&lt;span&gt;:
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;python-version&lt;&#x2F;span&gt;&lt;span&gt;: [&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;3.7&lt;&#x2F;span&gt;&lt;span&gt;&amp;quot;, &amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;3.8&lt;&#x2F;span&gt;&lt;span&gt;&amp;quot;, &amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;3.9&lt;&#x2F;span&gt;&lt;span&gt;&amp;quot;, &amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;3.10&lt;&#x2F;span&gt;&lt;span&gt;&amp;quot;, &amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;3.11&lt;&#x2F;span&gt;&lt;span&gt;&amp;quot;]
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;steps&lt;&#x2F;span&gt;&lt;span&gt;:
+&lt;&#x2F;span&gt;&lt;span&gt;      - &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;uses&lt;&#x2F;span&gt;&lt;span&gt;: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;actions&#x2F;checkout@v3
+&lt;&#x2F;span&gt;&lt;span&gt;      - &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;name&lt;&#x2F;span&gt;&lt;span&gt;: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;Set up Python ${{ matrix.python-version }}
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;uses&lt;&#x2F;span&gt;&lt;span&gt;: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;actions&#x2F;setup-python@v4
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;with&lt;&#x2F;span&gt;&lt;span&gt;:
+&lt;&#x2F;span&gt;&lt;span&gt;          &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;python-version&lt;&#x2F;span&gt;&lt;span&gt;: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;${{ matrix.python-version }}
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;      - &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;name&lt;&#x2F;span&gt;&lt;span&gt;: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;Install hatch
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;run&lt;&#x2F;span&gt;&lt;span&gt;: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;python -m pip install hatch
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;      &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;# then run test
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;If you directly run &lt;code&gt;hatch run test:test&lt;&#x2F;code&gt;, Hatch will try to set virtualenv for each python version.It will failed, because only one system python is installed at each strategy.&lt;&#x2F;p&gt;
+&lt;p&gt;Fortunately, hatch can use &lt;code&gt;+py&lt;&#x2F;code&gt; to specify the python version to run env command, so you can change the CI config like this:&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;yaml&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-yaml &quot;&gt;&lt;code class=&quot;language-yaml&quot; data-lang=&quot;yaml&quot;&gt;&lt;span&gt;- &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;name&lt;&#x2F;span&gt;&lt;span&gt;: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;Tests
+&lt;&#x2F;span&gt;&lt;span&gt;  &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;run&lt;&#x2F;span&gt;&lt;span&gt;: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;hatch run +py=${{ matrix.python-version }}  test:test
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;The full CI config:&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;yaml&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-yaml &quot;&gt;&lt;code class=&quot;language-yaml&quot; data-lang=&quot;yaml&quot;&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;name&lt;&#x2F;span&gt;&lt;span&gt;: &amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;CI&lt;&#x2F;span&gt;&lt;span&gt;&amp;quot;
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;on&lt;&#x2F;span&gt;&lt;span&gt;:
+&lt;&#x2F;span&gt;&lt;span&gt;  &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;push&lt;&#x2F;span&gt;&lt;span&gt;:
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;branches&lt;&#x2F;span&gt;&lt;span&gt;: [ &lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;main &lt;&#x2F;span&gt;&lt;span&gt;]
+&lt;&#x2F;span&gt;&lt;span&gt;  &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;pull_request&lt;&#x2F;span&gt;&lt;span&gt;:
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;branches&lt;&#x2F;span&gt;&lt;span&gt;: [ &lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;main &lt;&#x2F;span&gt;&lt;span&gt;]
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;jobs&lt;&#x2F;span&gt;&lt;span&gt;:
+&lt;&#x2F;span&gt;&lt;span&gt;  &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;run&lt;&#x2F;span&gt;&lt;span&gt;:
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;name&lt;&#x2F;span&gt;&lt;span&gt;: &amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;tests &amp;amp; coverage&lt;&#x2F;span&gt;&lt;span&gt;&amp;quot;
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;runs-on&lt;&#x2F;span&gt;&lt;span&gt;: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;ubuntu-latest
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;strategy&lt;&#x2F;span&gt;&lt;span&gt;:
+&lt;&#x2F;span&gt;&lt;span&gt;      &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;matrix&lt;&#x2F;span&gt;&lt;span&gt;:
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;python-version&lt;&#x2F;span&gt;&lt;span&gt;: [&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;3.7&lt;&#x2F;span&gt;&lt;span&gt;&amp;quot;, &amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;3.8&lt;&#x2F;span&gt;&lt;span&gt;&amp;quot;, &amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;3.9&lt;&#x2F;span&gt;&lt;span&gt;&amp;quot;, &amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;3.10&lt;&#x2F;span&gt;&lt;span&gt;&amp;quot;, &amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;3.11&lt;&#x2F;span&gt;&lt;span&gt;&amp;quot;]
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;steps&lt;&#x2F;span&gt;&lt;span&gt;:
+&lt;&#x2F;span&gt;&lt;span&gt;    - &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;uses&lt;&#x2F;span&gt;&lt;span&gt;: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;actions&#x2F;checkout@v3
+&lt;&#x2F;span&gt;&lt;span&gt;    - &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;name&lt;&#x2F;span&gt;&lt;span&gt;: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;Set up Python ${{ matrix.python-version }}
+&lt;&#x2F;span&gt;&lt;span&gt;      &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;uses&lt;&#x2F;span&gt;&lt;span&gt;: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;actions&#x2F;setup-python@v4
+&lt;&#x2F;span&gt;&lt;span&gt;      &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;with&lt;&#x2F;span&gt;&lt;span&gt;:
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;python-version&lt;&#x2F;span&gt;&lt;span&gt;: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;${{ matrix.python-version }}
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;    - &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;name&lt;&#x2F;span&gt;&lt;span&gt;: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;Install hatch
+&lt;&#x2F;span&gt;&lt;span&gt;      &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;run&lt;&#x2F;span&gt;&lt;span&gt;: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;python -m pip install hatch
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;    - &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;name&lt;&#x2F;span&gt;&lt;span&gt;: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;Lint
+&lt;&#x2F;span&gt;&lt;span&gt;      &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;run&lt;&#x2F;span&gt;&lt;span&gt;: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;hatch run check
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;    - &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;name&lt;&#x2F;span&gt;&lt;span&gt;: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;Coverage
+&lt;&#x2F;span&gt;&lt;span&gt;      &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;run&lt;&#x2F;span&gt;&lt;span&gt;: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;hatch run +py=${{ matrix.python-version }} test:test
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;    - &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;name&lt;&#x2F;span&gt;&lt;span&gt;: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;Upload Coverage
+&lt;&#x2F;span&gt;&lt;span&gt;      &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;uses&lt;&#x2F;span&gt;&lt;span&gt;: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;codecov&#x2F;codecov-action@v3
+&lt;&#x2F;span&gt;&lt;span&gt;      &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;with&lt;&#x2F;span&gt;&lt;span&gt;:
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;files&lt;&#x2F;span&gt;&lt;span&gt;: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;coverage.xml
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Hope this post can help you.&lt;&#x2F;p&gt;
+</content>
+    </entry>
+</feed>

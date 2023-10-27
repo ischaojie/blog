@@ -1,0 +1,388 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">
+    <title>Chaojie&#x27;s Home ✍️ - Flask</title>
+    <subtitle>The place where Chaojie writes</subtitle>
+    <link href="https://chaojie.fun/tags/flask/atom.xml" rel="self" type="application/atom+xml"/>
+    <link href="https://chaojie.fun"/>
+    <generator uri="https://www.getzola.org/">Zola</generator>
+    <updated>2019-07-04T11:19:00+08:00</updated>
+    <id>https://chaojie.fun/tags/flask/atom.xml</id>
+    <entry xml:lang="en">
+        <title>[源码分析] Flask中路由匹配是如何实现的</title>
+        <published>2019-07-04T11:19:00+08:00</published>
+        <updated>2019-07-04T11:19:00+08:00</updated>
+        <author>
+          <name>Unknown</name>
+        </author>
+        <link rel="alternate" href="https://chaojie.fun/articles/yuan-ma-fen-xi-flask-zhong-lu-you-pi-pei-shi-ru-he-shi-xian-de/" type="text/html"/>
+        <id>https://chaojie.fun/articles/yuan-ma-fen-xi-flask-zhong-lu-you-pi-pei-shi-ru-he-shi-xian-de/</id>
+        <content type="html">&lt;p&gt;首先让我们来了解下WSGI规范是啥？&lt;&#x2F;p&gt;
+&lt;p&gt;简单来说，WSGI是服务器和应用之间的接口，前端过来的请求传到服务器之后比如gunicorn，之后服务器会将请求转发给应用。因为有很多个服务器，如果我们为我们的应用根据不同的服务写不同的代码，会很麻烦，所以就出现了WSGI。&lt;&#x2F;p&gt;
+&lt;p&gt;WSGI规定了application应该实现一个可调用的对象（函数，类，方法或者带&lt;code&gt;__call__&lt;&#x2F;code&gt;的实例），这个对象应该接受两个位置参数：&lt;&#x2F;p&gt;
+&lt;ol&gt;
+&lt;li&gt;环境变量（比如header信息，状态码等）&lt;&#x2F;li&gt;
+&lt;li&gt;回调函数（WSGI服务器负责），用来发送http状态和header等&lt;&#x2F;li&gt;
+&lt;&#x2F;ol&gt;
+&lt;p&gt;同时，该对象需要返回可迭代的响应文本。&lt;&#x2F;p&gt;
+&lt;p&gt;更具体的解释可以去google搜索相关知识。&lt;&#x2F;p&gt;
+&lt;p&gt;一个最简单的实现：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;python&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-python &quot;&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;def &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fa1b3;&quot;&gt;app&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;environ&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;start_response&lt;&#x2F;span&gt;&lt;span&gt;):
+&lt;&#x2F;span&gt;&lt;span&gt;    response_body = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;b&lt;&#x2F;span&gt;&lt;span&gt;&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;Hello, World!&lt;&#x2F;span&gt;&lt;span&gt;&amp;quot;
+&lt;&#x2F;span&gt;&lt;span&gt;    status = &amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;200 OK&lt;&#x2F;span&gt;&lt;span&gt;&amp;quot;
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;# 将响应状态和header交给WSGI服务器比如gunicorn
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;start_response&lt;&#x2F;span&gt;&lt;span&gt;(status, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;headers&lt;&#x2F;span&gt;&lt;span&gt;=[])
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;return &lt;&#x2F;span&gt;&lt;span style=&quot;color:#96b5b4;&quot;&gt;iter&lt;&#x2F;span&gt;&lt;span&gt;([response_body])
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;我们可以直接使用gunicorn之类的服务启动这个app。&lt;&#x2F;p&gt;
+&lt;p&gt;有了WSGI规定，框架中就要实现规范中所要求的部分。我们来看看Flask是如何实现的。&lt;&#x2F;p&gt;
+&lt;p&gt;Flask0.1版本的实现中只有一个文件，一共600多行代码。根据官方文档，一个最简单的web服务像这样：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;python&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-python &quot;&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;from &lt;&#x2F;span&gt;&lt;span&gt;flask &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;import &lt;&#x2F;span&gt;&lt;span&gt;Flask
+&lt;&#x2F;span&gt;&lt;span&gt;app = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;Flask&lt;&#x2F;span&gt;&lt;span&gt;(__name__)
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;@app.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;route&lt;&#x2F;span&gt;&lt;span&gt;(&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;&#x2F;&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;)
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;def &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fa1b3;&quot;&gt;hello_world&lt;&#x2F;span&gt;&lt;span&gt;():
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;return &lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;Hello World!&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;if &lt;&#x2F;span&gt;&lt;span&gt;__name__ == &amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;__main__&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;:
+&lt;&#x2F;span&gt;&lt;span&gt;    app.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;run&lt;&#x2F;span&gt;&lt;span&gt;()
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;调用 &lt;strong&gt;Flask()&lt;&#x2F;strong&gt; 之后发生了什么？&lt;&#x2F;p&gt;
+&lt;p&gt;首先在 &lt;code&gt;__init__&lt;&#x2F;code&gt; 内置方法中有这么几个变量：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;python&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-python &quot;&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;class &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ebcb8b;&quot;&gt;Flask&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eff1f5;&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;object&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eff1f5;&quot;&gt;):
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;def &lt;&#x2F;span&gt;&lt;span style=&quot;color:#96b5b4;&quot;&gt;__init__&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;package_name&lt;&#x2F;span&gt;&lt;span&gt;):
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;# view_functions存储视图函数名称和视图函数
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;.view_functions = {}
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;# 路由字典
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;.url_map = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;Map&lt;&#x2F;span&gt;&lt;span&gt;()
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;根据名字可以猜测，&lt;strong&gt;view_functions&lt;&#x2F;strong&gt; 用来存放视图函数，&lt;strong&gt;url_map&lt;&#x2F;strong&gt; 用来存放路由字典。暂时跳过，来看看 &lt;code&gt;__call__&lt;&#x2F;code&gt;内置方法：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;python&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-python &quot;&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;def &lt;&#x2F;span&gt;&lt;span style=&quot;color:#96b5b4;&quot;&gt;__call__&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;environ&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;start_response&lt;&#x2F;span&gt;&lt;span&gt;):
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;return &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;wsgi_app&lt;&#x2F;span&gt;&lt;span&gt;(environ, start_response)
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;environ，start_response，是不是在哪里见过？WSGI规范中要求实现的对不对。它返回了 &lt;strong&gt;wsgi_app&lt;&#x2F;strong&gt; 方法：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;python&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-python &quot;&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;def &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fa1b3;&quot;&gt;wsgi_app&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;environ&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;start_response&lt;&#x2F;span&gt;&lt;span&gt;):
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;with &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;request_context&lt;&#x2F;span&gt;&lt;span&gt;(environ):
+&lt;&#x2F;span&gt;&lt;span&gt;            rv = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;preprocess_request&lt;&#x2F;span&gt;&lt;span&gt;()
+&lt;&#x2F;span&gt;&lt;span&gt;            &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;if &lt;&#x2F;span&gt;&lt;span&gt;rv is &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;None&lt;&#x2F;span&gt;&lt;span&gt;:
+&lt;&#x2F;span&gt;&lt;span&gt;                rv = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;dispatch_request&lt;&#x2F;span&gt;&lt;span&gt;()
+&lt;&#x2F;span&gt;&lt;span&gt;            response = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;make_response&lt;&#x2F;span&gt;&lt;span&gt;(rv)
+&lt;&#x2F;span&gt;&lt;span&gt;            response = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;process_response&lt;&#x2F;span&gt;&lt;span&gt;(response)
+&lt;&#x2F;span&gt;&lt;span&gt;            &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;return &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;response&lt;&#x2F;span&gt;&lt;span&gt;(environ, start_response)
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;看到了没，跟我们上面实现的那个简单的app是不是很像。&lt;&#x2F;p&gt;
+&lt;p&gt;首先预处理请求，然后分发请求到不同的视图函数，最后响应。&lt;&#x2F;p&gt;
+&lt;p&gt;我们先来看 &lt;strong&gt;dispatch_request&lt;&#x2F;strong&gt; 是如何实现的：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;python&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-python &quot;&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;def &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fa1b3;&quot;&gt;dispatch_request&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;):
+&lt;&#x2F;span&gt;&lt;span&gt;    	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;# 精简了下代码
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;try&lt;&#x2F;span&gt;&lt;span&gt;:
+&lt;&#x2F;span&gt;&lt;span&gt;            endpoint, values = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;match_request&lt;&#x2F;span&gt;&lt;span&gt;()
+&lt;&#x2F;span&gt;&lt;span&gt;            &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;return &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;.view_functions[endpoint](**values)
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;except &lt;&#x2F;span&gt;&lt;span&gt;HTTPException, e:
+&lt;&#x2F;span&gt;&lt;span&gt;            &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;......
+&lt;&#x2F;span&gt;&lt;span&gt;            
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;def &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fa1b3;&quot;&gt;match_request&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;):
+&lt;&#x2F;span&gt;&lt;span&gt;        rv = _request_ctx_stack.top.url_adapter.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;match&lt;&#x2F;span&gt;&lt;span&gt;()
+&lt;&#x2F;span&gt;&lt;span&gt;        request.endpoint, request.view_args = rv
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;return &lt;&#x2F;span&gt;&lt;span&gt;rv
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;&lt;strong&gt;dispatch_request&lt;&#x2F;strong&gt; 首先获取endpoint和一些变量，然后在视图函数字典里找到对应的视图函数返回。endpoint和values就是我们在定义路由的处理函数时，比如：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;python&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-python &quot;&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;url_for&lt;&#x2F;span&gt;&lt;span&gt;(&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;profile&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;username&lt;&#x2F;span&gt;&lt;span&gt;=&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;John Doe&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;)
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;其中profile就是endpoint，也就是对应视图函数的名称，username就是变量。&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;match_request&lt;&#x2F;strong&gt; 中这个 &lt;strong&gt;_request_ctx_stack&lt;&#x2F;strong&gt; 又是个啥。看起来它像是用来匹配路由的。&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;_request_ctx_stack&lt;&#x2F;strong&gt; 是请求上下文栈，用一个栈把当前请求相关的数据压入栈中，然后进行路由分发和后续处理，处理完成后退出。&lt;&#x2F;p&gt;
+&lt;p&gt;具体来说，我们回过头看 &lt;strong&gt;wsgi_app&lt;&#x2F;strong&gt;方法中有个with语句，控制请求上下文的进入和退出。&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;python&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-python &quot;&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;with &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;request_context&lt;&#x2F;span&gt;&lt;span&gt;(environ):
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;这个 &lt;strong&gt;request_context&lt;&#x2F;strong&gt;是这样的：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;python&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-python &quot;&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;class &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ebcb8b;&quot;&gt;_RequestContext&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eff1f5;&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;object&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eff1f5;&quot;&gt;):
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;def &lt;&#x2F;span&gt;&lt;span style=&quot;color:#96b5b4;&quot;&gt;__init__&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;app&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;environ&lt;&#x2F;span&gt;&lt;span&gt;):
+&lt;&#x2F;span&gt;&lt;span&gt;		&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;...
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;.url_adapter = app.url_map.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;bind_to_environ&lt;&#x2F;span&gt;&lt;span&gt;(environ)
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;...
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;def &lt;&#x2F;span&gt;&lt;span style=&quot;color:#96b5b4;&quot;&gt;__enter__&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;):
+&lt;&#x2F;span&gt;&lt;span&gt;        _request_ctx_stack.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;push&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;)
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;def &lt;&#x2F;span&gt;&lt;span style=&quot;color:#96b5b4;&quot;&gt;__exit__&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;exc_type&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;exc_value&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;tb&lt;&#x2F;span&gt;&lt;span&gt;):
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;if &lt;&#x2F;span&gt;&lt;span&gt;tb is &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;None &lt;&#x2F;span&gt;&lt;span&gt;or not &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;.app.debug:
+&lt;&#x2F;span&gt;&lt;span&gt;            _request_ctx_stack.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;pop&lt;&#x2F;span&gt;&lt;span&gt;()
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;其中的 &lt;strong&gt;url_adapter&lt;&#x2F;strong&gt; 获取了路由字典，然后连同其他变量一起被压入栈中，这样在上面的 &lt;strong&gt;match_request&lt;&#x2F;strong&gt; 方法中，从栈中获取 &lt;strong&gt;url_adapter&lt;&#x2F;strong&gt; ， 然后匹配路由找到对应的endpoint和参数，然后根据endpoint和参数从&lt;strong&gt;view_functions&lt;&#x2F;strong&gt; 中查找对应的视图函数。&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;python&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-python &quot;&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;.url_adapter = app.url_map.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;bind_to_environ&lt;&#x2F;span&gt;&lt;span&gt;(environ)
+&lt;&#x2F;span&gt;&lt;span&gt;rv = _request_ctx_stack.top.url_adapter.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;match&lt;&#x2F;span&gt;&lt;span&gt;()
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;其中，&lt;strong&gt;bind_to_environ&lt;&#x2F;strong&gt; 将 url绑定到目前的环境返回一个适配器，然后适配器去匹配请求。这两个方法都来自Flask的底层调用 &lt;strong&gt;werkzeug&lt;&#x2F;strong&gt; 。&lt;&#x2F;p&gt;
+&lt;p&gt;梳理一下流程，首先适配器在 url_map中查找当前路由对应的endpoint和values，然后dispatch_request根据endpoint找到对应的视图函数，然后返回。&lt;&#x2F;p&gt;
+&lt;p&gt;那么，url_map中的路由和endpoint对应关系是从哪里来的？&lt;&#x2F;p&gt;
+&lt;p&gt;我们在使用Flask是不是要用装饰器给视图函数加上路由和方法对吧，像这样：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;python&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-python &quot;&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span&gt;@app.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;route&lt;&#x2F;span&gt;&lt;span&gt;(&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;&#x2F;&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;)
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;def &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fa1b3;&quot;&gt;hello_world&lt;&#x2F;span&gt;&lt;span&gt;():
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;return &lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;Hello World!&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;这个route装饰器长这样，可以看到它调用了add_url_rule方法。&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;python&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-python &quot;&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;def &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fa1b3;&quot;&gt;route&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;rule&lt;&#x2F;span&gt;&lt;span&gt;, **&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;options&lt;&#x2F;span&gt;&lt;span&gt;):
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;def &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fa1b3;&quot;&gt;decorator&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;f&lt;&#x2F;span&gt;&lt;span&gt;):
+&lt;&#x2F;span&gt;&lt;span&gt;            &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;add_url_rule&lt;&#x2F;span&gt;&lt;span&gt;(rule, f.__name__, **options)
+&lt;&#x2F;span&gt;&lt;span&gt;            &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;.view_functions[f.__name__] = f
+&lt;&#x2F;span&gt;&lt;span&gt;            &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;return &lt;&#x2F;span&gt;&lt;span&gt;f
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;return &lt;&#x2F;span&gt;&lt;span&gt;decorator
+&lt;&#x2F;span&gt;&lt;span&gt;    
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;def &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fa1b3;&quot;&gt;add_url_rule&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;rule&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;endpoint&lt;&#x2F;span&gt;&lt;span&gt;, **&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;options&lt;&#x2F;span&gt;&lt;span&gt;):
+&lt;&#x2F;span&gt;&lt;span&gt;    options[&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;endpoint&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;] = endpoint
+&lt;&#x2F;span&gt;&lt;span&gt;    options.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;setdefault&lt;&#x2F;span&gt;&lt;span&gt;(&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;methods&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;, (&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;GET&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;,))
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;.url_map.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;add&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;Rule&lt;&#x2F;span&gt;&lt;span&gt;(rule, **options))
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;add_url_rule添加了路由和 endpoint 到 url_map 中，这样一个请求的路由过来后，&lt;strong&gt;url_adapter.match()&lt;&#x2F;strong&gt; 就能匹配到对应的 endpoint ，然后根据 endpoint 从 view_functions 里面查找视图函数。&lt;&#x2F;p&gt;
+&lt;p&gt;url_map 是werkzeug中的Map对象，然后添加的是Rule对象。它看起来像这样：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;python&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-python &quot;&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;.url_map = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;Map&lt;&#x2F;span&gt;&lt;span&gt;([
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;Rule&lt;&#x2F;span&gt;&lt;span&gt;(&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;&#x2F;&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;endpoint&lt;&#x2F;span&gt;&lt;span&gt;=&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;home&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;),
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;Rule&lt;&#x2F;span&gt;&lt;span&gt;(&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;&#x2F;book&#x2F;&amp;lt;id&amp;gt;&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;endpoint&lt;&#x2F;span&gt;&lt;span&gt;=&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;book&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;)
+&lt;&#x2F;span&gt;&lt;span&gt;])
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;除了利用装饰器，我们也可以这样使用：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;python&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-python &quot;&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;def &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fa1b3;&quot;&gt;index&lt;&#x2F;span&gt;&lt;span&gt;():
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;pass
+&lt;&#x2F;span&gt;&lt;span&gt;app.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;add_url_rule&lt;&#x2F;span&gt;&lt;span&gt;(&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;index&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;, &amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;&#x2F;&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;)
+&lt;&#x2F;span&gt;&lt;span&gt;app.view_functions[&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;index&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;] = index
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;现在，一切都解释清楚了，定义好视图函数后，&lt;strong&gt;app.run&lt;&#x2F;strong&gt;运行即可。&lt;&#x2F;p&gt;
+&lt;p&gt;可以看到，Flask中路由匹配是利用字典实现的，还有一种利用前缀树来实现路由的，比如go语言中的gin框架，关于如何用前缀树实现路由可以看我的另一篇文章：&lt;&#x2F;p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;a href=&quot;https:&#x2F;&#x2F;shiniao.fun&#x2F;posts&#x2F;%E5%89%8D%E7%BC%80%E6%A0%91%E7%AE%97%E6%B3%95%E5%AE%9E%E7%8E%B0%E8%B7%AF%E7%94%B1%E5%8C%B9%E9%85%8D%E5%8E%9F%E7%90%86%E8%A7%A3%E6%9E%90&quot;&gt;前缀树算法实现路由匹配原理解析&lt;&#x2F;a&gt;&lt;&#x2F;p&gt;
+&lt;&#x2F;blockquote&gt;
+</content>
+    </entry>
+    <entry xml:lang="en">
+        <title>[源码分析] Flask配置管理与描述符析</title>
+        <published>2019-07-03T11:19:00+08:00</published>
+        <updated>2019-07-03T11:19:00+08:00</updated>
+        <author>
+          <name>Unknown</name>
+        </author>
+        <link rel="alternate" href="https://chaojie.fun/articles/yuan-ma-fen-xi-flask-pei-zhi-guan-li-yu-miao-shu-fu/" type="text/html"/>
+        <id>https://chaojie.fun/articles/yuan-ma-fen-xi-flask-pei-zhi-guan-li-yu-miao-shu-fu/</id>
+        <content type="html">&lt;p&gt;在Flask中可以通过 &lt;strong&gt;app.config[&#x27;NAME&#x27;] = what&lt;&#x2F;strong&gt; 的形式指定一些配置，比如设置 &lt;strong&gt;debug = True&lt;&#x2F;strong&gt; ：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;python&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-python &quot;&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span&gt;app.debug = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;True
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;# 或者
+&lt;&#x2F;span&gt;&lt;span&gt;app.config[&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;DEBUG&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;] = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;True
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;有些配置比如设置ENV和TESTING还可以直接利用Flask对象来设置，像这样：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;python&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-python &quot;&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span&gt;app.testing = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;True
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;除了在程序中指定配置，也可以将配置写在单独的文件中，比如：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;python&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-python &quot;&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span&gt;app = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;Flask&lt;&#x2F;span&gt;&lt;span&gt;(__name__)
+&lt;&#x2F;span&gt;&lt;span&gt;app.config.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;from_object&lt;&#x2F;span&gt;&lt;span&gt;(&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;yourapplication.default_settings&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;)
+&lt;&#x2F;span&gt;&lt;span&gt;app.config.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;from_envvar&lt;&#x2F;span&gt;&lt;span&gt;(&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;YOURAPPLICATION_SETTINGS&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;)
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;应用首先从 &lt;strong&gt;yourapplication.default_settings&lt;&#x2F;strong&gt; 模块载入配置，然后根据 &lt;code&gt;YOURAPPLICATION_SETTINGS&lt;&#x2F;code&gt; 环境变量所指向的文件的内容重载配置的值。&lt;&#x2F;p&gt;
+&lt;p&gt;除了从配置文件加载，也可以定义类类指定配置，具体用法去看看官方文档就知道了。&lt;&#x2F;p&gt;
+&lt;p&gt;知道了在Flask中如何使用配置，我们来看看它是如何实现的。&lt;&#x2F;p&gt;
+&lt;p&gt;首先 &lt;strong&gt;config&lt;&#x2F;strong&gt; 肯定是个变量，在Flask这个类中被定义为：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;python&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-python &quot;&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;.config = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;make_config&lt;&#x2F;span&gt;&lt;span&gt;(instance_relative_config)
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;然后 &lt;strong&gt;make_config&lt;&#x2F;strong&gt; 的代码是这样的：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;python&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-python &quot;&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;def &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fa1b3;&quot;&gt;make_config&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;instance_relative&lt;&#x2F;span&gt;&lt;span&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;False&lt;&#x2F;span&gt;&lt;span&gt;):
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;    root_path = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;.root_path
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;if &lt;&#x2F;span&gt;&lt;span&gt;instance_relative:
+&lt;&#x2F;span&gt;&lt;span&gt;        root_path = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;.instance_path
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;# 默认配置
+&lt;&#x2F;span&gt;&lt;span&gt;    defaults = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;dict&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;.default_config)
+&lt;&#x2F;span&gt;&lt;span&gt;    defaults[&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;ENV&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;] = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;get_env&lt;&#x2F;span&gt;&lt;span&gt;()
+&lt;&#x2F;span&gt;&lt;span&gt;    defaults[&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;DEBUG&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;] = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;get_debug_flag&lt;&#x2F;span&gt;&lt;span&gt;()
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;return &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;config_class&lt;&#x2F;span&gt;&lt;span&gt;(root_path, defaults)
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;make_config方法获取flask中默认的配置，以及ENV和DEBUG这两个配置，之后返回了 &lt;strong&gt;self.config_class&lt;&#x2F;strong&gt; 对象，它在类中是这样定义的：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;python&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-python &quot;&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span&gt;config_class = Config
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;class &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ebcb8b;&quot;&gt;Config&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eff1f5;&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;dict&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eff1f5;&quot;&gt;):
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;def &lt;&#x2F;span&gt;&lt;span style=&quot;color:#96b5b4;&quot;&gt;__init__&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;root_path&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;defaults&lt;&#x2F;span&gt;&lt;span&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;None&lt;&#x2F;span&gt;&lt;span&gt;):
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;# dict.__init__让Config实例拥有字典行为config[&amp;#39;ENV&amp;#39;]
+&lt;&#x2F;span&gt;&lt;span&gt;        dict.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#96b5b4;&quot;&gt;__init__&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;, defaults or {})
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;.root_path = root_path
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;&lt;strong&gt;config_class&lt;&#x2F;strong&gt; 本质上是Config类，注意看Config类的初始化方法，&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;python&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-python &quot;&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span&gt;dict.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#96b5b4;&quot;&gt;__init__&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;, defaults or {})
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;这一行代码使得Config类可以像字典一样使用，比如 &lt;code&gt;app.config[&#x27;TESTING&#x27;]=True&lt;&#x2F;code&gt;。 当然你也可以使用 &lt;code&gt;__getitem__&lt;&#x2F;code&gt; 和 &lt;code&gt;__setitem__&lt;&#x2F;code&gt; 内置方法使得类具有字典的行为。&lt;&#x2F;p&gt;
+&lt;p&gt;那么像 &lt;strong&gt;app.testing = True&lt;&#x2F;strong&gt; 这样的配置是如何实现的？&lt;&#x2F;p&gt;
+&lt;p&gt;在Flask类中可以看到，这些类变量都是 &lt;strong&gt;ConfigAttribute&lt;&#x2F;strong&gt; 对象。&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;python&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-python &quot;&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span&gt;testing = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;ConfigAttribute&lt;&#x2F;span&gt;&lt;span&gt;(&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;TESTING&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;)
+&lt;&#x2F;span&gt;&lt;span&gt;secret_key = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;ConfigAttribute&lt;&#x2F;span&gt;&lt;span&gt;(&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;SECRET_KEY&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;)
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;&lt;strong&gt;ConfigAttribute&lt;&#x2F;strong&gt;类如下：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;python&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-python &quot;&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;class &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ebcb8b;&quot;&gt;ConfigAttribute&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eff1f5;&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;object&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eff1f5;&quot;&gt;):
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;def &lt;&#x2F;span&gt;&lt;span style=&quot;color:#96b5b4;&quot;&gt;__init__&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;name&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;get_converter&lt;&#x2F;span&gt;&lt;span&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;None&lt;&#x2F;span&gt;&lt;span&gt;):
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;.__name__ = name
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;.get_converter = get_converter
+&lt;&#x2F;span&gt;&lt;span&gt;    
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;# obj是被托管类实例
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;def &lt;&#x2F;span&gt;&lt;span style=&quot;color:#96b5b4;&quot;&gt;__get__&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;obj&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;type&lt;&#x2F;span&gt;&lt;span&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;None&lt;&#x2F;span&gt;&lt;span&gt;):
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;# 如果被托管实例不存在，返回描述符自身
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;if &lt;&#x2F;span&gt;&lt;span&gt;obj is &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;None&lt;&#x2F;span&gt;&lt;span&gt;:
+&lt;&#x2F;span&gt;&lt;span&gt;            &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;return &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;# 返回Flask实例的config[name]
+&lt;&#x2F;span&gt;&lt;span&gt;        rv = obj.config[&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;.__name__]
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;if &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;.get_converter is not &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;None&lt;&#x2F;span&gt;&lt;span&gt;:
+&lt;&#x2F;span&gt;&lt;span&gt;            rv = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;get_converter&lt;&#x2F;span&gt;&lt;span&gt;(rv)
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;return &lt;&#x2F;span&gt;&lt;span&gt;rv
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;def &lt;&#x2F;span&gt;&lt;span style=&quot;color:#96b5b4;&quot;&gt;__set__&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;obj&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;value&lt;&#x2F;span&gt;&lt;span&gt;):
+&lt;&#x2F;span&gt;&lt;span&gt;        obj.config[&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;.__name__] = value
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;&lt;strong&gt;ConfigAttribute&lt;&#x2F;strong&gt; 是一个描述符类，描述符是什么？&lt;&#x2F;p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;描述符是对多个属性运用相同存取逻辑的一种方式。——《流畅的python》&lt;&#x2F;p&gt;
+&lt;&#x2F;blockquote&gt;
+&lt;p&gt;描述符实现了特定的内置方法，&lt;code&gt;__get__&lt;&#x2F;code&gt; ， &lt;code&gt;__set__&lt;&#x2F;code&gt; 和 &lt;code&gt;__delete__&lt;&#x2F;code&gt; ，常见的比如Django中ORM中的实现就是用的描述符：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;python&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-python &quot;&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;class &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ebcb8b;&quot;&gt;Person&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eff1f5;&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;models.Model&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eff1f5;&quot;&gt;):
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;# models.CharField就是一个描述符
+&lt;&#x2F;span&gt;&lt;span&gt;    first_name = models.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;CharField&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;max_length&lt;&#x2F;span&gt;&lt;span&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;30&lt;&#x2F;span&gt;&lt;span&gt;)
+&lt;&#x2F;span&gt;&lt;span&gt;    last_name = models.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;CharField&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;max_length&lt;&#x2F;span&gt;&lt;span&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;30&lt;&#x2F;span&gt;&lt;span&gt;)
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;还有python内置的 &lt;strong&gt;@property&lt;&#x2F;strong&gt; &lt;strong&gt;@classmethod&lt;&#x2F;strong&gt; &lt;strong&gt;staticmethod&lt;&#x2F;strong&gt; 装饰器就是用描述符实现的。&lt;&#x2F;p&gt;
+&lt;p&gt;说了这么多，来看看描述符到底怎么用。&lt;&#x2F;p&gt;
+&lt;p&gt;首先来看&lt;strong&gt;ConfigAttribute&lt;&#x2F;strong&gt;类中的 &lt;code&gt;__get__&lt;&#x2F;code&gt; 方法：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;python&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-python &quot;&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;# obj是被托管类实例
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;def &lt;&#x2F;span&gt;&lt;span style=&quot;color:#96b5b4;&quot;&gt;__get__&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;obj&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;type&lt;&#x2F;span&gt;&lt;span&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;None&lt;&#x2F;span&gt;&lt;span&gt;):
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;# 如果被托管实例不存在，返回描述符自身
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;if &lt;&#x2F;span&gt;&lt;span&gt;obj is &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;None&lt;&#x2F;span&gt;&lt;span&gt;:
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;return &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;# 返回Flask实例的config[name]
+&lt;&#x2F;span&gt;&lt;span&gt;    rv = obj.config[&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;.__name__]
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;if &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;.get_converter is not &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;None&lt;&#x2F;span&gt;&lt;span&gt;:
+&lt;&#x2F;span&gt;&lt;span&gt;        rv = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;get_converter&lt;&#x2F;span&gt;&lt;span&gt;(rv)
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;return &lt;&#x2F;span&gt;&lt;span&gt;rv
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;&lt;code&gt;__get__&lt;&#x2F;code&gt; 方法的参数obj是被托管类的实例，在这里就是Flask类，方法中首先判断被托管类是否存在，不存在就返回描述符本身。之后返回Flask类实例中的 &lt;strong&gt;config[name]&lt;&#x2F;strong&gt;， 看到没有env类变量实际上就是 &lt;strong&gt;config[name]&lt;&#x2F;strong&gt; 中指定的值。&lt;&#x2F;p&gt;
+&lt;p&gt;来看 &lt;code&gt;__set__&lt;&#x2F;code&gt; 方法：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;python&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-python &quot;&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;def &lt;&#x2F;span&gt;&lt;span style=&quot;color:#96b5b4;&quot;&gt;__set__&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;obj&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;value&lt;&#x2F;span&gt;&lt;span&gt;):
+&lt;&#x2F;span&gt;&lt;span&gt;    obj.config[&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;.__name__] = value
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;&lt;code&gt;__set__&lt;&#x2F;code&gt;方法中的obj同样是被托管类的实例，然后value被存储在被托管类的config变量中。所以，我们才可以用 &lt;strong&gt;app.testing = True&lt;&#x2F;strong&gt; 来指定配置。&lt;&#x2F;p&gt;
+&lt;p&gt;说到底，描述符有什么用？我们来看，在Flask类中我们要指定类变量 &lt;strong&gt;testing, env, secret_key, session_cookie_name&lt;&#x2F;strong&gt; 等等，都需要从config变量中接收（保证配置的一致性）。我们为这些变量都写一个存取方法是不是很麻烦，使用描述符就可以简化流程，对外封装了具体的存取细节，并且减少代码量。&lt;&#x2F;p&gt;
+&lt;p&gt;当然我们也可以使用一个函数，通过构建特性工厂的方式来实现，比如：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;python&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-python &quot;&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;def &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fa1b3;&quot;&gt;config_attribute&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;name&lt;&#x2F;span&gt;&lt;span&gt;):
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;def &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fa1b3;&quot;&gt;getter&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;instance&lt;&#x2F;span&gt;&lt;span&gt;):
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;return &lt;&#x2F;span&gt;&lt;span&gt;instance.config[name]
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;def &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fa1b3;&quot;&gt;setter&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;instance&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;value&lt;&#x2F;span&gt;&lt;span&gt;):
+&lt;&#x2F;span&gt;&lt;span&gt;        instance.config[name] = value
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;# property实际上就是@property装饰器
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;return &lt;&#x2F;span&gt;&lt;span style=&quot;color:#96b5b4;&quot;&gt;property&lt;&#x2F;span&gt;&lt;span&gt;(getter, setter)
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;# 在Flask中调用方式一样
+&lt;&#x2F;span&gt;&lt;span&gt;testing = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;config_attribute&lt;&#x2F;span&gt;&lt;span&gt;(&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;TESTING&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;)
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;关于描述符的更多细节可以查看 &lt;strong&gt;《流畅的python》&lt;&#x2F;strong&gt; 这本书中第20章的内容，有详细的介绍。&lt;&#x2F;p&gt;
+</content>
+    </entry>
+    <entry xml:lang="en">
+        <title>[源码分析] Flask蓝图实现原理分析</title>
+        <published>2019-07-01T11:19:00+08:00</published>
+        <updated>2019-07-01T11:19:00+08:00</updated>
+        <author>
+          <name>Unknown</name>
+        </author>
+        <link rel="alternate" href="https://chaojie.fun/articles/yuan-ma-fen-xi-flask-lan-tu-shi-xian-yuan-li-fen-xi/" type="text/html"/>
+        <id>https://chaojie.fun/articles/yuan-ma-fen-xi-flask-lan-tu-shi-xian-yuan-li-fen-xi/</id>
+        <content type="html">&lt;blockquote&gt;
+&lt;p&gt;看这篇文章之前，建议看一下我之前写的：[源码分析]Flask中路由匹配是如何实现的&lt;&#x2F;p&gt;
+&lt;&#x2F;blockquote&gt;
+&lt;p&gt;BluePrint（蓝图）的概念说白了就是路由组，所有注册到该蓝图上的路由都使用同一个前缀。这样方便了管理，不同的功能可以放在一个模块（比如admin模块）中实现，更加解耦。&lt;&#x2F;p&gt;
+&lt;p&gt;首先来看看蓝图是如何使用的：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;python&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-python &quot;&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;# 定义一个蓝图
+&lt;&#x2F;span&gt;&lt;span&gt;simple_page = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;Blueprint&lt;&#x2F;span&gt;&lt;span&gt;(&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;simple_page&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;, __name__,
+&lt;&#x2F;span&gt;&lt;span&gt;                        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;template_folder&lt;&#x2F;span&gt;&lt;span&gt;=&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;templates&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;)
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;# 绑定视图函数
+&lt;&#x2F;span&gt;&lt;span&gt;@simple_page.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;route&lt;&#x2F;span&gt;&lt;span&gt;(&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;&#x2F;&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;defaults&lt;&#x2F;span&gt;&lt;span&gt;={&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;page&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;: &amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;index&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;})
+&lt;&#x2F;span&gt;&lt;span&gt;@simple_page.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;route&lt;&#x2F;span&gt;&lt;span&gt;(&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;&#x2F;&amp;lt;page&amp;gt;&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;)
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;def &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fa1b3;&quot;&gt;show&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;page&lt;&#x2F;span&gt;&lt;span&gt;):
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;try&lt;&#x2F;span&gt;&lt;span&gt;:
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;return &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;render_template&lt;&#x2F;span&gt;&lt;span&gt;(&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;pages&#x2F;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;%s&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;.html&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39; % page)
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;except &lt;&#x2F;span&gt;&lt;span&gt;TemplateNotFound:
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;abort&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;404&lt;&#x2F;span&gt;&lt;span&gt;)
+&lt;&#x2F;span&gt;&lt;span&gt;        
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;# 在主模块中注册路由
+&lt;&#x2F;span&gt;&lt;span&gt;app = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;Flask&lt;&#x2F;span&gt;&lt;span&gt;(__name__)
+&lt;&#x2F;span&gt;&lt;span&gt;app.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;register_blueprint&lt;&#x2F;span&gt;&lt;span&gt;(simple_page)
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;看上面的例子，首先定义了一个蓝图simple_page，然后经由这个蓝图来定义路由以及绑定到视图函数上，最后在主模块中，注册这个蓝图即可。&lt;&#x2F;p&gt;
+&lt;p&gt;看起来跟常见的定义视图函数的方式一样，只不过在添加路由的时候，需要以蓝图开头。&lt;&#x2F;p&gt;
+&lt;p&gt;来看看源码中是如何实现的。&lt;&#x2F;p&gt;
+&lt;p&gt;蓝图的功能是在flask 0.7版本中被加入的，app在调用 &lt;strong&gt;register_blueprint&lt;&#x2F;strong&gt; 方法的时候会调用 &lt;strong&gt;Blueprint&lt;&#x2F;strong&gt; 类中的 &lt;strong&gt;register&lt;&#x2F;strong&gt; 方法来注册该蓝图中添加的所有路由。&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;python&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-python &quot;&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;def &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fa1b3;&quot;&gt;register_blueprint&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;blueprint&lt;&#x2F;span&gt;&lt;span&gt;, **&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;options&lt;&#x2F;span&gt;&lt;span&gt;):
+&lt;&#x2F;span&gt;&lt;span&gt;   	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;...	
+&lt;&#x2F;span&gt;&lt;span&gt;	blueprint.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;register&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;, options, first_registration)
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;我们看一下register方法：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;python&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-python &quot;&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;# blueprints.py
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;def &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fa1b3;&quot;&gt;register&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;app&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;options&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;first_registration&lt;&#x2F;span&gt;&lt;span&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;False&lt;&#x2F;span&gt;&lt;span&gt;):
+&lt;&#x2F;span&gt;&lt;span&gt;	
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;...
+&lt;&#x2F;span&gt;&lt;span&gt;    state = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;make_setup_state&lt;&#x2F;span&gt;&lt;span&gt;(app, options, first_registration)
+&lt;&#x2F;span&gt;&lt;span&gt;    
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;...
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;for &lt;&#x2F;span&gt;&lt;span&gt;deferred &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;in &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;.deferred_functions:
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;deferred&lt;&#x2F;span&gt;&lt;span&gt;(state)
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;额，make_setup_state是个啥，deferred_functions又是个啥。我们跳到make_setup_state来看看它里面有什么：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;python&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-python &quot;&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;def &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fa1b3;&quot;&gt;make_setup_state&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;app&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;options&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;first_registration&lt;&#x2F;span&gt;&lt;span&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;False&lt;&#x2F;span&gt;&lt;span&gt;):
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;return &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;BlueprintSetupState&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;, app, options, first_registration)
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;返回了一个类。先不管。来看看deferred_functions是什么，从名字上可以看出是延迟函数之类的。&lt;&#x2F;p&gt;
+&lt;p&gt;来梳理一下流程，&lt;strong&gt;app.register_blueprint&lt;&#x2F;strong&gt; 注册蓝图之后，会激活Buleprint类中的register方法，在register方法中循环调用 &lt;strong&gt;deferred_functions&lt;&#x2F;strong&gt; 中的函数来执行，我们大概能猜出来这段代码的功能就是将蓝图中定义的路由都添加到路由组中。&lt;&#x2F;p&gt;
+&lt;p&gt;以上面的蓝图例子，&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;python&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-python &quot;&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span&gt;@simple_page.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;route&lt;&#x2F;span&gt;&lt;span&gt;(&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;&#x2F;&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;defaults&lt;&#x2F;span&gt;&lt;span&gt;={&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;page&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;: &amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;index&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;})
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;蓝图的route方法是这样的：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;python&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-python &quot;&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;def &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fa1b3;&quot;&gt;route&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;rule&lt;&#x2F;span&gt;&lt;span&gt;, **&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;options&lt;&#x2F;span&gt;&lt;span&gt;):
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;def &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fa1b3;&quot;&gt;decorator&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;f&lt;&#x2F;span&gt;&lt;span&gt;):
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;add_url_rule&lt;&#x2F;span&gt;&lt;span&gt;(rule, f.__name__, f, **options)
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;return &lt;&#x2F;span&gt;&lt;span&gt;f
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;return &lt;&#x2F;span&gt;&lt;span&gt;decorator
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;route方法是个装饰器，实际上调用了 &lt;strong&gt;add_url_rule&lt;&#x2F;strong&gt; 方法：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;python&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-python &quot;&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;def &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fa1b3;&quot;&gt;add_url_rule&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;rule&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;endpoint&lt;&#x2F;span&gt;&lt;span&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;None&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;view_func&lt;&#x2F;span&gt;&lt;span&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;None&lt;&#x2F;span&gt;&lt;span&gt;, **&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;options&lt;&#x2F;span&gt;&lt;span&gt;):
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;record&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;lambda &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;s&lt;&#x2F;span&gt;&lt;span&gt;: s.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;add_url_rule&lt;&#x2F;span&gt;&lt;span&gt;(rule, endpoint, view_func, **options))
+&lt;&#x2F;span&gt;&lt;span&gt;        
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;def &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fa1b3;&quot;&gt;record&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;func&lt;&#x2F;span&gt;&lt;span&gt;):
+&lt;&#x2F;span&gt;&lt;span&gt;	&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;...&lt;&#x2F;span&gt;&lt;span&gt;.
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;.deferred_functions.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;append&lt;&#x2F;span&gt;&lt;span&gt;(func)
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;在record方法中，将func添加到了deferred_functions列表中，而add_url_rule中调用了record方法，那么一切就都可以解释了：&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;register&lt;&#x2F;strong&gt; 方法中的这段代码，&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;python&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-python &quot;&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span&gt;state = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;make_setup_state&lt;&#x2F;span&gt;&lt;span&gt;(app, options, first_registration)    
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;...
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;for &lt;&#x2F;span&gt;&lt;span&gt;deferred &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;in &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;.deferred_functions:
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;deferred&lt;&#x2F;span&gt;&lt;span&gt;(state)
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;循环 &lt;strong&gt;deferred_functions&lt;&#x2F;strong&gt;，&lt;strong&gt;deferred_functions&lt;&#x2F;strong&gt; 里面是啥？是lambda，具体来说，就是蓝图中定义的路由和视图函数，我们通过&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;python&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-python &quot;&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span&gt;@simple_page.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;route&lt;&#x2F;span&gt;&lt;span&gt;(&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;&#x2F;&amp;lt;page&amp;gt;&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;)
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;定义路由之后，实际上就是在 &lt;strong&gt;deferred_functions&lt;&#x2F;strong&gt; 里面添加了一个lambda，为什么说它是defer，因为只有在register注册的时候才会真正添加到app的url_map中。&lt;&#x2F;p&gt;
+&lt;p&gt;上面代码中的state是一个 &lt;strong&gt;BlueprintSetupState&lt;&#x2F;strong&gt; 示例，这个类里面有一个add_url_rule方法，会在全局app的 &lt;strong&gt;url_map&lt;&#x2F;strong&gt; 中添加路由和视图函数。&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;python&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-python &quot;&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;def &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fa1b3;&quot;&gt;add_url_rule&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;rule&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;endpoint&lt;&#x2F;span&gt;&lt;span&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;None&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;view_func&lt;&#x2F;span&gt;&lt;span&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;None&lt;&#x2F;span&gt;&lt;span&gt;, **&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;options&lt;&#x2F;span&gt;&lt;span&gt;):
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;.app.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;add_url_rule&lt;&#x2F;span&gt;&lt;span&gt;(rule, &amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;%s&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;%s&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39; % (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;.blueprint.name, endpoint),view_func, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;defaults&lt;&#x2F;span&gt;&lt;span&gt;=defaults, **options)
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;来梳理一下：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;python&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-python &quot;&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;# state 是 BlueprintSetupState 实例
+&lt;&#x2F;span&gt;&lt;span&gt;BlueprintSetupState -&amp;gt; state
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;# deferred_functions 里面是蓝图路由的lambda
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;lambda &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;s&lt;&#x2F;span&gt;&lt;span&gt;: s.add_url_rule -&amp;gt; deferred_functions
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;for &lt;&#x2F;span&gt;&lt;span&gt;deferred &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;in &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;.deferred_functions:
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;deferred&lt;&#x2F;span&gt;&lt;span&gt;(state)
+&lt;&#x2F;span&gt;&lt;span&gt;    
+&lt;&#x2F;span&gt;&lt;span&gt;意思就是 &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;lambda &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;中的 s 被赋值为 state &lt;&#x2F;span&gt;&lt;span style=&quot;background-color:#bf616a;color:#2b303b;&quot;&gt;，&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;然后state&lt;&#x2F;span&gt;&lt;span style=&quot;background-color:#bf616a;color:#2b303b;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;add_url_rule&lt;&#x2F;span&gt;&lt;span&gt;,
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;这样就执行了app&lt;&#x2F;span&gt;&lt;span style=&quot;background-color:#bf616a;color:#2b303b;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;add_url_rule
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;这个延迟执行设计的太巧妙了，蓝图中添加的路由规则只有在register方法中才真正的被添加到全局的路由map中。&lt;&#x2F;p&gt;
+</content>
+    </entry>
+</feed>

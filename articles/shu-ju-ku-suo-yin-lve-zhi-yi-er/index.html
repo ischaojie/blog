@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>
+Chaojie&#x27;s Home ✍️ | 数据库索引略知一二
+</title>
+    <meta name="description" content="The place where Chaojie writes">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta property="og:title" content=" Chaojie&#x27;s Home ✍️  | 数据库索引略知一二">
+    <meta property="og:description" content="The place where Chaojie writes">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://chaojie.fun/articles/shu-ju-ku-suo-yin-lve-zhi-yi-er/">
+
+    
+    <link rel="alternate" type="application/atom+xml" title="RSS"
+        href="https://chaojie.fun/atom.xml">
+    
+    <link rel="icon" href="https://chaojie.fun/images/favicon.ico" sizes="any">
+    <link rel="stylesheet" href="https://chaojie.fun/libs/tabler.min.css">
+    <link rel="stylesheet" href="https://chaojie.fun/css/uno.css">
+    <link rel="stylesheet" href="https://chaojie.fun/assets/willow.css">
+
+    
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XDREGKCZH0"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+
+        gtag('config', 'G-XDREGKCZH0');
+    </script>
+    
+</head>
+
+<body>
+    <div class="theme-light text-base font-sans" id="theme">
+        <div class="container-xl subpixel-antialiased">
+            <div class="row justify-content-center">
+                <div class="col-lg-10 col-xl-9">
+                    
+<div class="col" style="margin: 24px 0;">
+    <div class="row align-items-end">
+        <div class="col-auto" style="margin: auto 0;">
+            <a href="https://chaojie.fun/">
+                <img src="https://chaojie.fun/images/logo.png" width="40" height="46" class="">
+            </a>
+        </div>
+        <div class="col">
+            <div class="row">
+                <div class="col">
+                    <h2 class="mb-0 tracking-wide">Chaojie&#x27;s Home ✍️</h2>
+                </div>
+            </div>
+            <div class="row">
+                <nav>
+                    
+<ul class="list-inline list-inline-dots mb-0">
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/">
+            Home
+        </a>
+    </li>
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/articles/">
+            Articles
+        </a>
+    </li>
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/memos/">
+            Memos
+        </a>
+    </li>
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/tags/">
+            Tags
+        </a>
+    </li>
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/about/">
+            About
+        </a>
+    </li>
+    
+    
+    
+</ul>
+
+                </nav>
+            </div>
+        </div>
+        <div class="col align-self-end">
+            <div class="d-flex justify-content-end space-x">
+                
+                
+                <a href="https://chaojie.fun/atom.xml" target="_blank">
+                    
+                    <img src="https://chaojie.fun/images/social/douban.svg" alt=douban width="18" height="18">
+                </a>
+                
+                <a href="https://chaojie.fun/atom.xml" target="_blank">
+                    
+                    <img src="https://chaojie.fun/images/social/github.svg" alt=github width="18" height="18">
+                </a>
+                
+                <a href="https://chaojie.fun/atom.xml" target="_blank">
+                    
+                    <img src="https://chaojie.fun/images/social/twitter.svg" alt=twitter width="18" height="18">
+                </a>
+                
+                
+                <a href="https://chaojie.fun/atom.xml" target="_blank">
+                    <img src="https://chaojie.fun/images/social/rss.svg" alt="RSS" width="18" height="18">
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+                    
+
+<div class="card card-lg">
+    <div class="card-body markdown text-justify">
+        <div class="">
+            
+            
+            <div class="d-flex justify-content-between" style="margin-bottom: 18px;">
+                <div>2020-11-09</div>
+                
+                <i class="fas fa-tags"></i>
+                <ul class="list-inline list-inline-dots mb-0">
+                    
+                    <li class="list-inline-item">
+                        <a class="tag"
+                            href="https://chaojie.fun/tags/shu-ju-ku/">#数据库</a>
+                    </li>
+                    
+                    <li class="list-inline-item">
+                        <a class="tag"
+                            href="https://chaojie.fun/tags/suo-yin/">#索引</a>
+                    </li>
+                    
+
+                </ul>
+                
+            </div>
+            
+
+            <h1>数据库索引略知一二</h1>
+            <p><p>说到索引，很多人肯定会立马想到 MySQL 中使用了 B+ 树这种索引结构，毕竟是面试常考题型。我在准备面试的过程中，也只是浅显的了解到 MySQL 在创建主键时会自动创建一个主键索引，除此之外，还有联合索引、唯一索引等索引结构。创建主键索引的时候会通过 B+ 树来存储数据。所以，MySQL 为什么要使用B+ 树作为索引？还有没有其他索引结构？索引到底是干什么的？带着这些疑问，我查阅了相关的资料，同时以项目背景为出发点，希望对索引做一次重新认识。</p>
+<p>要实现一个最最简单的数据库，利用 Bash 函数就可以做到：</p>
+<pre data-lang="bash" style="background-color:#2b303b;color:#c0c5ce;" class="language-bash "><code class="language-bash" data-lang="bash"><span style="color:#65737e;">#!/bin/bash
+</span><span style="color:#8fa1b3;">db_set </span><span>() {
+</span><span>	</span><span style="color:#96b5b4;">echo </span><span>&quot;$</span><span style="color:#bf616a;">1</span><span style="color:#a3be8c;">,</span><span>$</span><span style="color:#bf616a;">2</span><span>&quot; &gt;&gt; database
+</span><span>} 
+</span><span>
+</span><span style="color:#8fa1b3;">db_get </span><span>() {
+</span><span>	</span><span style="color:#bf616a;">grep </span><span>&quot;</span><span style="color:#a3be8c;">^</span><span>$</span><span style="color:#bf616a;">1</span><span style="color:#a3be8c;">,</span><span>&quot; database | </span><span style="color:#bf616a;">sed -e </span><span>&quot;</span><span style="color:#a3be8c;">s/^</span><span>$</span><span style="color:#bf616a;">1</span><span style="color:#a3be8c;">,//</span><span>&quot; | </span><span style="color:#bf616a;">tail -n</span><span> 1
+</span><span>}
+</span></code></pre>
+<p>这两个函数就是一个最简单的键值数据库，存数据时，不断在 database 文件末尾添加一行键值对即可，查数据时，通过 grep 会找到数据及之前所有的修改记录。这个数据库文件就像一个日志，不断的在末尾追加数据，由于传统磁盘对顺序写表现出的优异性能，数据库的写入性能会很高。但是有一个问题，如果一直往该文件中添加数据，久而久之，这个文件会变得异常大，文件中会出现很多重复的数据，同时，查找数据也是个问题，每次都要从头到尾找一次，别人都下班了，你还在等着查询结果。</p>
+<p>既然文件很大，把它拆分成一个个小文件不就行了，同时定期对这些小文件进行压缩，剔除掉重复的和不要的数据，节省存储空间。但是查数据的问题怎么解决，现在的方式，每次找数据都要对整个表扫描一次，黄花菜都凉了。解决办法就是使用索引。</p>
+<h3 id="suo-yin-shi-shi-yao">索引是什么</h3>
+<blockquote>
+<p>索引的本质就像一部字典前面的检索页，查字典时，通过拼音开头的字母可以快速查找到某个字的位置，索引也一样，通过给数据库中的数据添加类似路标的记号，这样从索引中就可以直接检索到该数据的位置。</p>
+</blockquote>
+<p>让我们用最简单的 <strong>哈希索引</strong> 试试，哈希索引就是 <strong>在内存中将每个键都映射到数据文件中的字节偏移量</strong>，这个偏移量就是键对应值的位置。查找时，只要通过哈希映射找到偏移量，然后寻找该位置读取即可。</p>
+<p><img src="https://shiniao.fun/images/image-20201110105059407.png" alt="hash索引" /></p>
+<p>听起来是个不错的办法，但是大部分数据库都不会使用哈希索引，因为实际的数据库系统需要考虑的东西很多，比如发生崩溃后怎么处理，数据如何保证不丢失。除此之外，哈希索引需要整个放进内存中，如果我的键很多，散列冲突的可能性也会变大，同时，对于数据的范围查询支持也不够。</p>
+<p>有没有更好的办法？</p>
+<h3 id="lsm-tree-suo-yin">LSM-Tree 索引</h3>
+<p>聪明的大脑已经帮我们想出了解决办法。Google传奇工程师 Jeff Dean等人开发了一个可持久化的键值数据库 LevelDB。LevelDB 使用了一种称之为 SSTable（Sorted String Table）的表结构，顾名思义，SSTable 中数据会按照键的顺序排列，同时 LevelDB 在内存中维护着一个称之为 <strong>LSM-Tree</strong> （Log Structured Merge Tree）的索引结构，LSM-Tree 通过某种平衡树（比如基数树）结构保证键的有序，在超出树的容量后，就将其作为 SSTable 写入磁盘中，同时新的数据会被写入一个新的 LSM-Tree 中。</p>
+<p><img src="https://shiniao.fun/images/20201109154404.png" alt="" /></p>
+<p>正如文章之前说的，LevelDB 会定期的在后台执行合并操作，将多个 SSTable 压缩为一个，以去除重复的或删除不用的数据。那么如何查找数据呢？既然键是有序的，查找就好办多了，比如使用二分查找，时间复杂度可以降到 O(log2n) 。LevelDB 会先在内存中查找关键字，然后在最近的 SSTable 中查找，然后在之前的表中查找。当然，在实际的实现中，LevelDB 对细节做了很多的优化，比如使用多层压缩来提升性能，这些都是后话了。</p>
+<blockquote>
+<p>除了 LevelDB，Facebook 基于 LevelDB 开发了性能更好的 RocksDB，国内大名鼎鼎的分布式数据库 TiDB 底层存储就使用的 RocksDB。</p>
+</blockquote>
+<h3 id="b-tree-suo-yin">B+Tree 索引</h3>
+<p>能不能使用B+树来做索引？</p>
+<p>当然可以，开源数据库 BoltDB 就使用 B+ 树来实现索引，而 etcd 的底层就使用的BoltDB。除此之外，常见的关系型数据库（比如MySQL、PostgresSQL等）也常常使用 B+ 树来实现索引。相较于键值数据库，MySQL 等关系型数据库在数据存储上更为复杂，比如 Compact、Dynamic 行格式等，此处不做深究。所以，B+ 树索引有什么优点，为什么要用它来做索引。</p>
+<p>基于 LSM-Tree 索引的数据库由于顺序写入的特点，有着很高的写入吞吐量，因为所有的前台写入都发生在内存中，并且所有后台写入都保持着顺序访问的模式。但是对于查询来说，往往需要在多个 SSTable 中依次查找，导致读取的吞吐量下降。而 B+ 树就不同了，在B+树中只有叶子节点存储着数据，并且叶子节点之间通过链表顺序连接，在查找时，通过根节点确定数据的范围，然后顺着叶子节点的链表查找即可。在找到数据行对应的页之后，数据库会把整个页读入到内存中，并在内存中查找具体的数据行。</p>
+<p><img src="https://shiniao.fun/images/image-20201110095541689.png" alt="B+Tree" /></p>
+<p>这就是为什么 MySQL 等数据库不使用 B 树来实现索引的原因，B 树中每个节点都会存储数据，在查找时，总是需要从根节点向下遍历子树查找满足条件的数据行，这个特点带来了大量的随机 I/O。</p>
+<p>从 B+ 树的特点中，我们也能看到，其对于读取数据有着很好的性能，同时对于条件范围查询也能很好的支持，但是由于存储数据时会发生重复的随机磁盘写入，写入性能较差。为此，我也通过实验比较了几种使用不同索引结构的数据库，实验设备为公司电脑，环境为Centos7 虚拟机（4core+4GB+40GB磁盘）。</p>
+<p><img src="https://shiniao.fun/images/chart.png" alt="chart" /></p>
+<p>可以看到，基于 B+ 树索引的 boltdb 和 bboltdb 的读取吞吐量很高，但是写入吞吐量却很低，而 rocksdb 和 leveldb 等基于 LSM 的数据库在写入吞吐量上表现优异，读取稍逊。</p>
+<h3 id="zong-jie">总结</h3>
+<p>数据库使用索引可以加快查询的速度，LSM树索引的写入性能优异，而B+树索引的读取性能更高，每条路上都有自己独特的风景，我们需要场景来选择合适的索引结构。除此之外，还存在着为搜索引擎设计的全文索引、模糊索引等。而引入索引的过程也造成了写的缓慢，这也是需要权衡的事。</p>
+<p>（由于我的水平有限，文中难免出现错误，还望指正。）</p>
+<h3 id="can-kao-wen-xian">参考文献</h3>
+<ol>
+<li>https://draveness.me/whys-the-design-mysql-b-plus-tree/</li>
+<li>《design data intensive application》——Martin Kleppmann</li>
+<li>https://github.com/boltdb/bolt</li>
+<li>https://github.com/google/leveldb</li>
+<li>https://shiniao.fun/posts/%E5%9F%BA%E4%BA%8Elsm%E7%9A%84%E6%95%B0%E6%8D%AE%E5%BA%93%E9%94%AE%E5%80%BC%E5%AD%98%E5%82%A8/</li>
+<li>https://yetanotherdevblog.com/lsm/</li>
+</ol>
+</p>
+
+            
+            
+            <script src="https://giscus.app/client.js" data-repo="ischaojie/blog"
+                data-repo-id="MDEwOlJlcG9zaXRvcnkyODk4MDA1NTY="
+                data-category="[object]"
+                data-category-id="[object]"
+                data-mapping="[object]" data-strict="0" data-reactions-enabled="1"
+                data-emit-metadata="0" data-input-position="top" data-theme="preferred_color_scheme"
+                data-lang="en" data-loading="lazy" crossorigin="anonymous" async>
+                </script>
+            
+            
+        </div>
+    </div>
+</div>
+
+
+                    
+<footer class="footer footer-transparent d-print-none">
+    <div class="container-xl">
+        <div class="row text-center align-items-center flex-row-reverse">
+            <div class="col-lg-auto ms-lg-auto">
+                
+<ul class="list-inline list-inline-dots mb-0">
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/">
+            Home
+        </a>
+    </li>
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/articles/">
+            Articles
+        </a>
+    </li>
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/memos/">
+            Memos
+        </a>
+    </li>
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/tags/">
+            Tags
+        </a>
+    </li>
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/about/">
+            About
+        </a>
+    </li>
+    
+    
+    
+</ul>
+
+            </div>
+            <div class="col-12 col-lg-auto mt-3 mt-lg-0">
+                <ul class="list-inline list-inline-dots mb-0">
+                    <li class="list-inline-item">
+                        Copyright © 2023
+                        <a href="." class="link-secondary">Chaojie</a>.
+                        All rights reserved.
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</footer>
+
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://chaojie.fun/libs/tabler.min.js"></script>
+    <script src="https://chaojie.fun/libs/fslightbox.js"></script>
+    <script src="https://chaojie.fun/libs/infinite-scroll.min.js"></script>
+    <script src="https://chaojie.fun/libs/luxon.min.js"></script>
+    <script src="https://chaojie.fun/js/willow.js"></script>
+    
+
+
+</body>
+
+</html>

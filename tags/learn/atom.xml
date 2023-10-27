@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">
+    <title>Chaojie&#x27;s Home ✍️ - learn</title>
+    <subtitle>The place where Chaojie writes</subtitle>
+    <link href="https://chaojie.fun/tags/learn/atom.xml" rel="self" type="application/atom+xml"/>
+    <link href="https://chaojie.fun"/>
+    <generator uri="https://www.getzola.org/">Zola</generator>
+    <updated>2020-08-21T22:00:04+08:00</updated>
+    <id>https://chaojie.fun/tags/learn/atom.xml</id>
+    <entry xml:lang="en">
+        <title>分布式XA事务处理逻辑</title>
+        <published>2020-08-21T22:00:04+08:00</published>
+        <updated>2020-08-21T22:00:04+08:00</updated>
+        <author>
+          <name>Unknown</name>
+        </author>
+        <link rel="alternate" href="https://chaojie.fun/articles/fen-bu-shi-xa-shi-wu-chu-li-luo-ji/" type="text/html"/>
+        <id>https://chaojie.fun/articles/fen-bu-shi-xa-shi-wu-chu-li-luo-ji/</id>
+        <content type="html">&lt;p&gt;事务在数据库中代表一系列操作要么全部都完成，要么全部都失败，ACID规定了事务操作的原子性、一致性、隔离性和持久性。然而数据库的环境不可能只在单机上，在分布式环境下，一个事务中某个操作可能发往A节点，而另一个操作发往B节点，这就导致无法保证ACID的原则。&lt;&#x2F;p&gt;
+&lt;p&gt;实现分布式事务常见的解决办法有以下几种：XA两阶段提交协议、TCC协议和SAGA协议。但是这些解决办法都不可能完全保证事务不出错。分布式系统中有一个CAP定理，说的是在分布式情况下，不可能同时满足一致性、可用性和容错性这三个条件，一般需要满足其中两个条件。&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;xaliang-jie-duan-ti-jiao-xie-yi&quot;&gt;XA两阶段提交协议&lt;&#x2F;h2&gt;
+&lt;p&gt;XA协议规定了分布式事务的标准，其中 &lt;strong&gt;AP&lt;&#x2F;strong&gt; 代表应用程序，&lt;strong&gt;TM&lt;&#x2F;strong&gt; 代表事务管理器，负责协调和管理事务，而&lt;strong&gt;RM&lt;&#x2F;strong&gt; 代表着资源管理器。&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;img src=&quot;C:%5CUsers%5Cadmin.MENGFANDE3-PC%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20200723085002817.png&quot; alt=&quot;image-20200723085002817&quot; &#x2F;&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;而事务的具体处理过程就是TM和RM之间的交互，分为两个阶段：&lt;&#x2F;p&gt;
+&lt;p&gt;第一阶段：事务管理器要求每个涉及到事务的数据库预提交(precommit)此操作，并反映是否可以提交。&lt;&#x2F;p&gt;
+&lt;p&gt;第二阶段：事务管理器要求每个数据库提交数据，或者回滚数据。&lt;&#x2F;p&gt;
+&lt;p&gt;以MySQL中的XA处理逻辑为例（MySQL5.7版本实现了对XA协议的支持），来看下这两个阶段的逻辑处理过程。&lt;&#x2F;p&gt;
+&lt;p&gt;对于一个事务：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;sql&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-sql &quot;&gt;&lt;code class=&quot;language-sql&quot; data-lang=&quot;sql&quot;&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;begin&lt;&#x2F;span&gt;&lt;span&gt;;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;insert into&lt;&#x2F;span&gt;&lt;span&gt; student &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;values&lt;&#x2F;span&gt;&lt;span&gt; (&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;xiaoming&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;18&lt;&#x2F;span&gt;&lt;span&gt;);
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;update&lt;&#x2F;span&gt;&lt;span&gt; test &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;set&lt;&#x2F;span&gt;&lt;span&gt; age = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;18 &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;where&lt;&#x2F;span&gt;&lt;span&gt; name = &amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;xiaoming&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;commit&lt;&#x2F;span&gt;&lt;span&gt;;
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;h3 id=&quot;di-yi-jie-duan&quot;&gt;&lt;strong&gt;第一阶段&lt;&#x2F;strong&gt;&lt;&#x2F;h3&gt;
+&lt;p&gt;事务管理器会生成一个全局的事务ID，比如使用uuid生成一个唯一的ID，为了方便用 &lt;strong&gt;xid1&lt;&#x2F;strong&gt; 代替。&lt;&#x2F;p&gt;
+&lt;p&gt;首先，遇到 &lt;strong&gt;begin&lt;&#x2F;strong&gt;，不处理。&lt;&#x2F;p&gt;
+&lt;p&gt;然后是 &lt;strong&gt;insert&lt;&#x2F;strong&gt; 操作，事务管理器根据表中主键的值计算（hash）出应该分布在哪个节点上，比如insert语句被计算出应该发到节点A上，事务管理器就像A节点发送命令开始XA事务，同时将insert语句发送过去。&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;sql&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-sql &quot;&gt;&lt;code class=&quot;language-sql&quot; data-lang=&quot;sql&quot;&gt;&lt;span&gt;xa start &amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;xid1&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;;  &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;# 开启事务
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;insert into&lt;&#x2F;span&gt;&lt;span&gt; student &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;values&lt;&#x2F;span&gt;&lt;span&gt; (&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;xiaoming&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;18&lt;&#x2F;span&gt;&lt;span&gt;);
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;接下来 &lt;strong&gt;update&lt;&#x2F;strong&gt; 操作，同样的，事务管理器根据主键计算所属节点，开启XA，发送update语句。&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;sql&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-sql &quot;&gt;&lt;code class=&quot;language-sql&quot; data-lang=&quot;sql&quot;&gt;&lt;span&gt;xa start &amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;xid1&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;; 
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;update&lt;&#x2F;span&gt;&lt;span&gt; test &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;set&lt;&#x2F;span&gt;&lt;span&gt; age = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;18 &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;where&lt;&#x2F;span&gt;&lt;span&gt; name = &amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;xiaoming&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;;
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;&lt;strong&gt;commit&lt;&#x2F;strong&gt; 的时候，事务管理器分别向节点A和B发送一个预提交操作：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;sql&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-sql &quot;&gt;&lt;code class=&quot;language-sql&quot; data-lang=&quot;sql&quot;&gt;&lt;span&gt;xa &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;end &lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;xid1&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;;
+&lt;&#x2F;span&gt;&lt;span&gt;xa prepare &amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;xid1&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;;
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;h3 id=&quot;di-er-jie-duan&quot;&gt;第二阶段&lt;&#x2F;h3&gt;
+&lt;p&gt;如果节点A和B都返回就绪ready，此时进入 &lt;strong&gt;第二阶段&lt;&#x2F;strong&gt;：&lt;&#x2F;p&gt;
+&lt;p&gt;事务管理器分别向节点AB发送commit操作：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;sql&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-sql &quot;&gt;&lt;code class=&quot;language-sql&quot; data-lang=&quot;sql&quot;&gt;&lt;span&gt;xa &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;commit &lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;xid1&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;;
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;相反的，如果有任何一个节点是unready，事务管理器就会通知A、B节点的操作回滚：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;sql&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-sql &quot;&gt;&lt;code class=&quot;language-sql&quot; data-lang=&quot;sql&quot;&gt;&lt;span&gt;xa &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;rollback&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;xid1&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;;
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;有一个问题，如果在进入第二阶段commit的时候，某个数据节点出现故障，会导致节点状态不一致。解决办法是把XA事务处理的过程也存入日志数据，比如MySQL将其写入了binlog，这样在出现问题时还可以恢复。&lt;&#x2F;p&gt;
+&lt;p&gt;整个XA的过程：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;sql&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-sql &quot;&gt;&lt;code class=&quot;language-sql&quot; data-lang=&quot;sql&quot;&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;# 阶段一
+&lt;&#x2F;span&gt;&lt;span&gt;xa start &amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;xid1&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;;  
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;insert into&lt;&#x2F;span&gt;&lt;span&gt; test &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;values&lt;&#x2F;span&gt;&lt;span&gt; (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;1&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;1&lt;&#x2F;span&gt;&lt;span&gt;);
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;xa start &amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;xid1&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;; 
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;update&lt;&#x2F;span&gt;&lt;span&gt; test &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;set&lt;&#x2F;span&gt;&lt;span&gt; b = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;1 &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;where&lt;&#x2F;span&gt;&lt;span&gt; a = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;10&lt;&#x2F;span&gt;&lt;span&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;xa &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;end &lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;xid1&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;;
+&lt;&#x2F;span&gt;&lt;span&gt;xa prepare &amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;xid1&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;;
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;# 阶段二
+&lt;&#x2F;span&gt;&lt;span&gt;xa &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;commit &lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;xid1&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;; 
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;# or
+&lt;&#x2F;span&gt;&lt;span&gt;xa &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;rollback &lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;xid1&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;# 失败回滚
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;h2 id=&quot;everdbfen-bu-shi-shi-wu-de-zhi-chi&quot;&gt;EverDB分布式事务的支持&lt;&#x2F;h2&gt;
+&lt;h3 id=&quot;mycatzhong-de-shi-xian&quot;&gt;MyCat中的实现&lt;&#x2F;h3&gt;
+&lt;p&gt;EDB-Grid组件中，借鉴了MyCat（也是一个数据库中间件）的XA处理逻辑，MyCat根据XA协议实现了对分布式事务的支持，具体来说：&lt;&#x2F;p&gt;
+&lt;p&gt;通过数据库编程接口（比如JDBC，也就是XA协议中的AP）开启XA事务，然后执行SQL语句，预提交，最后commit。&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;java&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-java &quot;&gt;&lt;code class=&quot;language-java&quot; data-lang=&quot;java&quot;&gt;&lt;span&gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; 开始XA事务
+&lt;&#x2F;span&gt;&lt;span&gt; conn.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;prepareStatement&lt;&#x2F;span&gt;&lt;span&gt;(&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;set xa=on&lt;&#x2F;span&gt;&lt;span&gt;&amp;quot;).&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;execute&lt;&#x2F;span&gt;&lt;span&gt;();
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; 插入语句
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; 分别预提交
+&lt;&#x2F;span&gt;&lt;span&gt;conn.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;prepareStatement&lt;&#x2F;span&gt;&lt;span&gt;(sql1).&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;execute&lt;&#x2F;span&gt;&lt;span&gt;();
+&lt;&#x2F;span&gt;&lt;span&gt;conn.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;prepareStatement&lt;&#x2F;span&gt;&lt;span&gt;(sql2).&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;execute&lt;&#x2F;span&gt;&lt;span&gt;();
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; commit
+&lt;&#x2F;span&gt;&lt;span&gt; conn.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;commit&lt;&#x2F;span&gt;&lt;span&gt;();
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;过程跟MySQL类似，在实现上，利用uuid生成了一个全局的事务ID：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;java&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-java &quot;&gt;&lt;code class=&quot;language-java&quot; data-lang=&quot;java&quot;&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;public&lt;&#x2F;span&gt;&lt;span&gt; void &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;setXATXEnabled&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;boolean&lt;&#x2F;span&gt;&lt;span&gt; xaTXEnabled) {
+&lt;&#x2F;span&gt;&lt;span&gt;   &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;if &lt;&#x2F;span&gt;&lt;span&gt;(xaTXEnabled) {
+&lt;&#x2F;span&gt;&lt;span&gt;       &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;if &lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;this&lt;&#x2F;span&gt;&lt;span&gt;.xaTXID == &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;null&lt;&#x2F;span&gt;&lt;span&gt;) {
+&lt;&#x2F;span&gt;&lt;span&gt;           xaTXID = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;genXATXID&lt;&#x2F;span&gt;&lt;span&gt;(); &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; 获得 XA 事务编号
+&lt;&#x2F;span&gt;&lt;span&gt;       }
+&lt;&#x2F;span&gt;&lt;span&gt;   } &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;else &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;       &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;this&lt;&#x2F;span&gt;&lt;span&gt;.xaTXID = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;null&lt;&#x2F;span&gt;&lt;span&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;   }
+&lt;&#x2F;span&gt;&lt;span&gt;}
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F;......
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;public static &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ebcb8b;&quot;&gt;String &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;getUUID&lt;&#x2F;span&gt;&lt;span&gt;() {
+&lt;&#x2F;span&gt;&lt;span&gt;   &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ebcb8b;&quot;&gt;String&lt;&#x2F;span&gt;&lt;span&gt; s = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ebcb8b;&quot;&gt;UUID&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;randomUUID&lt;&#x2F;span&gt;&lt;span&gt;().&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;toString&lt;&#x2F;span&gt;&lt;span&gt;();
+&lt;&#x2F;span&gt;&lt;span&gt;   &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;return&lt;&#x2F;span&gt;&lt;span&gt; s.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;substring&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;0&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;8&lt;&#x2F;span&gt;&lt;span&gt;) + s.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;substring&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;9&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;13&lt;&#x2F;span&gt;&lt;span&gt;) + s.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;substring&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;14&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;18&lt;&#x2F;span&gt;&lt;span&gt;) + s.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;substring&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;19&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;23&lt;&#x2F;span&gt;&lt;span&gt;) + s.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;substring&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;24&lt;&#x2F;span&gt;&lt;span&gt;);
+&lt;&#x2F;span&gt;&lt;span&gt;}
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;然后在事务管理器向节点分发语句时，会先写入XA START：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;java&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-java &quot;&gt;&lt;code class=&quot;language-java&quot; data-lang=&quot;java&quot;&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;if &lt;&#x2F;span&gt;&lt;span&gt;(expectAutocommit == &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;false &lt;&#x2F;span&gt;&lt;span&gt;&amp;amp;&amp;amp; xaTxID != &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;null &lt;&#x2F;span&gt;&lt;span&gt;&amp;amp;&amp;amp; xaStatus == &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ebcb8b;&quot;&gt;TxState&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;TX_INITIALIZE_STATE&lt;&#x2F;span&gt;&lt;span&gt;) { 
+&lt;&#x2F;span&gt;&lt;span&gt;       xaCmd = &amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;XA START &lt;&#x2F;span&gt;&lt;span&gt;&amp;quot; + xaTxID + &amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;;&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;;
+&lt;&#x2F;span&gt;&lt;span&gt;       &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;this&lt;&#x2F;span&gt;&lt;span&gt;.xaStatus = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ebcb8b;&quot;&gt;TxState&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;TX_STARTED_STATE&lt;&#x2F;span&gt;&lt;span&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;   }
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F;......
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; and our query sql to multi command at last
+&lt;&#x2F;span&gt;&lt;span&gt;sb.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;append&lt;&#x2F;span&gt;&lt;span&gt;(rrn.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;getStatement&lt;&#x2F;span&gt;&lt;span&gt;() + &amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;;&lt;&#x2F;span&gt;&lt;span&gt;&amp;quot;);
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; syn and execute others
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;this&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;sendQueryCmd&lt;&#x2F;span&gt;&lt;span&gt;(sb.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;toString&lt;&#x2F;span&gt;&lt;span&gt;());
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;MyCat在执行事务操作是，会同时将其写入日志中，保证可恢复。&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;java&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-java &quot;&gt;&lt;code class=&quot;language-java&quot; data-lang=&quot;java&quot;&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;if &lt;&#x2F;span&gt;&lt;span&gt;(mysqlCon.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;getXaStatus&lt;&#x2F;span&gt;&lt;span&gt;() == &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ebcb8b;&quot;&gt;TxState&lt;&#x2F;span&gt;&lt;span&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;TX_STARTED_STATE&lt;&#x2F;span&gt;&lt;span&gt;) { &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; XA 事务
+&lt;&#x2F;span&gt;&lt;span&gt;               &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F;recovery Log
+&lt;&#x2F;span&gt;&lt;span&gt;               participantLogEntry[started] = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;new &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ebcb8b;&quot;&gt;ParticipantLogEntry&lt;&#x2F;span&gt;&lt;span&gt;(xaTxId, conn.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;getHost&lt;&#x2F;span&gt;&lt;span&gt;(), &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;0&lt;&#x2F;span&gt;&lt;span&gt;, conn.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;getSchema&lt;&#x2F;span&gt;&lt;span&gt;(), ((&lt;&#x2F;span&gt;&lt;span style=&quot;color:#ebcb8b;&quot;&gt;MySQLConnection&lt;&#x2F;span&gt;&lt;span&gt;) conn).&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;getXaStatus&lt;&#x2F;span&gt;&lt;span&gt;());
+&lt;&#x2F;span&gt;&lt;span&gt;               &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ebcb8b;&quot;&gt;String&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;[]&lt;&#x2F;span&gt;&lt;span&gt; cmds = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;new &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ebcb8b;&quot;&gt;String&lt;&#x2F;span&gt;&lt;span&gt;[]{&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;XA END &lt;&#x2F;span&gt;&lt;span&gt;&amp;quot; + xaTxId, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; XA END 命令
+&lt;&#x2F;span&gt;&lt;span&gt;                       &amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;XA PREPARE &lt;&#x2F;span&gt;&lt;span&gt;&amp;quot; + xaTxId}; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; XA PREPARE 命令
+&lt;&#x2F;span&gt;&lt;span&gt;               mysqlCon.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;execBatchCmd&lt;&#x2F;span&gt;&lt;span&gt;(cmds);
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;同样的，commit时也会同步写入日志。&lt;&#x2F;p&gt;
+&lt;p&gt;rollback：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;java&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-java &quot;&gt;&lt;code class=&quot;language-java&quot; data-lang=&quot;java&quot;&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;if &lt;&#x2F;span&gt;&lt;span&gt;(needRollback) {
+&lt;&#x2F;span&gt;&lt;span&gt;           &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;for &lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;int&lt;&#x2F;span&gt;&lt;span&gt; j = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;0&lt;&#x2F;span&gt;&lt;span&gt;; j &amp;lt; coordinatorLogEntry.participants.length; j++) {
+&lt;&#x2F;span&gt;&lt;span&gt;               &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ebcb8b;&quot;&gt;ParticipantLogEntry&lt;&#x2F;span&gt;&lt;span&gt; participantLogEntry = coordinatorLogEntry.participants[j];
+&lt;&#x2F;span&gt;&lt;span&gt;               &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F;XA rollback
+&lt;&#x2F;span&gt;&lt;span&gt;               &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ebcb8b;&quot;&gt;String&lt;&#x2F;span&gt;&lt;span&gt; xacmd = &amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;XA ROLLBACK &lt;&#x2F;span&gt;&lt;span&gt;&amp;quot; + coordinatorLogEntry.id + &amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;;&lt;&#x2F;span&gt;&lt;span&gt;&amp;#39;;
+&lt;&#x2F;span&gt;&lt;span&gt;               &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ebcb8b;&quot;&gt;OneRawSQLQueryResultHandler&lt;&#x2F;span&gt;&lt;span&gt; resultHandler = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;new &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ebcb8b;&quot;&gt;OneRawSQLQueryResultHandler&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;new &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ebcb8b;&quot;&gt;String&lt;&#x2F;span&gt;&lt;span&gt;[&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;0&lt;&#x2F;span&gt;&lt;span&gt;], &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;new &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ebcb8b;&quot;&gt;XARollbackCallback&lt;&#x2F;span&gt;&lt;span&gt;());
+&lt;&#x2F;span&gt;&lt;span&gt;               outloop:
+&lt;&#x2F;span&gt;&lt;span&gt;               &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; ...
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;h3 id=&quot;everdbzhong-de-shi-xian&quot;&gt;EverDB中的实现&lt;&#x2F;h3&gt;
+&lt;p&gt;再来看下EverDB的处理过程：&lt;&#x2F;p&gt;
+&lt;p&gt;首先是生成xid，从0开始递增。&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;c++&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-c++ &quot;&gt;&lt;code class=&quot;language-c++&quot; data-lang=&quot;c++&quot;&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;unsigned long &lt;&#x2F;span&gt;&lt;span&gt;XA_manager::&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fa1b3;&quot;&gt;generate_xid&lt;&#x2F;span&gt;&lt;span&gt;()
+&lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;  &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;unsigned long&lt;&#x2F;span&gt;&lt;span&gt; ret = &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;0&lt;&#x2F;span&gt;&lt;span&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;  xid_mutex.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;acquire&lt;&#x2F;span&gt;&lt;span&gt;();
+&lt;&#x2F;span&gt;&lt;span&gt;  &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;try &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F;TODO: find a place to do init_max_xid
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;if &lt;&#x2F;span&gt;&lt;span&gt;(!init_xid)
+&lt;&#x2F;span&gt;&lt;span&gt;      &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;init_max_xid&lt;&#x2F;span&gt;&lt;span&gt;();
+&lt;&#x2F;span&gt;&lt;span&gt;    ret = xid_next++;
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;if &lt;&#x2F;span&gt;&lt;span&gt;(!ret) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; 0 is kept as the initial value
+&lt;&#x2F;span&gt;&lt;span&gt;      ++ret;
+&lt;&#x2F;span&gt;&lt;span&gt;      &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F;...
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;开始XA事务：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;c++&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-c++ &quot;&gt;&lt;code class=&quot;language-c++&quot; data-lang=&quot;c++&quot;&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;void &lt;&#x2F;span&gt;&lt;span&gt;MySQLXA_helper::&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fa1b3;&quot;&gt;init_conn_to_start_xa&lt;&#x2F;span&gt;&lt;span&gt;(Session *&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;session&lt;&#x2F;span&gt;&lt;span&gt;,
+&lt;&#x2F;span&gt;&lt;span&gt;                                           DataSpace *&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;space&lt;&#x2F;span&gt;&lt;span&gt;,
+&lt;&#x2F;span&gt;&lt;span&gt;                                           Connection *&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;conn&lt;&#x2F;span&gt;&lt;span&gt;)
+&lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;  &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;unsigned long&lt;&#x2F;span&gt;&lt;span&gt; xid = session-&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;get_xa_id&lt;&#x2F;span&gt;&lt;span&gt;();
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;  &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; clear the pending transaction
+&lt;&#x2F;span&gt;&lt;span&gt;  conn-&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;execute_one_modify_sql&lt;&#x2F;span&gt;&lt;span&gt;(&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;COMMIT;&lt;&#x2F;span&gt;&lt;span&gt;&amp;quot;);
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;  &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; ......
+&lt;&#x2F;span&gt;&lt;span&gt;  
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;record_xa_redo_log&lt;&#x2F;span&gt;&lt;span&gt;(session, space, sql.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;c_str&lt;&#x2F;span&gt;&lt;span&gt;());  &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; log
+&lt;&#x2F;span&gt;&lt;span&gt;   
+&lt;&#x2F;span&gt;&lt;span&gt;  }
+&lt;&#x2F;span&gt;&lt;span&gt;    
+&lt;&#x2F;span&gt;&lt;span&gt;  &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; ...
+&lt;&#x2F;span&gt;&lt;span&gt;    
+&lt;&#x2F;span&gt;&lt;span&gt;  &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; start xa transaction
+&lt;&#x2F;span&gt;&lt;span&gt;  sql += &amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;XA START &amp;#39;&lt;&#x2F;span&gt;&lt;span&gt;&amp;quot;;
+&lt;&#x2F;span&gt;&lt;span&gt;  sql += tmp;
+&lt;&#x2F;span&gt;&lt;span&gt;  sql += &amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;&amp;#39;;&lt;&#x2F;span&gt;&lt;span&gt;&amp;quot;;
+&lt;&#x2F;span&gt;&lt;span&gt;  conn-&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;execute_one_modify_sql&lt;&#x2F;span&gt;&lt;span&gt;(sql.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;c_str&lt;&#x2F;span&gt;&lt;span&gt;());
+&lt;&#x2F;span&gt;&lt;span&gt;  conn-&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;set_start_xa_conn&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d08770;&quot;&gt;true&lt;&#x2F;span&gt;&lt;span&gt;);
+&lt;&#x2F;span&gt;&lt;span style=&quot;background-color:#bf616a;color:#2b303b;&quot;&gt;}&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;第二阶段：XA COMMIT 或者ROLLBACK：&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;c++&quot; style=&quot;background-color:#2b303b;color:#c0c5ce;&quot; class=&quot;language-c++ &quot;&gt;&lt;code class=&quot;language-c++&quot; data-lang=&quot;c++&quot;&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;void &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fa1b3;&quot;&gt;xa_commit_or_rollback_xid&lt;&#x2F;span&gt;&lt;span&gt;(Connection *&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;conn&lt;&#x2F;span&gt;&lt;span&gt;, string &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;xid&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;int &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;flag&lt;&#x2F;span&gt;&lt;span&gt;)
+&lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;  string &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;sql&lt;&#x2F;span&gt;&lt;span&gt;(&amp;quot;&amp;quot;);
+&lt;&#x2F;span&gt;&lt;span&gt;  &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;if &lt;&#x2F;span&gt;&lt;span&gt;(flag == TC_TRANSACTION_COMMIT)
+&lt;&#x2F;span&gt;&lt;span&gt;    sql += &amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;XA COMMIT &amp;#39;&lt;&#x2F;span&gt;&lt;span&gt;&amp;quot;; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; xa commit
+&lt;&#x2F;span&gt;&lt;span&gt;  &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;else if &lt;&#x2F;span&gt;&lt;span&gt;(flag != TC_TRANSACTION_COMMIT)
+&lt;&#x2F;span&gt;&lt;span&gt;    sql += &amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;XA ROLLBACK &amp;#39;&lt;&#x2F;span&gt;&lt;span&gt;&amp;quot;; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F; xa rollback
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;  sql += xid.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;c_str&lt;&#x2F;span&gt;&lt;span&gt;();
+&lt;&#x2F;span&gt;&lt;span&gt;  sql += &amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;&amp;#39;;&lt;&#x2F;span&gt;&lt;span&gt;&amp;quot;;
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;  &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bf616a;&quot;&gt;check_xa_sql_is_not_running&lt;&#x2F;span&gt;&lt;span&gt;(conn, sql);
+&lt;&#x2F;span&gt;&lt;span&gt;  TimeValue timeout = TimeValue(backend_sql_net_timeout);
+&lt;&#x2F;span&gt;&lt;span&gt;  &lt;&#x2F;span&gt;&lt;span style=&quot;color:#65737e;&quot;&gt;&#x2F;&#x2F;......
+&lt;&#x2F;span&gt;&lt;span&gt;  }
+&lt;&#x2F;span&gt;&lt;span style=&quot;background-color:#bf616a;color:#2b303b;&quot;&gt;}&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;同时事务处理的过程会写入redolog中，比如上面的开始XA事务中 &lt;strong&gt;record_xa_redo_log&lt;&#x2F;strong&gt; 。&lt;&#x2F;p&gt;
+</content>
+    </entry>
+</feed>

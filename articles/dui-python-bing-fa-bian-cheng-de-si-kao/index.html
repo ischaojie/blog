@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>
+Chaojie&#x27;s Home ✍️ | 对Python并发编程的思考
+</title>
+    <meta name="description" content="The place where Chaojie writes">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta property="og:title" content=" Chaojie&#x27;s Home ✍️  | 对Python并发编程的思考">
+    <meta property="og:description" content="The place where Chaojie writes">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://chaojie.fun/articles/dui-python-bing-fa-bian-cheng-de-si-kao/">
+
+    
+    <link rel="alternate" type="application/atom+xml" title="RSS"
+        href="https://chaojie.fun/atom.xml">
+    
+    <link rel="icon" href="https://chaojie.fun/images/favicon.ico" sizes="any">
+    <link rel="stylesheet" href="https://chaojie.fun/libs/tabler.min.css">
+    <link rel="stylesheet" href="https://chaojie.fun/css/uno.css">
+    <link rel="stylesheet" href="https://chaojie.fun/assets/willow.css">
+
+    
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XDREGKCZH0"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+
+        gtag('config', 'G-XDREGKCZH0');
+    </script>
+    
+</head>
+
+<body>
+    <div class="theme-light text-base font-sans" id="theme">
+        <div class="container-xl subpixel-antialiased">
+            <div class="row justify-content-center">
+                <div class="col-lg-10 col-xl-9">
+                    
+<div class="col" style="margin: 24px 0;">
+    <div class="row align-items-end">
+        <div class="col-auto" style="margin: auto 0;">
+            <a href="https://chaojie.fun/">
+                <img src="https://chaojie.fun/images/logo.png" width="40" height="46" class="">
+            </a>
+        </div>
+        <div class="col">
+            <div class="row">
+                <div class="col">
+                    <h2 class="mb-0 tracking-wide">Chaojie&#x27;s Home ✍️</h2>
+                </div>
+            </div>
+            <div class="row">
+                <nav>
+                    
+<ul class="list-inline list-inline-dots mb-0">
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/">
+            Home
+        </a>
+    </li>
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/articles/">
+            Articles
+        </a>
+    </li>
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/memos/">
+            Memos
+        </a>
+    </li>
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/tags/">
+            Tags
+        </a>
+    </li>
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/about/">
+            About
+        </a>
+    </li>
+    
+    
+    
+</ul>
+
+                </nav>
+            </div>
+        </div>
+        <div class="col align-self-end">
+            <div class="d-flex justify-content-end space-x">
+                
+                
+                <a href="https://chaojie.fun/atom.xml" target="_blank">
+                    
+                    <img src="https://chaojie.fun/images/social/douban.svg" alt=douban width="18" height="18">
+                </a>
+                
+                <a href="https://chaojie.fun/atom.xml" target="_blank">
+                    
+                    <img src="https://chaojie.fun/images/social/github.svg" alt=github width="18" height="18">
+                </a>
+                
+                <a href="https://chaojie.fun/atom.xml" target="_blank">
+                    
+                    <img src="https://chaojie.fun/images/social/twitter.svg" alt=twitter width="18" height="18">
+                </a>
+                
+                
+                <a href="https://chaojie.fun/atom.xml" target="_blank">
+                    <img src="https://chaojie.fun/images/social/rss.svg" alt="RSS" width="18" height="18">
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+                    
+
+<div class="card card-lg">
+    <div class="card-body markdown text-justify">
+        <div class="">
+            
+            
+            <div class="d-flex justify-content-between" style="margin-bottom: 18px;">
+                <div>2018-01-11</div>
+                
+                <i class="fas fa-tags"></i>
+                <ul class="list-inline list-inline-dots mb-0">
+                    
+                    <li class="list-inline-item">
+                        <a class="tag"
+                            href="https://chaojie.fun/tags/python/">#Python</a>
+                    </li>
+                    
+
+                </ul>
+                
+            </div>
+            
+
+            <h1>对Python并发编程的思考</h1>
+            <p><p>为了提高系统密集型运算的效率，我们常常会使用到多个进程或者是多个线程，python中的<code>Threading</code>包实现了线程，<code>multiprocessing</code> 包则实现了多进程。而在3.2版本的python中，将进程与线程进一步封装成<code>concurrent.futures</code> 这个包，使用起来更加方便。我们以请求网络服务为例，来实际测试一下加入多线程之后的效果。</p>
+<p>首先来看看不使用多线程花费的时间：</p>
+<pre data-lang="python" style="background-color:#2b303b;color:#c0c5ce;" class="language-python "><code class="language-python" data-lang="python"><span style="color:#b48ead;">import </span><span>time
+</span><span style="color:#b48ead;">import </span><span>requests
+</span><span>
+</span><span style="color:#bf616a;">NUMBERS </span><span>= </span><span style="color:#96b5b4;">range</span><span>(</span><span style="color:#d08770;">12</span><span>)
+</span><span style="color:#bf616a;">URL </span><span>= &#39;</span><span style="color:#a3be8c;">http://httpbin.org/get?a=</span><span style="color:#d08770;">{}</span><span>&#39;
+</span><span>
+</span><span style="color:#65737e;"># 获取网络请求结果
+</span><span style="color:#b48ead;">def </span><span style="color:#8fa1b3;">fetch</span><span>(</span><span style="color:#bf616a;">a</span><span>):
+</span><span>    r = requests.</span><span style="color:#bf616a;">get</span><span>(URL.</span><span style="color:#bf616a;">format</span><span>(a))
+</span><span>    </span><span style="color:#b48ead;">return </span><span>r.</span><span style="color:#bf616a;">json</span><span>()[&#39;</span><span style="color:#a3be8c;">args</span><span>&#39;][&#39;</span><span style="color:#a3be8c;">a</span><span>&#39;]
+</span><span>
+</span><span style="color:#65737e;"># 开始时间
+</span><span>start = time.</span><span style="color:#bf616a;">time</span><span>()
+</span><span>
+</span><span style="color:#b48ead;">for </span><span>num </span><span style="color:#b48ead;">in </span><span style="color:#bf616a;">NUMBERS</span><span>:
+</span><span>    result = </span><span style="color:#bf616a;">fetch</span><span>(num)
+</span><span>    </span><span style="color:#96b5b4;">print</span><span>(&#39;</span><span style="color:#a3be8c;">fetch(</span><span style="color:#d08770;">{}</span><span style="color:#a3be8c;">) = </span><span style="color:#d08770;">{}</span><span>&#39;.</span><span style="color:#bf616a;">format</span><span>(num, result))
+</span><span style="color:#65737e;"># 计算花费的时间
+</span><span style="color:#96b5b4;">print</span><span>(&#39;</span><span style="color:#a3be8c;">cost time: </span><span style="color:#d08770;">{}</span><span>&#39;.</span><span style="color:#bf616a;">format</span><span>(time.</span><span style="color:#bf616a;">time</span><span>() - start))
+</span><span>
+</span></code></pre>
+<p>执行结果如下：</p>
+<pre data-lang="bash" style="background-color:#2b303b;color:#c0c5ce;" class="language-bash "><code class="language-bash" data-lang="bash"><span style="color:#bf616a;">fetch</span><span>(0) = </span><span style="color:#bf616a;">0
+</span><span style="color:#bf616a;">fetch</span><span>(1) = </span><span style="color:#bf616a;">1
+</span><span style="color:#bf616a;">fetch</span><span>(2) = </span><span style="color:#bf616a;">2
+</span><span style="color:#bf616a;">fetch</span><span>(3) = </span><span style="color:#bf616a;">3
+</span><span style="color:#bf616a;">fetch</span><span>(4) = </span><span style="color:#bf616a;">4
+</span><span style="color:#bf616a;">fetch</span><span>(5) = </span><span style="color:#bf616a;">5
+</span><span style="color:#bf616a;">fetch</span><span>(6) = </span><span style="color:#bf616a;">6
+</span><span style="color:#bf616a;">fetch</span><span>(7) = </span><span style="color:#bf616a;">7
+</span><span style="color:#bf616a;">fetch</span><span>(8) = </span><span style="color:#bf616a;">8
+</span><span style="color:#bf616a;">fetch</span><span>(9) = </span><span style="color:#bf616a;">9
+</span><span style="color:#bf616a;">fetch</span><span>(10) = </span><span style="color:#bf616a;">10
+</span><span style="color:#bf616a;">fetch</span><span>(11) = </span><span style="color:#bf616a;">11
+</span><span style="color:#bf616a;">cost</span><span> time: 6.952988862991333
+</span></code></pre>
+<p>再来看看加入多线程之后的效果：</p>
+<pre data-lang="python" style="background-color:#2b303b;color:#c0c5ce;" class="language-python "><code class="language-python" data-lang="python"><span style="color:#b48ead;">import </span><span>time
+</span><span style="color:#b48ead;">import </span><span>requests
+</span><span style="color:#b48ead;">from </span><span>concurrent.futures </span><span style="color:#b48ead;">import </span><span>ThreadPoolExecutor
+</span><span>
+</span><span style="color:#bf616a;">NUMBERS </span><span>= </span><span style="color:#96b5b4;">range</span><span>(</span><span style="color:#d08770;">12</span><span>)
+</span><span style="color:#bf616a;">URL </span><span>= &#39;</span><span style="color:#a3be8c;">http://httpbin.org/get?a=</span><span style="color:#d08770;">{}</span><span>&#39;
+</span><span>
+</span><span style="color:#b48ead;">def </span><span style="color:#8fa1b3;">fetch</span><span>(</span><span style="color:#bf616a;">a</span><span>):
+</span><span>    r = requests.</span><span style="color:#bf616a;">get</span><span>(URL.</span><span style="color:#bf616a;">format</span><span>(a))
+</span><span>    </span><span style="color:#b48ead;">return </span><span>r.</span><span style="color:#bf616a;">json</span><span>()[&#39;</span><span style="color:#a3be8c;">args</span><span>&#39;][&#39;</span><span style="color:#a3be8c;">a</span><span>&#39;]
+</span><span>
+</span><span>start = time.</span><span style="color:#bf616a;">time</span><span>()
+</span><span style="color:#65737e;"># 使用线程池（使用5个线程）
+</span><span style="color:#b48ead;">with </span><span style="color:#bf616a;">ThreadPoolExecutor</span><span>(</span><span style="color:#bf616a;">max_workers</span><span>=</span><span style="color:#d08770;">5</span><span>) </span><span style="color:#b48ead;">as </span><span>executor:
+</span><span>  </span><span style="color:#65737e;"># 此处的map操作与原生的map函数功能一样
+</span><span>    </span><span style="color:#b48ead;">for </span><span>num, result </span><span style="color:#b48ead;">in </span><span style="color:#96b5b4;">zip</span><span>(</span><span style="color:#bf616a;">NUMBERS</span><span>, executor.</span><span style="color:#bf616a;">map</span><span>(fetch, </span><span style="color:#bf616a;">NUMBERS</span><span>)):
+</span><span>        </span><span style="color:#96b5b4;">print</span><span>(&#39;</span><span style="color:#a3be8c;">fetch(</span><span style="color:#d08770;">{}</span><span style="color:#a3be8c;">) = </span><span style="color:#d08770;">{}</span><span>&#39;.</span><span style="color:#bf616a;">format</span><span>(num, result))
+</span><span style="color:#96b5b4;">print</span><span>(&#39;</span><span style="color:#a3be8c;">cost time: </span><span style="color:#d08770;">{}</span><span>&#39;.</span><span style="color:#bf616a;">format</span><span>(time.</span><span style="color:#bf616a;">time</span><span>() - start))
+</span></code></pre>
+<p>执行结果如下：</p>
+<pre data-lang="bash" style="background-color:#2b303b;color:#c0c5ce;" class="language-bash "><code class="language-bash" data-lang="bash"><span style="color:#bf616a;">fetch</span><span>(0) = </span><span style="color:#bf616a;">0
+</span><span style="color:#bf616a;">fetch</span><span>(1) = </span><span style="color:#bf616a;">1
+</span><span style="color:#bf616a;">fetch</span><span>(2) = </span><span style="color:#bf616a;">2
+</span><span style="color:#bf616a;">fetch</span><span>(3) = </span><span style="color:#bf616a;">3
+</span><span style="color:#bf616a;">fetch</span><span>(4) = </span><span style="color:#bf616a;">4
+</span><span style="color:#bf616a;">fetch</span><span>(5) = </span><span style="color:#bf616a;">5
+</span><span style="color:#bf616a;">fetch</span><span>(6) = </span><span style="color:#bf616a;">6
+</span><span style="color:#bf616a;">fetch</span><span>(7) = </span><span style="color:#bf616a;">7
+</span><span style="color:#bf616a;">fetch</span><span>(8) = </span><span style="color:#bf616a;">8
+</span><span style="color:#bf616a;">fetch</span><span>(9) = </span><span style="color:#bf616a;">9
+</span><span style="color:#bf616a;">fetch</span><span>(10) = </span><span style="color:#bf616a;">10
+</span><span style="color:#bf616a;">fetch</span><span>(11) = </span><span style="color:#bf616a;">11
+</span><span style="color:#bf616a;">cost</span><span> time: 1.9467740058898926
+</span></code></pre>
+<p>只用了近2秒的时间，如果再多加几个线程时间会更短，而不加入多线程需要接近7秒的时间。</p>
+<p>不是说python中由于全局解释锁的存在，每次只能执行一个线程吗，为什么上面使用多线程还快一些？</p>
+<p>确实，由于python的解释器（只有cpython解释器中存在这个问题）本身不是线程安全的，所以存在着全局解释锁，也就是我们经常听到的GIL，导致一次只能使用一个线程来执行Python的字节码。但是对于上面的I/O操作来说，一个线程在等待网络响应时，执行I/O操作的函数会释放GIL，然后再运行一个线程。</p>
+<p>所以，执行I/O密集型操作时，多线程是有用的，对于CPU密集型操作，则每次只能使用一个线程。那这样说来，想执行CPU密集型操作怎么办？</p>
+<p>答案是使用多进程，使用concurrent.futures包中的<code>ProcessPoolExecutor</code> 。这个模块实现的是真正的并行计算，因为它使用ProcessPoolExecutor 类把工作分配给多个 Python 进程处理。因此，如果需要做 CPU密集型处理，使用这个模块能绕开 GIL，利用所有可用的 CPU 核心。</p>
+<p>说到这里，对于I/O密集型，可以使用多线程或者多进程来提高效率。我们上面的并发请求数只有5个，但是如果同时有1万个并发操作，像淘宝这类的网站同时并发请求数可以达到千万级以上，服务器每次为一个请求开一个线程，还要进行上下文切换，这样的开销会很大，服务器压根承受不住。一个解决办法是采用分布式，大公司有钱有力，能买很多的服务器，小公司呢。</p>
+<p>我们知道系统开进程的个数是有限的，线程的出现就是为了解决这个问题，于是在进程之下又分出多个线程。所以有人就提出了能不能用<strong>同一线程来同时处理若干连接</strong>，再往下分一级。于是<strong>协程</strong>就出现了。</p>
+<blockquote>
+<p>协程在实现上试图用一组少量的线程来实现多个任务，一旦某个任务阻塞，则可能用同一线程继续运行其他任务，避免大量上下文的切换，而且，各个协程之间的切换，往往是用户通过代码来显式指定的，不需要系统参与，可以很方便的实现异步。</p>
+</blockquote>
+<p>协程本质上是异步非阻塞技术，它是将事件回调进行了包装，让程序员看不到里面的事件循环。说到这里，什么是异步非阻塞？同步异步，阻塞，非阻塞有什么区别？</p>
+<p>借用知乎上的一个例子，假如你打电话问书店老板有没有《分布式系统》这本书，如果是同步通信机制，书店老板会说，你稍等，”我查一下”，然后开始查啊查，等查好了（可能是5秒，也可能是一天）告诉你结果（返回结果）。而异步通信机制，书店老板直接告诉你我查一下啊，查好了打电话给你，然后直接挂电话了（不返回结果）。然后查好了，他会主动打电话给你。在这里老板通过“回电”这种方式来回调。</p>
+<p>而阻塞与非阻塞则是你打电话问书店老板有没有《分布式系统》这本书，你如果是阻塞式调用，你会一直把自己“挂起”，直到得到这本书有没有的结果，如果是非阻塞式调用，你不管老板有没有告诉你，你自己先一边去玩了， 当然你也要偶尔过几分钟check一下老板有没有返回结果。在这里阻塞与非阻塞与是否同步异步无关。跟老板通过什么方式回答你结果无关。</p>
+<p>总之一句话，阻塞和非阻塞，描述的是一种状态，而同步与非同步描述的是行为方式。</p>
+<p>回到协程上。</p>
+<p>类似于<code>Threading</code> 包是对线程的实现一样，python3.4之后加入的<code>asyncio</code> 包则是对协程的实现。我们用asyncio改写文章开头的代码，看看使用协程之后能花费多少时间。</p>
+<pre data-lang="python" style="background-color:#2b303b;color:#c0c5ce;" class="language-python "><code class="language-python" data-lang="python"><span style="color:#b48ead;">import </span><span>asyncio
+</span><span style="color:#b48ead;">import </span><span>aiohttp
+</span><span style="color:#b48ead;">import </span><span>time
+</span><span>
+</span><span style="color:#bf616a;">NUMBERS </span><span>= </span><span style="color:#96b5b4;">range</span><span>(</span><span style="color:#d08770;">12</span><span>)
+</span><span style="color:#bf616a;">URL </span><span>= &#39;</span><span style="color:#a3be8c;">http://httpbin.org/get?a=</span><span style="color:#d08770;">{}</span><span>&#39;
+</span><span style="color:#65737e;"># 这里的代码不理解没关系
+</span><span style="color:#65737e;"># 主要是为了证明协程的强大
+</span><span style="color:#b48ead;">async def </span><span style="color:#8fa1b3;">fetch_async</span><span>(</span><span style="color:#bf616a;">a</span><span>):
+</span><span>    </span><span style="color:#b48ead;">async with </span><span>aiohttp.</span><span style="color:#bf616a;">request</span><span>(&#39;</span><span style="color:#a3be8c;">GET</span><span>&#39;, URL.</span><span style="color:#bf616a;">format</span><span>(a)) </span><span style="color:#b48ead;">as </span><span>r:
+</span><span>        data = </span><span style="color:#b48ead;">await </span><span>r.</span><span style="color:#bf616a;">json</span><span>()
+</span><span>    </span><span style="color:#b48ead;">return </span><span>data[&#39;</span><span style="color:#a3be8c;">args</span><span>&#39;][&#39;</span><span style="color:#a3be8c;">a</span><span>&#39;]
+</span><span>
+</span><span>start = time.</span><span style="color:#bf616a;">time</span><span>()
+</span><span>loop = asyncio.</span><span style="color:#bf616a;">get_event_loop</span><span>()
+</span><span>tasks = [</span><span style="color:#bf616a;">fetch_async</span><span>(num) </span><span style="color:#b48ead;">for </span><span>num </span><span style="color:#b48ead;">in </span><span style="color:#bf616a;">NUMBERS</span><span>]
+</span><span>results = loop.</span><span style="color:#bf616a;">run_until_complete</span><span>(asyncio.</span><span style="color:#bf616a;">gather</span><span>(*tasks))
+</span><span>
+</span><span style="color:#b48ead;">for </span><span>num, results </span><span style="color:#b48ead;">in </span><span style="color:#96b5b4;">zip</span><span>(</span><span style="color:#bf616a;">NUMBERS</span><span>, results):
+</span><span>    </span><span style="color:#96b5b4;">print</span><span>(&#39;</span><span style="color:#a3be8c;">fetch(</span><span style="color:#d08770;">{}</span><span style="color:#a3be8c;">) = ()</span><span>&#39;.</span><span style="color:#bf616a;">format</span><span>(num, results))
+</span><span>
+</span><span style="color:#96b5b4;">print</span><span>(&#39;</span><span style="color:#a3be8c;">cost time: </span><span style="color:#d08770;">{}</span><span>&#39;.</span><span style="color:#bf616a;">format</span><span>(time.</span><span style="color:#bf616a;">time</span><span>() - start))
+</span></code></pre>
+<p>执行结果：</p>
+<pre data-lang="bash" style="background-color:#2b303b;color:#c0c5ce;" class="language-bash "><code class="language-bash" data-lang="bash"><span style="color:#bf616a;">fetch</span><span>(0) </span><span style="color:#8fa1b3;">= </span><span>()
+</span><span>fetch(</span><span style="color:#bf616a;">1</span><span>) </span><span style="color:#8fa1b3;">= </span><span>()
+</span><span>fetch(</span><span style="color:#bf616a;">2</span><span>) </span><span style="color:#8fa1b3;">= </span><span>()
+</span><span>fetch(</span><span style="color:#bf616a;">3</span><span>) </span><span style="color:#8fa1b3;">= </span><span>()
+</span><span>fetch(</span><span style="color:#bf616a;">4</span><span>) </span><span style="color:#8fa1b3;">= </span><span>()
+</span><span>fetch(</span><span style="color:#bf616a;">5</span><span>) </span><span style="color:#8fa1b3;">= </span><span>()
+</span><span>fetch(</span><span style="color:#bf616a;">6</span><span>) </span><span style="color:#8fa1b3;">= </span><span>()
+</span><span>fetch(</span><span style="color:#bf616a;">7</span><span>) </span><span style="color:#8fa1b3;">= </span><span>()
+</span><span>fetch(</span><span style="color:#bf616a;">8</span><span>) </span><span style="color:#8fa1b3;">= </span><span>()
+</span><span>fetch(</span><span style="color:#bf616a;">9</span><span>) </span><span style="color:#8fa1b3;">= </span><span>()
+</span><span>fetch(</span><span style="color:#bf616a;">10</span><span>) </span><span style="color:#8fa1b3;">= </span><span>()
+</span><span>fetch(</span><span style="color:#bf616a;">11</span><span>) </span><span style="color:#8fa1b3;">= </span><span>()
+</span><span>cost time: 0.8582110404968262
+</span></code></pre>
+<p>不到一秒！感受到协程的威力了吧。</p>
+<p>asyncio的知识说实在的有点难懂，因为它是用异步的方式在编写代码。上面给出的asyncio示例不理解也没有关系，之后的文章会详细的介绍一些asyncio相关的概念。</p>
+</p>
+
+            
+            
+            <script src="https://giscus.app/client.js" data-repo="ischaojie/blog"
+                data-repo-id="MDEwOlJlcG9zaXRvcnkyODk4MDA1NTY="
+                data-category="[object]"
+                data-category-id="[object]"
+                data-mapping="[object]" data-strict="0" data-reactions-enabled="1"
+                data-emit-metadata="0" data-input-position="top" data-theme="preferred_color_scheme"
+                data-lang="en" data-loading="lazy" crossorigin="anonymous" async>
+                </script>
+            
+            
+        </div>
+    </div>
+</div>
+
+
+                    
+<footer class="footer footer-transparent d-print-none">
+    <div class="container-xl">
+        <div class="row text-center align-items-center flex-row-reverse">
+            <div class="col-lg-auto ms-lg-auto">
+                
+<ul class="list-inline list-inline-dots mb-0">
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/">
+            Home
+        </a>
+    </li>
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/articles/">
+            Articles
+        </a>
+    </li>
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/memos/">
+            Memos
+        </a>
+    </li>
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/tags/">
+            Tags
+        </a>
+    </li>
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/about/">
+            About
+        </a>
+    </li>
+    
+    
+    
+</ul>
+
+            </div>
+            <div class="col-12 col-lg-auto mt-3 mt-lg-0">
+                <ul class="list-inline list-inline-dots mb-0">
+                    <li class="list-inline-item">
+                        Copyright © 2023
+                        <a href="." class="link-secondary">Chaojie</a>.
+                        All rights reserved.
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</footer>
+
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://chaojie.fun/libs/tabler.min.js"></script>
+    <script src="https://chaojie.fun/libs/fslightbox.js"></script>
+    <script src="https://chaojie.fun/libs/infinite-scroll.min.js"></script>
+    <script src="https://chaojie.fun/libs/luxon.min.js"></script>
+    <script src="https://chaojie.fun/js/willow.js"></script>
+    
+
+
+</body>
+
+</html>

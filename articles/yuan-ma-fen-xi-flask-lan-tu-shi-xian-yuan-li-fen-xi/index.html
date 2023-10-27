@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>
+Chaojie&#x27;s Home ✍️ | [源码分析] Flask蓝图实现原理分析
+</title>
+    <meta name="description" content="The place where Chaojie writes">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta property="og:title" content=" Chaojie&#x27;s Home ✍️  | [源码分析] Flask蓝图实现原理分析">
+    <meta property="og:description" content="The place where Chaojie writes">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://chaojie.fun/articles/yuan-ma-fen-xi-flask-lan-tu-shi-xian-yuan-li-fen-xi/">
+
+    
+    <link rel="alternate" type="application/atom+xml" title="RSS"
+        href="https://chaojie.fun/atom.xml">
+    
+    <link rel="icon" href="https://chaojie.fun/images/favicon.ico" sizes="any">
+    <link rel="stylesheet" href="https://chaojie.fun/libs/tabler.min.css">
+    <link rel="stylesheet" href="https://chaojie.fun/css/uno.css">
+    <link rel="stylesheet" href="https://chaojie.fun/assets/willow.css">
+
+    
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XDREGKCZH0"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+
+        gtag('config', 'G-XDREGKCZH0');
+    </script>
+    
+</head>
+
+<body>
+    <div class="theme-light text-base font-sans" id="theme">
+        <div class="container-xl subpixel-antialiased">
+            <div class="row justify-content-center">
+                <div class="col-lg-10 col-xl-9">
+                    
+<div class="col" style="margin: 24px 0;">
+    <div class="row align-items-end">
+        <div class="col-auto" style="margin: auto 0;">
+            <a href="https://chaojie.fun/">
+                <img src="https://chaojie.fun/images/logo.png" width="40" height="46" class="">
+            </a>
+        </div>
+        <div class="col">
+            <div class="row">
+                <div class="col">
+                    <h2 class="mb-0 tracking-wide">Chaojie&#x27;s Home ✍️</h2>
+                </div>
+            </div>
+            <div class="row">
+                <nav>
+                    
+<ul class="list-inline list-inline-dots mb-0">
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/">
+            Home
+        </a>
+    </li>
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/articles/">
+            Articles
+        </a>
+    </li>
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/memos/">
+            Memos
+        </a>
+    </li>
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/tags/">
+            Tags
+        </a>
+    </li>
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/about/">
+            About
+        </a>
+    </li>
+    
+    
+    
+</ul>
+
+                </nav>
+            </div>
+        </div>
+        <div class="col align-self-end">
+            <div class="d-flex justify-content-end space-x">
+                
+                
+                <a href="https://chaojie.fun/atom.xml" target="_blank">
+                    
+                    <img src="https://chaojie.fun/images/social/douban.svg" alt=douban width="18" height="18">
+                </a>
+                
+                <a href="https://chaojie.fun/atom.xml" target="_blank">
+                    
+                    <img src="https://chaojie.fun/images/social/github.svg" alt=github width="18" height="18">
+                </a>
+                
+                <a href="https://chaojie.fun/atom.xml" target="_blank">
+                    
+                    <img src="https://chaojie.fun/images/social/twitter.svg" alt=twitter width="18" height="18">
+                </a>
+                
+                
+                <a href="https://chaojie.fun/atom.xml" target="_blank">
+                    <img src="https://chaojie.fun/images/social/rss.svg" alt="RSS" width="18" height="18">
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+                    
+
+<div class="card card-lg">
+    <div class="card-body markdown text-justify">
+        <div class="">
+            
+            
+            <div class="d-flex justify-content-between" style="margin-bottom: 18px;">
+                <div>2019-07-01</div>
+                
+                <i class="fas fa-tags"></i>
+                <ul class="list-inline list-inline-dots mb-0">
+                    
+                    <li class="list-inline-item">
+                        <a class="tag"
+                            href="https://chaojie.fun/tags/python/">#Python</a>
+                    </li>
+                    
+                    <li class="list-inline-item">
+                        <a class="tag"
+                            href="https://chaojie.fun/tags/flask/">#Flask</a>
+                    </li>
+                    
+
+                </ul>
+                
+            </div>
+            
+
+            <h1>[源码分析] Flask蓝图实现原理分析</h1>
+            <p><blockquote>
+<p>看这篇文章之前，建议看一下我之前写的：[源码分析]Flask中路由匹配是如何实现的</p>
+</blockquote>
+<p>BluePrint（蓝图）的概念说白了就是路由组，所有注册到该蓝图上的路由都使用同一个前缀。这样方便了管理，不同的功能可以放在一个模块（比如admin模块）中实现，更加解耦。</p>
+<p>首先来看看蓝图是如何使用的：</p>
+<pre data-lang="python" style="background-color:#2b303b;color:#c0c5ce;" class="language-python "><code class="language-python" data-lang="python"><span style="color:#65737e;"># 定义一个蓝图
+</span><span>simple_page = </span><span style="color:#bf616a;">Blueprint</span><span>(&#39;</span><span style="color:#a3be8c;">simple_page</span><span>&#39;, __name__,
+</span><span>                        </span><span style="color:#bf616a;">template_folder</span><span>=&#39;</span><span style="color:#a3be8c;">templates</span><span>&#39;)
+</span><span>
+</span><span style="color:#65737e;"># 绑定视图函数
+</span><span>@simple_page.</span><span style="color:#bf616a;">route</span><span>(&#39;</span><span style="color:#a3be8c;">/</span><span>&#39;, </span><span style="color:#bf616a;">defaults</span><span>={&#39;</span><span style="color:#a3be8c;">page</span><span>&#39;: &#39;</span><span style="color:#a3be8c;">index</span><span>&#39;})
+</span><span>@simple_page.</span><span style="color:#bf616a;">route</span><span>(&#39;</span><span style="color:#a3be8c;">/&lt;page&gt;</span><span>&#39;)
+</span><span style="color:#b48ead;">def </span><span style="color:#8fa1b3;">show</span><span>(</span><span style="color:#bf616a;">page</span><span>):
+</span><span>    </span><span style="color:#b48ead;">try</span><span>:
+</span><span>        </span><span style="color:#b48ead;">return </span><span style="color:#bf616a;">render_template</span><span>(&#39;</span><span style="color:#a3be8c;">pages/</span><span style="color:#d08770;">%s</span><span style="color:#a3be8c;">.html</span><span>&#39; % page)
+</span><span>    </span><span style="color:#b48ead;">except </span><span>TemplateNotFound:
+</span><span>        </span><span style="color:#bf616a;">abort</span><span>(</span><span style="color:#d08770;">404</span><span>)
+</span><span>        
+</span><span>
+</span><span>        </span><span style="color:#65737e;"># 在主模块中注册路由
+</span><span>app = </span><span style="color:#bf616a;">Flask</span><span>(__name__)
+</span><span>app.</span><span style="color:#bf616a;">register_blueprint</span><span>(simple_page)
+</span></code></pre>
+<p>看上面的例子，首先定义了一个蓝图simple_page，然后经由这个蓝图来定义路由以及绑定到视图函数上，最后在主模块中，注册这个蓝图即可。</p>
+<p>看起来跟常见的定义视图函数的方式一样，只不过在添加路由的时候，需要以蓝图开头。</p>
+<p>来看看源码中是如何实现的。</p>
+<p>蓝图的功能是在flask 0.7版本中被加入的，app在调用 <strong>register_blueprint</strong> 方法的时候会调用 <strong>Blueprint</strong> 类中的 <strong>register</strong> 方法来注册该蓝图中添加的所有路由。</p>
+<pre data-lang="python" style="background-color:#2b303b;color:#c0c5ce;" class="language-python "><code class="language-python" data-lang="python"><span style="color:#b48ead;">def </span><span style="color:#8fa1b3;">register_blueprint</span><span>(</span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">blueprint</span><span>, **</span><span style="color:#bf616a;">options</span><span>):
+</span><span>   	</span><span style="color:#d08770;">...	
+</span><span>	blueprint.</span><span style="color:#bf616a;">register</span><span>(</span><span style="color:#bf616a;">self</span><span>, options, first_registration)
+</span></code></pre>
+<p>我们看一下register方法：</p>
+<pre data-lang="python" style="background-color:#2b303b;color:#c0c5ce;" class="language-python "><code class="language-python" data-lang="python"><span style="color:#65737e;"># blueprints.py
+</span><span style="color:#b48ead;">def </span><span style="color:#8fa1b3;">register</span><span>(</span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">app</span><span>, </span><span style="color:#bf616a;">options</span><span>, </span><span style="color:#bf616a;">first_registration</span><span>=</span><span style="color:#d08770;">False</span><span>):
+</span><span>	
+</span><span>    </span><span style="color:#d08770;">...
+</span><span>    state = </span><span style="color:#bf616a;">self</span><span>.</span><span style="color:#bf616a;">make_setup_state</span><span>(app, options, first_registration)
+</span><span>    
+</span><span>    </span><span style="color:#d08770;">...
+</span><span>    </span><span style="color:#b48ead;">for </span><span>deferred </span><span style="color:#b48ead;">in </span><span style="color:#bf616a;">self</span><span>.deferred_functions:
+</span><span>        </span><span style="color:#bf616a;">deferred</span><span>(state)
+</span></code></pre>
+<p>额，make_setup_state是个啥，deferred_functions又是个啥。我们跳到make_setup_state来看看它里面有什么：</p>
+<pre data-lang="python" style="background-color:#2b303b;color:#c0c5ce;" class="language-python "><code class="language-python" data-lang="python"><span style="color:#b48ead;">def </span><span style="color:#8fa1b3;">make_setup_state</span><span>(</span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">app</span><span>, </span><span style="color:#bf616a;">options</span><span>, </span><span style="color:#bf616a;">first_registration</span><span>=</span><span style="color:#d08770;">False</span><span>):
+</span><span>    </span><span style="color:#b48ead;">return </span><span style="color:#bf616a;">BlueprintSetupState</span><span>(</span><span style="color:#bf616a;">self</span><span>, app, options, first_registration)
+</span></code></pre>
+<p>返回了一个类。先不管。来看看deferred_functions是什么，从名字上可以看出是延迟函数之类的。</p>
+<p>来梳理一下流程，<strong>app.register_blueprint</strong> 注册蓝图之后，会激活Buleprint类中的register方法，在register方法中循环调用 <strong>deferred_functions</strong> 中的函数来执行，我们大概能猜出来这段代码的功能就是将蓝图中定义的路由都添加到路由组中。</p>
+<p>以上面的蓝图例子，</p>
+<pre data-lang="python" style="background-color:#2b303b;color:#c0c5ce;" class="language-python "><code class="language-python" data-lang="python"><span>@simple_page.</span><span style="color:#bf616a;">route</span><span>(&#39;</span><span style="color:#a3be8c;">/</span><span>&#39;, </span><span style="color:#bf616a;">defaults</span><span>={&#39;</span><span style="color:#a3be8c;">page</span><span>&#39;: &#39;</span><span style="color:#a3be8c;">index</span><span>&#39;})
+</span></code></pre>
+<p>蓝图的route方法是这样的：</p>
+<pre data-lang="python" style="background-color:#2b303b;color:#c0c5ce;" class="language-python "><code class="language-python" data-lang="python"><span style="color:#b48ead;">def </span><span style="color:#8fa1b3;">route</span><span>(</span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">rule</span><span>, **</span><span style="color:#bf616a;">options</span><span>):
+</span><span>    </span><span style="color:#b48ead;">def </span><span style="color:#8fa1b3;">decorator</span><span>(</span><span style="color:#bf616a;">f</span><span>):
+</span><span>        </span><span style="color:#bf616a;">self</span><span>.</span><span style="color:#bf616a;">add_url_rule</span><span>(rule, f.__name__, f, **options)
+</span><span>        </span><span style="color:#b48ead;">return </span><span>f
+</span><span>    </span><span style="color:#b48ead;">return </span><span>decorator
+</span></code></pre>
+<p>route方法是个装饰器，实际上调用了 <strong>add_url_rule</strong> 方法：</p>
+<pre data-lang="python" style="background-color:#2b303b;color:#c0c5ce;" class="language-python "><code class="language-python" data-lang="python"><span style="color:#b48ead;">def </span><span style="color:#8fa1b3;">add_url_rule</span><span>(</span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">rule</span><span>, </span><span style="color:#bf616a;">endpoint</span><span>=</span><span style="color:#d08770;">None</span><span>, </span><span style="color:#bf616a;">view_func</span><span>=</span><span style="color:#d08770;">None</span><span>, **</span><span style="color:#bf616a;">options</span><span>):
+</span><span>    </span><span style="color:#bf616a;">self</span><span>.</span><span style="color:#bf616a;">record</span><span>(</span><span style="color:#b48ead;">lambda </span><span style="color:#bf616a;">s</span><span>: s.</span><span style="color:#bf616a;">add_url_rule</span><span>(rule, endpoint, view_func, **options))
+</span><span>        
+</span><span style="color:#b48ead;">def </span><span style="color:#8fa1b3;">record</span><span>(</span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">func</span><span>):
+</span><span>	</span><span style="color:#d08770;">...</span><span>.
+</span><span>    </span><span style="color:#bf616a;">self</span><span>.deferred_functions.</span><span style="color:#bf616a;">append</span><span>(func)
+</span></code></pre>
+<p>在record方法中，将func添加到了deferred_functions列表中，而add_url_rule中调用了record方法，那么一切就都可以解释了：</p>
+<p><strong>register</strong> 方法中的这段代码，</p>
+<pre data-lang="python" style="background-color:#2b303b;color:#c0c5ce;" class="language-python "><code class="language-python" data-lang="python"><span>state = </span><span style="color:#bf616a;">self</span><span>.</span><span style="color:#bf616a;">make_setup_state</span><span>(app, options, first_registration)    
+</span><span style="color:#d08770;">...
+</span><span style="color:#b48ead;">for </span><span>deferred </span><span style="color:#b48ead;">in </span><span style="color:#bf616a;">self</span><span>.deferred_functions:
+</span><span>    </span><span style="color:#bf616a;">deferred</span><span>(state)
+</span></code></pre>
+<p>循环 <strong>deferred_functions</strong>，<strong>deferred_functions</strong> 里面是啥？是lambda，具体来说，就是蓝图中定义的路由和视图函数，我们通过</p>
+<pre data-lang="python" style="background-color:#2b303b;color:#c0c5ce;" class="language-python "><code class="language-python" data-lang="python"><span>@simple_page.</span><span style="color:#bf616a;">route</span><span>(&#39;</span><span style="color:#a3be8c;">/&lt;page&gt;</span><span>&#39;)
+</span></code></pre>
+<p>定义路由之后，实际上就是在 <strong>deferred_functions</strong> 里面添加了一个lambda，为什么说它是defer，因为只有在register注册的时候才会真正添加到app的url_map中。</p>
+<p>上面代码中的state是一个 <strong>BlueprintSetupState</strong> 示例，这个类里面有一个add_url_rule方法，会在全局app的 <strong>url_map</strong> 中添加路由和视图函数。</p>
+<pre data-lang="python" style="background-color:#2b303b;color:#c0c5ce;" class="language-python "><code class="language-python" data-lang="python"><span style="color:#b48ead;">def </span><span style="color:#8fa1b3;">add_url_rule</span><span>(</span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">rule</span><span>, </span><span style="color:#bf616a;">endpoint</span><span>=</span><span style="color:#d08770;">None</span><span>, </span><span style="color:#bf616a;">view_func</span><span>=</span><span style="color:#d08770;">None</span><span>, **</span><span style="color:#bf616a;">options</span><span>):
+</span><span>    </span><span style="color:#bf616a;">self</span><span>.app.</span><span style="color:#bf616a;">add_url_rule</span><span>(rule, &#39;</span><span style="color:#d08770;">%s</span><span style="color:#a3be8c;">.</span><span style="color:#d08770;">%s</span><span>&#39; % (</span><span style="color:#bf616a;">self</span><span>.blueprint.name, endpoint),view_func, </span><span style="color:#bf616a;">defaults</span><span>=defaults, **options)
+</span></code></pre>
+<p>来梳理一下：</p>
+<pre data-lang="python" style="background-color:#2b303b;color:#c0c5ce;" class="language-python "><code class="language-python" data-lang="python"><span style="color:#65737e;"># state 是 BlueprintSetupState 实例
+</span><span>BlueprintSetupState -&gt; state
+</span><span>
+</span><span style="color:#65737e;"># deferred_functions 里面是蓝图路由的lambda
+</span><span style="color:#b48ead;">lambda </span><span style="color:#bf616a;">s</span><span>: s.add_url_rule -&gt; deferred_functions
+</span><span>
+</span><span style="color:#b48ead;">for </span><span>deferred </span><span style="color:#b48ead;">in </span><span style="color:#bf616a;">self</span><span>.deferred_functions:
+</span><span>    </span><span style="color:#bf616a;">deferred</span><span>(state)
+</span><span>    
+</span><span>意思就是 </span><span style="color:#b48ead;">lambda </span><span style="color:#bf616a;">中的 s 被赋值为 state </span><span style="background-color:#bf616a;color:#2b303b;">，</span><span style="color:#bf616a;">然后state</span><span style="background-color:#bf616a;color:#2b303b;">.</span><span style="color:#bf616a;">add_url_rule</span><span>,
+</span><span style="color:#bf616a;">这样就执行了app</span><span style="background-color:#bf616a;color:#2b303b;">.</span><span style="color:#bf616a;">add_url_rule
+</span></code></pre>
+<p>这个延迟执行设计的太巧妙了，蓝图中添加的路由规则只有在register方法中才真正的被添加到全局的路由map中。</p>
+</p>
+
+            
+            
+            <script src="https://giscus.app/client.js" data-repo="ischaojie/blog"
+                data-repo-id="MDEwOlJlcG9zaXRvcnkyODk4MDA1NTY="
+                data-category="[object]"
+                data-category-id="[object]"
+                data-mapping="[object]" data-strict="0" data-reactions-enabled="1"
+                data-emit-metadata="0" data-input-position="top" data-theme="preferred_color_scheme"
+                data-lang="en" data-loading="lazy" crossorigin="anonymous" async>
+                </script>
+            
+            
+        </div>
+    </div>
+</div>
+
+
+                    
+<footer class="footer footer-transparent d-print-none">
+    <div class="container-xl">
+        <div class="row text-center align-items-center flex-row-reverse">
+            <div class="col-lg-auto ms-lg-auto">
+                
+<ul class="list-inline list-inline-dots mb-0">
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/">
+            Home
+        </a>
+    </li>
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/articles/">
+            Articles
+        </a>
+    </li>
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/memos/">
+            Memos
+        </a>
+    </li>
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/tags/">
+            Tags
+        </a>
+    </li>
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <li class="list-inline-item">
+        <a class="link-secondary" href="https://chaojie.fun/about/">
+            About
+        </a>
+    </li>
+    
+    
+    
+</ul>
+
+            </div>
+            <div class="col-12 col-lg-auto mt-3 mt-lg-0">
+                <ul class="list-inline list-inline-dots mb-0">
+                    <li class="list-inline-item">
+                        Copyright © 2023
+                        <a href="." class="link-secondary">Chaojie</a>.
+                        All rights reserved.
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</footer>
+
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://chaojie.fun/libs/tabler.min.js"></script>
+    <script src="https://chaojie.fun/libs/fslightbox.js"></script>
+    <script src="https://chaojie.fun/libs/infinite-scroll.min.js"></script>
+    <script src="https://chaojie.fun/libs/luxon.min.js"></script>
+    <script src="https://chaojie.fun/js/willow.js"></script>
+    
+
+
+</body>
+
+</html>
