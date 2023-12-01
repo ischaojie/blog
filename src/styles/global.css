@@ -1,0 +1,13 @@
+body {
+	font: Helvetica, Arial, sans-serif;
+}
+
+a {
+	text-decoration: none;
+	color: #37a;
+}
+
+a:hover{
+	color: white;
+	background-color: #37a;
+}

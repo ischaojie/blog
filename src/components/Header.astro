@@ -1,0 +1,19 @@
+---
+import HeaderLink from "./HeaderLink.astro";
+import { SITE_TITLE } from "../consts";
+import { Image } from "astro:assets";
+---
+
+<header class="bg-green-50">
+  <nav
+    class="w-2/3 mx-auto flex justify-between items-center py-2 px-12"
+  >
+    <h2><a href="/">{SITE_TITLE}</a></h2>
+    <div class="internal-links space-x-4">
+      <HeaderLink href="/">Home</HeaderLink>
+      <HeaderLink href="/blog">Blog</HeaderLink>
+      <HeaderLink href="/tags">Tags</HeaderLink>
+      <HeaderLink href="/about">About</HeaderLink>
+    </div>
+  </nav>
+</header>

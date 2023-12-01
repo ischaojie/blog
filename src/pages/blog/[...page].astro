@@ -1,0 +1,46 @@
+---
+import { getCollection } from "astro:content";
+import Base from "../../layouts/Base.astro";
+import FormattedDate from "../../components/FormattedDate.astro";
+import Pagination from "../../components/Pagination.astro";
+import { PER_PAGE_POSTS_NUM } from "../../consts";
+import PostSummary from "../../components/postSummary.astro";
+
+const allPosts = await getCollection("blog");
+export async function getStaticPaths({ paginate }) {
+  const allPosts = (await getCollection("blog")).sort(
+    (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
+  );
+
+  return paginate(allPosts, { pageSize: PER_PAGE_POSTS_NUM });
+}
+
+const { page } = Astro.props;
+const pathname = new URL(Astro.request.url).pathname.split("/");
+const firstPath = pathname[1];
+---
+
+<Base>
+  <main class="text-justify text-lg">
+    <section>
+      <div class="flex flex-col space-y-6">
+        {page.data.map((post) => <PostSummary post={post} />)}
+      </div>
+      {
+        allPosts.length > 10 ? (
+          <div class="mt-4">
+            <Pagination
+              length={page.lastPage}
+              currentUrl={page.url.current}
+              currentPage={page.currentPage}
+              firstUrl={`/${firstPath}`}
+              prevUrl={page.url.prev}
+              nextUrl={page.url.next}
+              lastUrl={`/${firstPath}/${page.lastPage}`}
+            />
+          </div>
+        ) : null
+      }
+    </section>
+  </main>
+</Base>

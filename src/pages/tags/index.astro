@@ -1,0 +1,14 @@
+---
+import Base from "../../layouts/Base.astro";
+import { getCollection } from "astro:content";
+import Tag from "../../components/Tag.astro";
+
+const allPosts = await getCollection("blog");
+const tags = [...new Set(allPosts.map((post) => post.data.tags).flat())];
+---
+
+<Base pageTitle="tags">
+  <div class="grid grid-cols-8 gap-2">
+    {tags.map((tag) => <Tag name={tag} />)}
+  </div>
+</Base>

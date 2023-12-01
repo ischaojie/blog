@@ -1,0 +1,13 @@
+---
+import moment from "moment";
+
+interface Props {
+  date: Date;
+}
+
+const { date } = Astro.props;
+---
+
+<time datetime={date.toISOString()} class="tracking-wide text-justify">
+  {moment(date).format("MMM DD YYYY")}
+</time>

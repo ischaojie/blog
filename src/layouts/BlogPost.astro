@@ -1,0 +1,47 @@
+---
+import type { CollectionEntry } from "astro:content";
+import FormattedDate from "../components/FormattedDate.astro";
+import Star from "../components/Star.astro";
+import Base from "./Base.astro";
+import Tag from "../components/Tag.astro";
+import { Image } from "astro:assets";
+import Avatar from "../assets/avatar.jpg";
+
+type Props = CollectionEntry<"blog">["data"];
+
+const { title, description, pubDate, updatedDate, tags } = Astro.props;
+---
+
+<Base pageTitle={title}>
+  <main class="text-justify text-lg">
+    <article class="text-justify">
+      <div class="space-y-4">
+        <h2>{title}</h2>
+        <div class="flex items-center space-x-4 text-base text-gray-500">
+          <div class="flex space-x-2">
+            <Image src={Avatar} alt="avatar" width={"24"} />
+            <div>Chaojie</div>
+          </div>
+
+          <FormattedDate date={pubDate} />
+          {
+            updatedDate && (
+              <div class="last-updated-on">
+                Last updated on <FormattedDate date={updatedDate} />
+              </div>
+            )
+          }
+        </div>
+        <div class="tags space-x-4">
+          {tags?.map((tag) => <Tag name={tag} />)}
+        </div>
+      </div>
+      <div>
+        <slot />
+      </div>
+      <div class="text-center">
+        <Star />
+      </div>
+    </article>
+  </main>
+</Base>

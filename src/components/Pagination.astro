@@ -1,0 +1,43 @@
+---
+const { length, currentUrl, currentPage, firstUrl, prevUrl, nextUrl, lastUrl } =
+  Astro.props;
+const paginationList = Array.from({ length: `${length}` }, (_, i) => i + 1);
+---
+
+<nav class="flex justify-center space-x-6">
+  {
+    prevUrl ? (
+      <a href={prevUrl} class="">
+        {`<`}Prev
+      </a>
+    ) : (
+      <span class="disabled">{`<`}Prev</span>
+    )
+  }
+  <div class="space-x-2">
+    {
+      paginationList.map((num) => (
+        <a
+          href={`${firstUrl}${num == 1 ? "" : "/" + num}`}
+          class={`text-center m-2px px-4px ${
+            currentPage == num
+              ? "bg-db-green-light text-white hover:text-white hover:bg-db-green-light"
+              : ""
+          }`}
+        >
+          {num}
+        </a>
+      ))
+    }
+  </div>
+
+  {
+    !nextUrl ? (
+      <span class="disabled">Next></span>
+    ) : (
+      <a href={nextUrl} class="">
+        Next>
+      </a>
+    )
+  }
+</nav>
