@@ -1,10 +1,9 @@
 ---
 import { getCollection } from "astro:content";
 import Base from "../../layouts/Base.astro";
-import FormattedDate from "../../components/FormattedDate.astro";
 import Pagination from "../../components/Pagination.astro";
 import { PER_PAGE_POSTS_NUM } from "../../consts";
-import PostSummary from "../../components/postSummary.astro";
+import FormattedDate from "../../components/FormattedDate.astro";
 
 const allPosts = await getCollection("blog");
 export async function getStaticPaths({ paginate }) {
@@ -24,7 +23,18 @@ const firstPath = pathname[1];
   <main class="text-justify text-lg">
     <section>
       <div class="flex flex-col space-y-6">
-        {page.data.map((post) => <PostSummary post={post} />)}
+        {
+          page.data.map((post) => (
+            <div>
+              <div class="mb-2">
+                <a href={`/blog/${post.slug}/`} class="">
+                  {post.data.title}
+                </a>
+              </div>
+              <FormattedDate date={post.data.pubDate} />
+            </div>
+          ))
+        }
       </div>
       {
         allPosts.length > 10 ? (

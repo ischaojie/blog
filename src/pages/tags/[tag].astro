@@ -1,7 +1,8 @@
 ---
 import Base from "../../layouts/Base.astro";
 import { getCollection } from "astro:content";
-import PostSummary from "../../components/PostSummary.astro";
+import FormattedDate from "../../components/FormattedDate.astro";
+
 export async function getStaticPaths() {
   const allPosts = await getCollection("blog");
   const uniqueTags = [
@@ -27,7 +28,18 @@ const { posts } = Astro.props;
   <div class="text-lg">
     <h2># {tag}</h2>
     <div class="flex flex-col space-y-6">
-      {posts.map((post) => <PostSummary post={post} />)}
+      {
+        posts.map((post) => (
+          <div>
+            <div class="mb-2">
+              <a href={`/blog/${post.slug}/`} class="">
+                {post.data.title}
+              </a>
+            </div>
+            <FormattedDate date={post.data.pubDate} />
+          </div>
+        ))
+      }
     </div>
   </div>
 </Base>
