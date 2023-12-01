@@ -6,7 +6,7 @@ import { getCollection } from "astro:content";
 import Social from "../components/Social.astro";
 import { Image } from "astro:assets";
 import Avatar from "../assets/avatar.jpg";
-import { Content as IndexMD } from "../pages/index.md";
+import { Content as Intro } from "../pages/intro.md";
 
 const posts = (await getCollection("blog"))
   .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
@@ -20,7 +20,7 @@ const posts = (await getCollection("blog"))
         <Image src={Avatar} alt="avatar" width={"28"} />
         <h1>Hi, I am <a href="/about">Chaojie</a></h1>
       </div>
-      <IndexMD />
+      <Intro />
     </div>
 
     <Social />
