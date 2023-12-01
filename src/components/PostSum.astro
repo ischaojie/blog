@@ -1,0 +1,12 @@
+---
+import FormattedDate from "./FormattedDate.astro";
+import { getEntryBySlug } from 'astro:content';
+
+const { slug } = Astro.props;
+const entry = await getEntryBySlug('blog', slug);
+const { Content } = await entry.render();
+---
+
+<div class="line-clamp-3">
+  <Content/>
+</div>

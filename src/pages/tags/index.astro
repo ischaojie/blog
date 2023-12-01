@@ -8,7 +8,14 @@ const tags = [...new Set(allPosts.map((post) => post.data.tags).flat())];
 ---
 
 <Base pageTitle="tags">
-  <div class="grid grid-cols-8 gap-2">
-    {tags.map((tag) => <Tag name={tag} />)}
+  <h2>All Tags</h2>
+  <div class="grid grid-cols-12 gap-4 self-center place-items-start">
+    {
+      tags.map((tag) => (
+        <div class="col-span-3">
+          <Tag name={tag} />
+        </div>
+      ))
+    }
   </div>
 </Base>

@@ -4,6 +4,7 @@ import Base from "../../layouts/Base.astro";
 import Pagination from "../../components/Pagination.astro";
 import { PER_PAGE_POSTS_NUM } from "../../consts";
 import FormattedDate from "../../components/FormattedDate.astro";
+import PostSum from "../../components/PostSum.astro";
 
 const allPosts = await getCollection("blog");
 export async function getStaticPaths({ paginate }) {
@@ -25,13 +26,14 @@ const firstPath = pathname[1];
       <div class="flex flex-col space-y-6">
         {
           page.data.map((post) => (
-            <div>
-              <div class="mb-2">
+            <div class="flex flex-col">
+              <div>
                 <a href={`/blog/${post.slug}/`} class="">
                   {post.data.title}
                 </a>
               </div>
               <FormattedDate date={post.data.pubDate} />
+              <PostSum slug={post.slug} />
             </div>
           ))
         }

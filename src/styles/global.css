@@ -1,5 +1,5 @@
 body {
-	font: Helvetica, Arial, sans-serif;
+	font-family: Helvetica, Arial, sans-serif;
 }
 
 a {
@@ -10,4 +10,7 @@ a {
 a:hover{
 	color: white;
 	background-color: #37a;
+}
+.astro-code {
+	padding: 0.5em;
 }

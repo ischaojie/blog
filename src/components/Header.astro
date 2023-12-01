@@ -2,13 +2,15 @@
 import HeaderLink from "./HeaderLink.astro";
 import { SITE_TITLE } from "../consts";
 import { Image } from "astro:assets";
+import Avatar from "../assets/avatar.jpg";
 ---
 
 <header class="bg-green-50">
-  <nav
-    class="w-2/3 mx-auto flex justify-between items-center py-2 px-12"
-  >
-    <h2><a href="/">{SITE_TITLE}</a></h2>
+  <nav class="w-2/3 mx-auto flex justify-between items-center py-2 px-12 h-18">
+    <div class="flex items-center space-x-2">
+      <Image src={Avatar} alt="avatar" width={"48"} />
+      <h2 class="text-db-green">Hi, I am Chaojie</h2>
+    </div>
     <div class="internal-links space-x-4">
       <HeaderLink href="/">Home</HeaderLink>
       <HeaderLink href="/blog">Blog</HeaderLink>

@@ -8,6 +8,9 @@ export default defineConfig({
       "dbBlue": "#37a",
       "dbGreen": "#072",
       "dbGreenLight": "#83BF73",
+      "dbYellow": "#fff6ed",
+      "dbYellowLight": "#faefe3",
+      "dbBlack": "#555",
     }
   }
 })
