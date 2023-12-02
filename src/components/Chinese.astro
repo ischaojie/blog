@@ -1,0 +1,20 @@
+---
+const { post } = Astro.props;
+function containsChinese(text) {
+  var reg = /[\u4E00-\u9FA5\uF900-\uFA2D]/;
+  return reg.test(text);
+}
+---
+
+{
+  post && containsChinese(post.data.title) ? (
+    <span
+      class="text-base px-1 border border-solid"
+      style="background-color:#e3f1ed; color:#4f946e; border-color:#e3f1ed;"
+    >
+      中文
+    </span>
+  ) : (
+    ""
+  )
+}

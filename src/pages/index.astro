@@ -7,6 +7,7 @@ import Social from "../components/Social.astro";
 import { Image } from "astro:assets";
 import Avatar from "../assets/avatar.jpg";
 import { Content as Intro } from "../pages/intro.md";
+import Chinese from "../components/Chinese.astro";
 
 const posts = (await getCollection("blog"))
   .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
@@ -37,6 +38,7 @@ const posts = (await getCollection("blog"))
                 {post.data.title}
               </a>
               <FormattedDate date={post.data.pubDate} />
+              <Chinese post={post}/>
             </div>
           ))
         }

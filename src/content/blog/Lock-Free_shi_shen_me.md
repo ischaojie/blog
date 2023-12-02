@@ -1,38 +1,38 @@
 ---
-title: "Lock Free是什么"
+title: "Lock Free 是什么"
 pubDate: "2020-08-28T15:17:05+08:00"
 tags: ["分布式", "算法"]
 ---
 
-什么是Lock-Free？
+什么是 Lock-Free？
 
 在并发访问某个资源的实现中，经常利用锁机制来保证对资源的正确访问。但是锁机制的问题在于会出先死锁、活锁或者线程调度优先级被抢占等问题，同时锁的增加和释放都会消耗时间，导致性能问题。
 
-Lock-Free指的是不通过锁机制来保证资源的并发访问。也就是说线程间不会相互阻塞了。
+Lock-Free 指的是不通过锁机制来保证资源的并发访问。也就是说线程间不会相互阻塞了。
 
 ![lock-free](https://shiniao.fun/images/lockfree.png))
 
-实现Lock-Free常见的解决办法是利用CAS操作，CAS是啥？
+实现 Lock-Free 常见的解决办法是利用 CAS 操作，CAS 是啥？
 
-CAS（Compare and Swap）是一种原子操作，原子很好理解，不可分割（比如原子事务），原子操作意味着CPU在操作内存时（读写）要么一次完成，要么失败，不会出现只完成一部分的现象。现代CPU对原子的读写操作都有相应的支持，比如X86/64架构就通过CAS的方式来实现，而ARM通过LL/SC（Load-Link/Store-Conditional）来实现。
+CAS（Compare and Swap）是一种原子操作，原子很好理解，不可分割（比如原子事务），原子操作意味着 CPU 在操作内存时（读写）要么一次完成，要么失败，不会出现只完成一部分的现象。现代 CPU 对原子的读写操作都有相应的支持，比如 X86/64 架构就通过 CAS 的方式来实现，而 ARM 通过 LL/SC（Load-Link/Store-Conditional）来实现。
 
-在Go语言中，可通过 atomic 包中的 CompareAndSwap** 方法来编程实现CAS：
+在 Go 语言中，可通过 atomic 包中的 CompareAndSwap** 方法来编程实现 CAS：
 
 ```go
 func CompareAndSwapPointer(addr *unsafe.Pointer, old, new unsafe.Pointer) (swapped bool)
 ```
 
-使用CAS的过程中有一个问题，考虑如下状况：
+使用 CAS 的过程中有一个问题，考虑如下状况：
 
-如果线程1读取共享内存地址得到A，这时候线程2抢占线程1，将A的值修改为B，然后又改回A，线程1再次读取得到A，虽然结果相同，但是A已经被修改过了，这个就是**ABA问题**。
+如果线程 1 读取共享内存地址得到 A，这时候线程 2 抢占线程 1，将 A 的值修改为 B，然后又改回 A，线程 1 再次读取得到 A，虽然结果相同，但是 A 已经被修改过了，这个就是**ABA 问题**。
 
-一种办法是通过类似版本号的方式来解决，每次更新的时候 counter+1，比如对于上面的问题，在线程2修改的时候，因为增加了版本号，导致修改前后的A值并不相同：
+一种办法是通过类似版本号的方式来解决，每次更新的时候 counter+1，比如对于上面的问题，在线程 2 修改的时候，因为增加了版本号，导致修改前后的 A 值并不相同：
 
 ```
 1A--2B--3A
 ```
 
-在论文[《 Simple, Fast, and Practical Non-Blocking and Blocking Concurrent Queue Algorithms》](https://www.cs.rochester.edu/u/scott/papers/1996_PODC_queues.pdf) 中，描述了一种利用CAS的Lock-Free 队列的实现，通过 **counter 机制**解决了CAS中的ABA问题，并且给出了详细的伪代码实现，可查看论文中的详细介绍。
+在论文[《 Simple, Fast, and Practical Non-Blocking and Blocking Concurrent Queue Algorithms》](https://www.cs.rochester.edu/u/scott/papers/1996_PODC_queues.pdf) 中，描述了一种利用 CAS 的 Lock-Free 队列的实现，通过 **counter 机制**解决了 CAS 中的 ABA 问题，并且给出了详细的伪代码实现，可查看论文中的详细介绍。
 
 ```
 structure pointer_t {ptr: pointer to node_t, count: unsigned integer}
@@ -94,13 +94,13 @@ structure pointer_t {ptr: pointer to node_t, count: unsigned integer}
  D20:   return TRUE                   // Queue was not empty, dequeue succeeded
 ```
 
-除此之外，该论文还给出了一种two-lock的并发队列实现，通过在Head和Tail分别添加锁，来保证入队和出队的完全并发操作。
+除此之外，该论文还给出了一种 two-lock 的并发队列实现，通过在 Head 和 Tail 分别添加锁，来保证入队和出队的完全并发操作。
 
-Lock-Free常用来实现底层的数据结构，比如队列、栈等，本文比较了使用单锁机制的队列实现和参考上述论文的Lock-Free队列实现，在 1<<12 个节点的出队入队中，两种算法实现的性能测试结果如下图所示：
+Lock-Free 常用来实现底层的数据结构，比如队列、栈等，本文比较了使用单锁机制的队列实现和参考上述论文的 Lock-Free 队列实现，在 1<<12 个节点的出队入队中，两种算法实现的性能测试结果如下图所示：
 
 ![性能测试](https://shiniao.fun/images/benchmark.png)
 
-可以看到，随着处理器个数的增加，队列的Lock-Free算法一直稳定在200ns/op，性能更佳，而使用锁的算法耗时要高出一倍。
+可以看到，随着处理器个数的增加，队列的 Lock-Free 算法一直稳定在 200ns/op，性能更佳，而使用锁的算法耗时要高出一倍。
 
 > 代码实现参考：
 >

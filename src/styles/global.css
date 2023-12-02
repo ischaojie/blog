@@ -1,16 +1,26 @@
 body {
-	font-family: Helvetica, Arial, sans-serif;
+  font-family: Helvetica, Arial, sans-serif;
 }
 
 a {
-	text-decoration: none;
-	color: #37a;
+  text-decoration: none;
+  color: #37a;
 }
 
-a:hover{
-	color: white;
-	background-color: #37a;
+a:hover {
+  color: white;
+  background-color: #37a;
 }
 .astro-code {
-	padding: 0.5em;
+  padding: 0.5em;
+  border: 1px solid #f9f9f9;
+}
+
+blockquote {
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='15' viewBox='0 -1 14 15'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cpath fill='%23D8D8D8' d='M1 5.76h5.28v7.68H1z'/%3E%3Cpath stroke='%23D8D8D8' stroke-width='2' d='M8.683 6.17S8.34 2.429 12.254.458M1.963 6.17S1.62 2.429 5.534.458'/%3E%3Cpath fill='%23D8D8D8' d='M7.72 5.76H13v7.68H7.72z'/%3E%3C/g%3E%3C/svg%3E");
+  background-position: 0 0;
+  background-repeat: no-repeat;
+  background-size: 16px 18px;
+  padding: 0 0 0 2em;
+  color: #7b7b7b;
 }

@@ -1,6 +1,6 @@
-I am currently teaching at a university and previously worked at Douban.
+I am currently teaching at a university (Software Engineering) and previously worked at [Douban](https://douban.com).
 
-I’m interested in programming, movies, design and some hardware stuffs. Sometimes have unrealistic fantasies.
+I’m interested in programming, literature, movies, design and some hardware stuffs. Sometimes have unrealistic fantasies.
 
 I am a beginner in photography, and my works can be found at [unsplash](https://unsplash.com/@chaojie).
 

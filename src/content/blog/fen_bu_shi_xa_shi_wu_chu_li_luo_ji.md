@@ -1,29 +1,29 @@
 ---
-title: "分布式XA事务处理逻辑"
+title: "分布式 XA 事务处理逻辑"
 pubDate: "2020-08-21T22:00:04+08:00"
 tags: ["分布式", "learn"]
 ---
 
 
-事务在数据库中代表一系列操作要么全部都完成，要么全部都失败，ACID规定了事务操作的原子性、一致性、隔离性和持久性。然而数据库的环境不可能只在单机上，在分布式环境下，一个事务中某个操作可能发往A节点，而另一个操作发往B节点，这就导致无法保证ACID的原则。
+事务在数据库中代表一系列操作要么全部都完成，要么全部都失败，ACID 规定了事务操作的原子性、一致性、隔离性和持久性。然而数据库的环境不可能只在单机上，在分布式环境下，一个事务中某个操作可能发往 A 节点，而另一个操作发往 B 节点，这就导致无法保证 ACID 的原则。
 
-实现分布式事务常见的解决办法有以下几种：XA两阶段提交协议、TCC协议和SAGA协议。但是这些解决办法都不可能完全保证事务不出错。分布式系统中有一个CAP定理，说的是在分布式情况下，不可能同时满足一致性、可用性和容错性这三个条件，一般需要满足其中两个条件。
+实现分布式事务常见的解决办法有以下几种：XA 两阶段提交协议、TCC 协议和 SAGA 协议。但是这些解决办法都不可能完全保证事务不出错。分布式系统中有一个 CAP 定理，说的是在分布式情况下，不可能同时满足一致性、可用性和容错性这三个条件，一般需要满足其中两个条件。
 
-## XA两阶段提交协议
+## XA 两阶段提交协议
 
-XA协议规定了分布式事务的标准，其中 **AP** 代表应用程序，**TM** 代表事务管理器，负责协调和管理事务，而**RM** 代表着资源管理器。
+XA 协议规定了分布式事务的标准，其中 **AP** 代表应用程序，**TM** 代表事务管理器，负责协调和管理事务，而**RM** 代表着资源管理器。
 
 ![image-20200723085002817](C:\Users\admin.MENGFANDE3-PC\AppData\Roaming\Typora\typora-user-images\image-20200723085002817.png)
 
-而事务的具体处理过程就是TM和RM之间的交互，分为两个阶段：
+而事务的具体处理过程就是 TM 和 RM 之间的交互，分为两个阶段：
 
-第一阶段：事务管理器要求每个涉及到事务的数据库预提交(precommit)此操作，并反映是否可以提交。
+第一阶段：事务管理器要求每个涉及到事务的数据库预提交 (precommit) 此操作，并反映是否可以提交。
 
 第二阶段：事务管理器要求每个数据库提交数据，或者回滚数据。
 
 
 
-以MySQL中的XA处理逻辑为例（MySQL5.7版本实现了对XA协议的支持），来看下这两个阶段的逻辑处理过程。
+以 MySQL 中的 XA 处理逻辑为例（MySQL5.7 版本实现了对 XA 协议的支持），来看下这两个阶段的逻辑处理过程。
 
 对于一个事务：
 
@@ -36,25 +36,25 @@ commit;
 
 ### **第一阶段**
 
-事务管理器会生成一个全局的事务ID，比如使用uuid生成一个唯一的ID，为了方便用 **xid1** 代替。
+事务管理器会生成一个全局的事务 ID，比如使用 uuid 生成一个唯一的 ID，为了方便用 **xid1** 代替。
 
 首先，遇到 **begin**，不处理。
 
-然后是 **insert** 操作，事务管理器根据表中主键的值计算（hash）出应该分布在哪个节点上，比如insert语句被计算出应该发到节点A上，事务管理器就像A节点发送命令开始XA事务，同时将insert语句发送过去。
+然后是 **insert** 操作，事务管理器根据表中主键的值计算（hash）出应该分布在哪个节点上，比如 insert 语句被计算出应该发到节点 A 上，事务管理器就像 A 节点发送命令开始 XA 事务，同时将 insert 语句发送过去。
 
 ```sql
 xa start 'xid1';  # 开启事务
 insert into student values ('xiaoming', 18);
 ```
 
-接下来 **update** 操作，同样的，事务管理器根据主键计算所属节点，开启XA，发送update语句。
+接下来 **update** 操作，同样的，事务管理器根据主键计算所属节点，开启 XA，发送 update 语句。
 
 ```sql
 xa start 'xid1';
 update test set age = 18 where name = 'xiaoming';
 ```
 
-**commit** 的时候，事务管理器分别向节点A和B发送一个预提交操作：
+**commit** 的时候，事务管理器分别向节点 A 和 B 发送一个预提交操作：
 
 ```sql
 xa end 'xid1';
@@ -63,23 +63,23 @@ xa prepare 'xid1';
 
 ### 第二阶段
 
-如果节点A和B都返回就绪ready，此时进入 **第二阶段**：
+如果节点 A 和 B 都返回就绪 ready，此时进入 **第二阶段**：
 
-事务管理器分别向节点AB发送commit操作：
+事务管理器分别向节点 AB 发送 commit 操作：
 
 ```sql
 xa commit 'xid1';
 ```
 
-相反的，如果有任何一个节点是unready，事务管理器就会通知A、B节点的操作回滚：
+相反的，如果有任何一个节点是 unready，事务管理器就会通知 A、B 节点的操作回滚：
 
 ```sql
 xa rollback'xid1';
 ```
 
-有一个问题，如果在进入第二阶段commit的时候，某个数据节点出现故障，会导致节点状态不一致。解决办法是把XA事务处理的过程也存入日志数据，比如MySQL将其写入了binlog，这样在出现问题时还可以恢复。
+有一个问题，如果在进入第二阶段 commit 的时候，某个数据节点出现故障，会导致节点状态不一致。解决办法是把 XA 事务处理的过程也存入日志数据，比如 MySQL 将其写入了 binlog，这样在出现问题时还可以恢复。
 
-整个XA的过程：
+整个 XA 的过程：
 
 ```sql
 # 阶段一
@@ -98,16 +98,16 @@ xa commit 'xid1';
 xa rollback 'xid1'; # 失败回滚
 ```
 
-## EverDB分布式事务的支持
+## EverDB 分布式事务的支持
 
-### MyCat中的实现
+### MyCat 中的实现
 
-EDB-Grid组件中，借鉴了MyCat（也是一个数据库中间件）的XA处理逻辑，MyCat根据XA协议实现了对分布式事务的支持，具体来说：
+EDB-Grid 组件中，借鉴了 MyCat（也是一个数据库中间件）的 XA 处理逻辑，MyCat 根据 XA 协议实现了对分布式事务的支持，具体来说：
 
-通过数据库编程接口（比如JDBC，也就是XA协议中的AP）开启XA事务，然后执行SQL语句，预提交，最后commit。
+通过数据库编程接口（比如 JDBC，也就是 XA 协议中的 AP）开启 XA 事务，然后执行 SQL 语句，预提交，最后 commit。
 
 ```java
- // 开始XA事务
+ // 开始 XA 事务
  conn.prepareStatement("set xa=on").execute();
 
 // 插入语句
@@ -119,7 +119,7 @@ conn.prepareStatement(sql2).execute();
  conn.commit();
 ```
 
-过程跟MySQL类似，在实现上，利用uuid生成了一个全局的事务ID：
+过程跟 MySQL 类似，在实现上，利用 uuid 生成了一个全局的事务 ID：
 
 ```java
 public void setXATXEnabled(boolean xaTXEnabled) {
@@ -138,7 +138,7 @@ public static String getUUID() {
 }
 ```
 
-然后在事务管理器向节点分发语句时，会先写入XA START：
+然后在事务管理器向节点分发语句时，会先写入 XA START：
 
 ```java
 if (expectAutocommit == false && xaTxID != null && xaStatus == TxState.TX_INITIALIZE_STATE) {
@@ -154,7 +154,7 @@ sb.append(rrn.getStatement() + ";");
 this.sendQueryCmd(sb.toString());
 ```
 
-MyCat在执行事务操作是，会同时将其写入日志中，保证可恢复。
+MyCat 在执行事务操作是，会同时将其写入日志中，保证可恢复。
 
 ```java
 if (mysqlCon.getXaStatus() == TxState.TX_STARTED_STATE) { // XA 事务
@@ -165,7 +165,7 @@ if (mysqlCon.getXaStatus() == TxState.TX_STARTED_STATE) { // XA 事务
                mysqlCon.execBatchCmd(cmds);
 ```
 
-同样的，commit时也会同步写入日志。
+同样的，commit 时也会同步写入日志。
 
 rollback：
 
@@ -180,11 +180,11 @@ if (needRollback) {
                // ...
 ```
 
-### EverDB中的实现
+### EverDB 中的实现
 
-再来看下EverDB的处理过程：
+再来看下 EverDB 的处理过程：
 
-首先是生成xid，从0开始递增。
+首先是生成 xid，从 0 开始递增。
 
 ```c++
 unsigned long XA_manager::generate_xid()
@@ -201,7 +201,7 @@ unsigned long XA_manager::generate_xid()
       //...
 ```
 
-开始XA事务：
+开始 XA 事务：
 
 ```c++
 void MySQLXA_helper::init_conn_to_start_xa(Session *session,
@@ -232,7 +232,7 @@ void MySQLXA_helper::init_conn_to_start_xa(Session *session,
 
 
 
-第二阶段：XA COMMIT 或者ROLLBACK：
+第二阶段：XA COMMIT 或者 ROLLBACK：
 
 ```c++
 void xa_commit_or_rollback_xid(Connection *conn, string xid, int flag)
@@ -253,4 +253,4 @@ void xa_commit_or_rollback_xid(Connection *conn, string xid, int flag)
 }
 ```
 
-同时事务处理的过程会写入redolog中，比如上面的开始XA事务中 **record_xa_redo_log** 。
+同时事务处理的过程会写入 redolog 中，比如上面的开始 XA 事务中 **record_xa_redo_log** 。

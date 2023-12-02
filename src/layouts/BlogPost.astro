@@ -9,6 +9,7 @@ import Avatar from "../assets/avatar.jpg";
 type Props = CollectionEntry<"blog">["data"];
 
 const { title, pubDate, updatedDate, tags } = Astro.props;
+const isPoetry = tags?.includes("诗歌");
 ---
 
 <Base pageTitle={title}>
@@ -16,7 +17,7 @@ const { title, pubDate, updatedDate, tags } = Astro.props;
     <article class="text-justify">
       <div class="space-y-4">
         <h2>{title}</h2>
-        <div class="flex items-center space-x-4 text-base text-gray-500">
+        <div class="flex items-center space-x-4 text-base text-neutral-400">
           <div class="flex space-x-2">
             <Image src={Avatar} alt="avatar" width={"24"} />
             <div>Chaojie</div>
@@ -35,24 +36,30 @@ const { title, pubDate, updatedDate, tags } = Astro.props;
           {tags?.map((tag) => <Tag name={tag} />)}
         </div>
       </div>
-      <div>
+      <div class:list={['box', { 'text-center': isPoetry }]}>
         <slot />
       </div>
+      <p class="my-12 text-base text-neutral-400">
+        &copy; <a
+          href="https://creativecommons.org/licenses/by-nc-sa/4.0/"
+          class="text-neutral-400">CC BY-NC-SA 4.0</a
+        > | Chaojie
+      </p>
     </article>
   </main>
-  <script src="https://giscus.app/client.js"
-        data-repo="ischaojie/blog"
-        data-repo-id="MDEwOlJlcG9zaXRvcnkyODk4MDA1NTY="
-        data-category="General"
-        data-category-id="DIC_kwDOEUYBbM4CPWbt"
-        data-mapping="title"
-        data-strict="0"
-        data-reactions-enabled="1"
-        data-emit-metadata="0"
-        data-input-position="top"
-        data-theme="light"
-        data-lang="en"
-        crossorigin="anonymous"
-        async>
-</script>
+  <script
+    src="https://giscus.app/client.js"
+    data-repo="ischaojie/blog"
+    data-repo-id="MDEwOlJlcG9zaXRvcnkyODk4MDA1NTY="
+    data-category="General"
+    data-category-id="DIC_kwDOEUYBbM4CPWbt"
+    data-mapping="title"
+    data-strict="0"
+    data-reactions-enabled="1"
+    data-emit-metadata="0"
+    data-input-position="top"
+    data-theme="light"
+    data-lang="en"
+    crossorigin="anonymous"
+    async></script>
 </Base>

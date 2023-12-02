@@ -2,6 +2,7 @@
 import Base from "../../layouts/Base.astro";
 import { getCollection } from "astro:content";
 import FormattedDate from "../../components/FormattedDate.astro";
+import Chinese from "../../components/Chinese.astro";
 
 export async function getStaticPaths() {
   const allPosts = await getCollection("blog");
@@ -32,9 +33,10 @@ const { posts } = Astro.props;
         posts.map((post) => (
           <div class="flex flex-col">
             <div>
-              <a href={`/blog/${post.slug}/`} class="">
+              <a href={`/blog/${post.slug}/`} class="mr-2">
                 {post.data.title}
               </a>
+              <Chinese post={post}/>
             </div>
 
             <FormattedDate date={post.data.pubDate} />
