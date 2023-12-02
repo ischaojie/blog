@@ -1,0 +1,16 @@
+---
+const { project } = Astro.props;
+---
+
+<div class="project px-4 py-2">
+  <h2>
+    <a href={project.uri} target="_blank">{project.name}</a>
+  </h2>
+  <p class="">{project.desc}</p>
+</div>
+
+<style>
+  .project {
+    background-color: #f2f7f6;
+  }
+</style>

@@ -1,0 +1,36 @@
+---
+import Base from "../layouts/Base.astro";
+import Project from "../components/Project.astro";
+
+const contributed = [
+  {
+    name: "Rye",
+    uri: "https://github.com/mitsuhiko/rye/commits?author=ischaojie",
+    desc: "An Experimental Package Management Solution for Python",
+  },
+  {
+    name: "Hatch",
+    uri: "https://github.com/pypa/hatch/commits?author=ischaojie",
+    desc: "Modern, extensible Python project management"
+  },
+  {
+    name: "Ruff",
+    uri: "https://github.com/astral-sh/ruff/commits?author=ischaojie",
+    desc: "An extremely fast Python linter and code formatter, written in Rust",
+  },
+  {
+    name: "Maturin",
+    uri: "https://github.com/PyO3/maturin/commits?author=ischaojie",
+    desc: "Build and publish crates with pyo3, rust-cpython and cffi bindings as well as rust binaries as python packages",
+  },
+];
+---
+
+<Base>
+  <div class="tracking-wide">
+    <h2 class="text-center">Contributed</h2>
+    <div class="grid grid-cols-3 gap-3">
+      {contributed.map((project) => <Project project={project} />)}
+    </div>
+  </div>
+</Base>

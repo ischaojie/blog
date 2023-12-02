@@ -1,5 +1,9 @@
 ---
-
+const social = [
+  { name: "Douban", uri: "https://www.douban.com/people/218724191/" },
+  { name: "Twitter", uri: "https://twitter.com/chaojie_cn" },
+  { name: "Github", uri: "https://github.com/ischaojie" },
+];
 ---
 
 <div class="my-12 space-y-2">
@@ -7,23 +11,19 @@
     Find me on&nbsp;·&nbsp;·&nbsp;·&nbsp;·&nbsp;·&nbsp;·
   </h3>
   <div class="flex items-center space-x-4">
-    <div class="flex items-center space-x-2">
-      <img height="24" width="24" src="https://cdn.simpleicons.org/douban" />
-      <a href="https://www.douban.com/people/218724191/" target="_blank">
-        <span class="text-xl">Douban</span>
-      </a>
-    </div>
-    <div class="flex items-center space-x-2">
-      <img height="32" width="32" src="https://cdn.simpleicons.org/twitter" />
-      <a href="https://twitter.com/chaojie_cn" target="_blank">
-        <span class="text-xl">Twitter</span>
-      </a>
-    </div>
-    <div class="flex items-center space-x-2">
-      <img height="32" width="32" src="https://cdn.simpleicons.org/github" />
-      <a href="https://github.com/ischaojie" target="_blank">
-        <span class="text-xl">Github</span>
-      </a>
-    </div>
+    {
+      social.map(({ name, uri }) => (
+        <div class="flex items-center space-x-2">
+          <img
+            height="24"
+            width="24"
+            src={`https://cdn.simpleicons.org/${name}`}
+          />
+          <a href={`${uri}`} target="_blank">
+            <span class="text-xl">{name}</span>
+          </a>
+        </div>
+      ))
+    }
   </div>
 </div>

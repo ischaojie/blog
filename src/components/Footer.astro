@@ -5,8 +5,29 @@ const today = new Date();
 ---
 
 <footer
-	class="border-t-1 border-x-0 border-b-0 border-dashed w-2/3 mx-auto text-justify text-base mt-12 text-gray-500 py-2"
+  class="flex items-center justify-between border-t-1 border-x-0 border-b-0 border-dashed border-neutral-300 w-2/3 mx-auto text-justify text-base mt-12 text-gray-500 py-2"
 >
-	&copy; {today.getFullYear()}
-	{SITE_TITLE}. All rights reserved.
+  <div>
+    &copy; 2015~{today.getFullYear()}
+    {SITE_TITLE}. All rights reserved.
+  </div>
+  <div>
+    <a href="/rss.xml" class="">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        class="icon icon-tabler icon-tabler-rss"
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        stroke-width="2"
+        stroke="currentColor"
+        fill="none"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        ><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path
+          d="M5 19m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"></path><path
+          d="M4 4a16 16 0 0 1 16 16"></path><path d="M4 11a9 9 0 0 1 9 9"
+        ></path></svg>
+    </a>
+  </div>
 </footer>
