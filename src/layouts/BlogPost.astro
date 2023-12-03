@@ -36,7 +36,7 @@ const isPoetry = tags?.includes("诗歌");
           {tags?.map((tag) => <Tag name={tag} />)}
         </div>
       </div>
-      <div class:list={['box', { 'text-center': isPoetry }]}>
+      <div class:list={['box', { 'text-center': isPoetry }]} id="post">
         <slot />
       </div>
       <p class="my-12 text-base text-neutral-400">
@@ -63,3 +63,11 @@ const isPoetry = tags?.includes("诗歌");
     crossorigin="anonymous"
     async></script>
 </Base>
+
+<style is:inline>
+  #post img {
+    display: block;
+    width: 100%;
+    margin: 0 auto;
+  }
+</style>

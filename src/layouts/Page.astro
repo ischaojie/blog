@@ -1,0 +1,17 @@
+---
+import Base from "./Base.astro";
+---
+
+<Base>
+  <div id="page">
+    <slot />
+  </div>
+</Base>
+
+<style is:inline>
+  #page img {
+    display: block;
+    width: 100%;
+    margin: 0 auto;
+  }
+</style>
