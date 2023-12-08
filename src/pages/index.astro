@@ -4,10 +4,9 @@ import { HOMEPAGE_POSTS_NUM } from "../consts";
 import Base from "../layouts/Base.astro";
 import { getCollection } from "astro:content";
 import Social from "../components/Social.astro";
-import { Image } from "astro:assets";
-import Avatar from "../assets/avatar.jpg";
 import { Content as Intro } from "../pages/intro.md";
 import Chinese from "../components/Chinese.astro";
+import Like from "../components/Like";
 
 const posts = (await getCollection("blog"))
   .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
@@ -21,7 +20,9 @@ const posts = (await getCollection("blog"))
     >
       <Intro />
     </div>
-
+    <div class="flex justify-center my-4">
+      <Like source="chaojie" client:load />
+    </div>
     <Social />
     <div>
       <h3>
@@ -38,7 +39,7 @@ const posts = (await getCollection("blog"))
                 {post.data.title}
               </a>
               <FormattedDate date={post.data.pubDate} />
-              <Chinese post={post}/>
+              <Chinese post={post} />
             </div>
           ))
         }

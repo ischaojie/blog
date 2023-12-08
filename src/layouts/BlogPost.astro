@@ -5,10 +5,11 @@ import Base from "./Base.astro";
 import Tag from "../components/Tag.astro";
 import { Image } from "astro:assets";
 import Avatar from "../assets/avatar.jpg";
+import Like from "../components/Like";
 
 type Props = CollectionEntry<"blog">["data"];
 
-const { title, pubDate, updatedDate, tags } = Astro.props;
+const { title, pubDate, updatedDate, tags, slug } = Astro.props;
 const isPoetry = tags?.includes("诗歌");
 ---
 
@@ -36,15 +37,18 @@ const isPoetry = tags?.includes("诗歌");
           {tags?.map((tag) => <Tag name={tag} />)}
         </div>
       </div>
-      <div class:list={['box', { 'text-center': isPoetry }]} id="post">
+      <div class:list={["box", { "text-center": isPoetry }]} id="post">
         <slot />
       </div>
-      <p class="my-12 text-base text-neutral-400">
+      <p class="my-10 text-base text-neutral-400">
         &copy; <a
           href="https://creativecommons.org/licenses/by-nc-sa/4.0/"
           class="text-neutral-400">CC BY-NC-SA 4.0</a
         > | Chaojie
       </p>
+      <div class="text-right my-2">
+        <Like source={`chaojie-blog-${slug}`} client:load />
+      </div>
     </article>
   </main>
   <script
@@ -55,7 +59,7 @@ const isPoetry = tags?.includes("诗歌");
     data-category-id="DIC_kwDOEUYBbM4CPWbt"
     data-mapping="title"
     data-strict="0"
-    data-reactions-enabled="1"
+    data-reactions-enabled="0"
     data-emit-metadata="0"
     data-input-position="top"
     data-theme="light"
