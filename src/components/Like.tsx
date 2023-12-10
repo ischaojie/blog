@@ -49,6 +49,7 @@ export default function Like({ source }: { source: string }) {
           border: "1px solid",
           borderColor: like ? "#EDEDED" : "#DAEDE4",
           borderRadius: "2px",
+          cursor: "pointer",
         }}
       >
         {like ? <HeartFilled /> : <Heart />}
