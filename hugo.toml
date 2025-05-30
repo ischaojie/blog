@@ -1,8 +1,8 @@
-baseURL = 'https://blog.zzzhu.me/'
+baseURL = 'https://blog.zzzhu.me'
 languageCode = 'en-us'
 theme = 'hugo-bearblog'
 
-title = 'zzzhu的博客'
+title = 'Zzz :)'
 author = 'zzzhu'
 copyright = "Copyright © 2025, zzzhu."
 
@@ -13,7 +13,7 @@ disableKinds = ["taxonomy"]
 ignoreErrors = ["error-disable-taxonomy"]
 [permalinks]
 blog = "/:slug/"
-tags = "/blog/:slug"
+tags = "/tags/:slug"
 
 [params]
 description = 'zzzhu的博客'
