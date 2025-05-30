@@ -1,0 +1,31 @@
+baseURL = 'https://blog.zzzhu.me/'
+languageCode = 'en-us'
+theme = 'hugo-bearblog'
+
+title = 'zzzhu的博客'
+author = 'zzzhu'
+copyright = "Copyright © 2025, zzzhu."
+
+enableRobotsTXT = true
+
+# Generate "Bearblog"-like URLs !only!, see https://bearblog.dev/.
+disableKinds = ["taxonomy"]
+ignoreErrors = ["error-disable-taxonomy"]
+[permalinks]
+blog = "/:slug/"
+tags = "/blog/:slug"
+
+[params]
+description = 'zzzhu的博客'
+author = 'zzzhu'
+authorEmail = 'hi@zzzhu.me'
+
+
+# Configure markup highlighter to match "Bearblog" aesthetics, see
+# https://gohugo.io/configuration/markup/#highlight
+[markup]
+[markup.highlight]
+style = 'friendly'
+lineNos = true
+lineNumbersInTable = false
+codeFences = true
