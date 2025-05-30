@@ -1,4 +1,4 @@
-baseURL = 'https://blog.zzzhu.me'
+baseURL = 'https://blog.zzzhu.me/'
 languageCode = 'en-us'
 theme = 'hugo-bearblog'
 
