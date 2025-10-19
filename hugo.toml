@@ -1,10 +1,10 @@
-baseURL = 'https://blog.zzzhu.me/'
+baseURL = 'https://blog.chaojie.dev/'
 languageCode = 'en-us'
 theme = 'hugo-bearblog'
 
-title = 'Zzz :)'
-author = 'zzzhu'
-copyright = "Copyright © 2025, zzzhu."
+title = 'Chaojie :)'
+author = 'chaojie'
+copyright = "Copyright © 2025, chaojie."
 
 enableRobotsTXT = true
 
@@ -16,9 +16,9 @@ blog = "/:slug/"
 tags = "/tags/:slug"
 
 [params]
-description = 'zzzhu的博客'
-author = 'zzzhu'
-authorEmail = 'hi@zzzhu.me'
+description = '潮戒的博客'
+author = '潮戒'
+authorEmail = 'hi@chaojie.dev'
 
 
 # Configure markup highlighter to match "Bearblog" aesthetics, see
